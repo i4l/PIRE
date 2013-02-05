@@ -2,8 +2,9 @@ module Combinators where
 
 -- A small combinator library
 
-import Push
+import PIRE
 import GenOCL
+import Util
 
 singleton :: Array Pull Expr
 singleton = array "a" (Num 1)
@@ -19,12 +20,31 @@ False ?? (p1,p2)  = iff (Num 0) p1 p2
 
 
 -- Parallelise this via openCl
-par :: Int -> (Expr -> Expr) -> Program
-par len f = Alloc (Num len) $ \allocF _ -> for (Num 0) (Num len) 
-                                               (\e -> allocF e (f e))
+parProg :: Int -> (Expr -> Expr) -> Program
+parProg len f = AllocNew (TPointer TInt) (Num len) $ \location -> par (Num 0) (Num len) 
+                                                                (\e -> location (f e)) 
+                                                                -- location :: Loc Expr :: Expr -> Program
+                                                                -- lambda   :: (Expr -> Program) -> Program
 
 
 fe :: Expr -> Expr
 fe e = e .+ e
 
-exPar = par 10 fe
+exPar :: Program
+exPar = parProg 10 fe
+
+example :: Gen ()
+--example = setupHeadings >> setupOCL >> gen exPar >> setupEnd
+example = setupHeadings >> gen exPar >> setupEnd
+
+
+------------------------------------------------------------
+-- helpers
+
+showProg :: Gen () -> IO ()
+showProg prog = putStr $ unlines $ (extractCode prog emptyEnv) ++ (extractCodeK prog emptyEnv)
+
+
+toFile :: Gen () -> FilePath -> IO ()
+toFile prog path = writeFile path (unlines $ extractCode prog emptyEnv)
+

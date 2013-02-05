@@ -1,6 +1,11 @@
 -- Built on a Representation by Koen Lindström Claessen.
 
-module Push where
+{-
+ - PIRE - a Parallel Intermediate Representation for Embedded languages
+-}
+
+module PIRE where
+
 
 -----------------------------------------------------------------------------
 -- expressions: completely standard
@@ -73,7 +78,8 @@ data Program
 -- splitting these into two allows us to potentially reuse old decls/names (I think)
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 --  | AllocNew Type Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
-  | AllocNew Type Size ((Loc Expr) -> Program)
+
+  | AllocNew Type Size ((Loc Expr) -> Program) -- openCL allocation 
 
 data Type = TInt | TChar | TFloat | TPointer Type
 
