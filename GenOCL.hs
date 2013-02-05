@@ -4,18 +4,18 @@ import Util
 import PIRE
 
 {- 
-My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
+ - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
+
+-- TODO patermeterize gen over Host and Kernel to avoid code duplication.
 
 gen :: Program -> Gen ()
 gen Skip = line "0;"
 
 gen (Assign name es e) = line $ show (Index name es) ++ " = " ++ show e ++ ";"
 
-
 gen (p1 :>> p2) = gen p1 >> gen p2
 
--- match out some more cases (Skip)
 gen (If c p1 p2) = do
   line $ "if( " ++ show c ++ " ) { "
   indent 2
@@ -27,7 +27,6 @@ gen (If c p1 p2) = do
   unindent 2
   line "}"
 
--- TODO: This is hard-coded just so it compiles something.
 gen (Par start max p) = do
     line "// Par in host code"
 --  d <- incVar
@@ -82,17 +81,16 @@ gen (AllocNew t siz f) = do
   let m = "mem" ++ show d
   line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
   k <- genKernel f -- f :: (Expr -> Program) -> Program. k is info about kernel
- -- genKernelThings k -- use kernel info to read memory back from GPU
- -- gen $ f (loc m)
+  line "// do memory allocation for OCL"
   return ()
 
-
-data Kernel = Kernel
+data Kernel = Kernel --Placeholder
 
 genKernel :: (Loc Expr -> Program) -> Gen Kernel
-genKernel f = genKernel' (f (loc "res")) >> return Kernel -- TODO return proper things
+genKernel f = genKernel' (f (locArray  "res" (var "tid")))  -- TODO This needs to be more controlled (from higher up).
+              >> return Kernel
   where
-    -- We need to treat Programs differently in the kernel code
+    -- We need to treat Programs differently in the kernel code (I think?)
     genKernel' :: Program -> Gen ()
     genKernel' Skip = lineK "0;"
     genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
@@ -108,14 +106,14 @@ genKernel f = genKernel' (f (loc "res")) >> return Kernel -- TODO return proper 
                 unindent 2
                 lineK "}"
 
-    genKernel' (Par start max p) = do --genKernel' (For start max p)
+    genKernel' (Par start max p) = do
       d <- incVar
-      let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+      let i = "tid" -- ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
       let kerName = 'k' : show d
-      lineK $ "__kernel void " ++ kerName ++ " ( __global int *A, __global int *res) {"
+      lineK $ "__kernel void " ++ kerName ++ " (__global int *A, __global int *res) {"
       lineK "int tid = get_global_id(0);"
       lineK "if( tid < max ) {"
-      genKernel' (p (var i)) -- Needs a Loc
+      genKernel' (p (var i))
 
       lineK "}"
       lineK "}"
@@ -125,7 +123,7 @@ genKernel f = genKernel' (f (loc "res")) >> return Kernel -- TODO return proper 
                   let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
                   lineK $ show TInt ++ " " ++ i ++ ";"
                   lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
-                                 ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
+                                  ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
                   indent 2
                   gen (p (var i))
                   unindent 2
@@ -139,17 +137,7 @@ genKernel f = genKernel' (f (loc "res")) >> return Kernel -- TODO return proper 
       lineK $ "free(" ++ m ++ ");"
     genKernel' (AllocNew _ _ _) = error "allocNew in genKernel'"
 
-genKernelThings :: Kernel -> Gen ()
-genKernelThings = undefined
  
- -- d <- incVar
- -- let m = "mem" ++ show d
- -- line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
- -- gen $ f (locArray m) (array m siz)
- -- line $ "free(" ++ m ++ ");"
-
-
-
 setupHeadings :: Gen ()
 setupHeadings = do
   line "#include <stdio.h>"
