@@ -79,7 +79,7 @@ data Program
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 --  | AllocNew Type Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 
-  | AllocNew Type Size ((Loc Expr) -> Program) -- openCL allocation 
+  | AllocNew Type Size (Loc Expr -> Program) -- openCL allocation 
 
 data Type = TInt | TChar | TFloat | TPointer Type
 

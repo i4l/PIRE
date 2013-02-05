@@ -29,20 +29,21 @@ gen (If c p1 p2) = do
 
 -- TODO: This is hard-coded just so it compiles something.
 gen (Par start max p) = do
-  d <- incVar
-  let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
-  let kerName = 'k' : show d
-  lineK $ "__kernel void " ++ kerName ++ " ( __global int *A, __global int *res) {"
-  lineK "int tid = get_global_id(0);"
-  lineK "if( tid < max ) {"
-  gen (p (var i))
-
-  -- assume Parameters A,res
-  lineK $ "res [tid] = " ++ "A[tid];"
-
-  lineK "}"
-
-  lineK "}"
+    line "// Par in host code"
+--  d <- incVar
+--  let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+--  let kerName = 'k' : show d
+--  lineK $ "__kernel void " ++ kerName ++ " ( __global int *A, __global int *res) {"
+--  lineK "int tid = get_global_id(0);"
+--  lineK "if( tid < max ) {"
+--  gen (p (var i))
+--
+--  -- assume Parameters A,res
+--  lineK $ "res [tid] = " ++ "A[tid];"
+--
+--  lineK "}"
+--
+--  lineK "}"
 
 gen (For e1 e2 p) = do
   d <- incVar
@@ -76,26 +77,70 @@ gen (Alloc siz f) = do
                                    -- enqueueWriteBuffer, createProgramWithSource, buildProgram etc..)
 -}
 
-gen (AllocNew t siz f) = undefined 
---  d <- incVar
---  let m = "mem" ++ show d
---  line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
---  k <- genKernel $ f (\e -> Skip) -- f :: (Expr -> Program) -> Program. k is info about kernel
---  genKernelThings k -- use kernel info to read memory back from GPU
---  gen $ f (loc m)
+gen (AllocNew t siz f) = do
+  d <- getVar
+  let m = "mem" ++ show d
+  line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+  k <- genKernel f -- f :: (Expr -> Program) -> Program. k is info about kernel
+ -- genKernelThings k -- use kernel info to read memory back from GPU
+ -- gen $ f (loc m)
+  return ()
 
 
---data Kernel = Kernel
---
---genKernel :: (Expr -> Program)  -> Gen Kernel
---genKernel f = genProgK $ f (Num 0)
---
---genProgK :: Program -> Gen Kernel
---genProgK Skip = lineK "0;"
---
---
---genKernelThings :: Kernel -> Gen ()
---genKernelThings = undefined
+data Kernel = Kernel
+
+genKernel :: (Loc Expr -> Program) -> Gen Kernel
+genKernel f = genKernel' (f (loc "res")) >> return Kernel -- TODO return proper things
+  where
+    -- We need to treat Programs differently in the kernel code
+    genKernel' :: Program -> Gen ()
+    genKernel' Skip = lineK "0;"
+    genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
+    genKernel' (p1 :>> p2) = gen p1 >> gen p2
+    genKernel' (If c p1 p2) = do
+                lineK $ "if( " ++ show c ++ " ) { "
+                indent 2
+                gen p1
+                unindent 2
+                lineK "else { "
+                indent 2
+                gen p2
+                unindent 2
+                lineK "}"
+
+    genKernel' (Par start max p) = do --genKernel' (For start max p)
+      d <- incVar
+      let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+      let kerName = 'k' : show d
+      lineK $ "__kernel void " ++ kerName ++ " ( __global int *A, __global int *res) {"
+      lineK "int tid = get_global_id(0);"
+      lineK "if( tid < max ) {"
+      genKernel' (p (var i)) -- Needs a Loc
+
+      lineK "}"
+      lineK "}"
+
+    genKernel' (For e1 e2 p) = do
+                  d <- incVar
+                  let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+                  lineK $ show TInt ++ " " ++ i ++ ";"
+                  lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
+                                 ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
+                  indent 2
+                  gen (p (var i))
+                  unindent 2
+                  lineK "}"
+
+    genKernel' (Alloc siz f) = do 
+      d <- incVar
+      let m = "mem" ++ show d
+      lineK $ m ++ " = malloc(" ++ show siz ++ ");"
+      gen $ f (locArray m) (array m siz)
+      lineK $ "free(" ++ m ++ ");"
+    genKernel' (AllocNew _ _ _) = error "allocNew in genKernel'"
+
+genKernelThings :: Kernel -> Gen ()
+genKernelThings = undefined
  
  -- d <- incVar
  -- let m = "mem" ++ show d
