@@ -36,7 +36,7 @@ example :: Gen ()
 --example = setupHeadings >> setupOCL >> gen exPar >> setupEnd
 example = setupHeadings >> gen exPar2 >> setupEnd
 
--- TODO don't want to explicit array
+-- TODO don't want to mention explicit array names
 exPar2 :: Program
 exPar2 = parProg 10 $ \e -> Index "A" [e] .+ Index "A" [e] 
 
