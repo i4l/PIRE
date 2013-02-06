@@ -81,14 +81,15 @@ gen (AllocNew t siz f) = do
   d <- getVar
   let m = "mem" ++ show d
   line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-  k <- genKernel $ f -- f :: (Expr -> Program) -> Program. k is info about kernel
+  k <- genKernel $ f
   line "// do memory allocation for OCL"
   return ()
 
 data Kernel = Kernel --Placeholder
 
 genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> Gen Kernel
-genKernel f = genKernel' (f (locArray  "res" (var "tid")) (array "lookMeUp" (error "fill in size for Array")))  -- TODO This needs to be more controlled
+-- TODO This needs to be more controlled
+genKernel f = genKernel' (f (locArray  "res" (var "tid")) (array "lookMeUp" (error "fill in size for Array")))  
               >> return Kernel
   where
     -- We need to treat Programs differently in the kernel code (I think?)

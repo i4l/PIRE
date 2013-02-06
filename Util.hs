@@ -5,17 +5,20 @@ module Util where
 -}
 
 import Control.Monad.State
+import qualified Data.Map as Map
 
 
 
 type Gen a = State Env a
 
 data Env = Env 
-          { varCount   :: Int      -- Variable counter
-          , code       :: [String] -- Accumulated code
-          , iDepth     :: Int      -- Indent depth
-          , kernelFile :: FilePath -- Name of the file containing kernels
-          , kernelCode :: [String] -- Accumulated kernel code
+          { varCount     :: Int      -- Variable counter
+          , code         :: [String] -- Accumulated code
+          , iDepth       :: Int      -- Indent depth
+          , kernelFile   :: FilePath -- Name of the file containing kernels
+          , kernelCode   :: [String] -- Accumulated kernel code
+          , paramCounter :: Int      -- Kernel parameter counter
+          , paramMap     :: Map.Map Int Int
           }
 
 extractCode :: Gen a -> Env -> [String]
