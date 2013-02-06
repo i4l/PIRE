@@ -81,14 +81,14 @@ gen (AllocNew t siz f) = do
   d <- getVar
   let m = "mem" ++ show d
   line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-  k <- genKernel f -- f :: (Expr -> Program) -> Program. k is info about kernel
+  k <- genKernel $ f -- f :: (Expr -> Program) -> Program. k is info about kernel
   line "// do memory allocation for OCL"
   return ()
 
 data Kernel = Kernel --Placeholder
 
-genKernel :: (Loc Expr -> Program) -> Gen Kernel
-genKernel f = genKernel' (f (locArray  "res" (var "tid")))  -- TODO This needs to be more controlled
+genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> Gen Kernel
+genKernel f = genKernel' (f (locArray  "res" (var "tid")) (array "lookMeUp" (error "fill in size for Array")))  -- TODO This needs to be more controlled
               >> return Kernel
   where
     -- We need to treat Programs differently in the kernel code (I think?)
@@ -111,7 +111,7 @@ genKernel f = genKernel' (f (locArray  "res" (var "tid")))  -- TODO This needs t
       d <- incVar
       let tid = "tid"
       let kerName = 'k' : show d
-      lineK $ "__kernel void " ++ kerName ++ " (__global int *A, __global int *res) {"
+      lineK $ "__kernel void " ++ kerName ++ " (__global int *A, __global int *res) {" -- TODO ..please.. fix me.
       lineK "int tid = get_global_id(0);"
       lineK $ "if( tid < " ++ show max ++ " ) {"
       genKernel' $ p (var tid)
@@ -136,7 +136,7 @@ genKernel f = genKernel' (f (locArray  "res" (var "tid")))  -- TODO This needs t
       lineK $ m ++ " = malloc(" ++ show siz ++ ");"
       genKernel' $ f (locArray m) (array m siz)
       lineK $ "free(" ++ m ++ ");"
-    genKernel' (AllocNew _ _ _) = error "allocNew in genKernel'"
+    genKernel' (AllocNew _ _ _) = error "Discovered allocNew in genKernel'. What were you thinking?"
 
  
 setupHeadings :: Gen ()
@@ -166,9 +166,9 @@ setupOCL = do
                     "MAX_SOURCE_SIZE, " ++ fp ++ ");"
   line $ "fclose( " ++ fp ++ " );"
   
-  let platformID = "platform_id"
-      deviceID   = "device_id"
-      numDevices = "ret_num_devices"
+  let platformID   = "platform_id"
+      deviceID     = "device_id"
+      numDevices   = "ret_num_devices"
       numPlatforms = "ret_num_platforms"
       context      = "context"
       queue        = "command_queue"

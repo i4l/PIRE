@@ -66,7 +66,6 @@ a     .<= b          = a :<=: b
 -----------------------------------------------------------------------------
 -- C-programs: completely standard
 
-
 data Program
   = Skip
   | Assign Name [Expr] Expr
@@ -79,8 +78,9 @@ data Program
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 --  | AllocNew Type Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 
-  | AllocNew Type Size (Loc Expr -> Program) -- "openCL" allocation 
+--  | AllocNew Type Size (Array Pull Expr -> Loc Expr -> Program) -- "openCL" allocation 
 
+  | AllocNew Type Size (Loc Expr -> Array Pull Expr -> Program)
 data Type = TInt | TChar | TFloat | TPointer Type
 
 
