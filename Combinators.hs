@@ -26,15 +26,27 @@ parProg len f = AllocNew (TPointer TInt) (Num len) $ \location -> par (Num 0) (N
                                                                 -- location :: Loc Expr :: Expr -> Program
                                                                 -- lambda   :: (Expr -> Program) -> Program
 
+forProg :: Int -> (Expr -> Expr) -> Program
+forProg len f = Alloc  (Num len) $
+  \allocf arr -> for (Num 0) (Num len)
+                 (\e -> allocf e 
+                        (f 
+                         (pull (doit arr) (Num 5))
+                        ) 
+                 )
+
 fe :: Expr -> Expr
 fe e = e .+ e
 
 exPar :: Program
 exPar = parProg 10 fe
 
+exFor :: Program
+exFor = forProg 10 fe
+
 example :: Gen ()
 --example = setupHeadings >> setupOCL >> gen exPar >> setupEnd
-example = setupHeadings >> gen exPar2 >> setupEnd
+example = setupHeadings >> gen exFor >> setupEnd
 
 -- TODO don't want to mention explicit array names
 exPar2 :: Program
