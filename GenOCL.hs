@@ -7,7 +7,8 @@ import PIRE
  - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
 
--- TODO patermeterize gen over Host and Kernel to avoid code duplication.
+-- TODO parameterize gen over Host and Kernel to avoid code duplication.
+-- TODO Text.PrettyPrint
 
 gen :: Program -> Gen ()
 gen Skip = line "0;"
@@ -87,33 +88,33 @@ gen (AllocNew t siz f) = do
 data Kernel = Kernel --Placeholder
 
 genKernel :: (Loc Expr -> Program) -> Gen Kernel
-genKernel f = genKernel' (f (locArray  "res" (var "tid")))  -- TODO This needs to be more controlled (from higher up).
+genKernel f = genKernel' (f (locArray  "res" (var "tid")))  -- TODO This needs to be more controlled
               >> return Kernel
   where
     -- We need to treat Programs differently in the kernel code (I think?)
     genKernel' :: Program -> Gen ()
     genKernel' Skip = lineK "0;"
     genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
-    genKernel' (p1 :>> p2) = gen p1 >> gen p2
+    genKernel' (p1 :>> p2) = genKernel' p1 >> genKernel' p2
     genKernel' (If c p1 p2) = do
                 lineK $ "if( " ++ show c ++ " ) { "
                 indent 2
-                gen p1
+                genKernel' p1
                 unindent 2
                 lineK "else { "
                 indent 2
-                gen p2
+                genKernel' p2
                 unindent 2
                 lineK "}"
 
-    genKernel' (Par start max p) = do
+    genKernel' (Par _ max p) = do
       d <- incVar
-      let i = "tid" -- ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+      let tid = "tid"
       let kerName = 'k' : show d
       lineK $ "__kernel void " ++ kerName ++ " (__global int *A, __global int *res) {"
       lineK "int tid = get_global_id(0);"
-      lineK "if( tid < max ) {"
-      genKernel' (p (var i))
+      lineK $ "if( tid < " ++ show max ++ " ) {"
+      genKernel' $ p (var tid)
 
       lineK "}"
       lineK "}"
@@ -125,7 +126,7 @@ genKernel f = genKernel' (f (locArray  "res" (var "tid")))  -- TODO This needs t
                   lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
                                   ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
                   indent 2
-                  gen (p (var i))
+                  genKernel' (p (var i))
                   unindent 2
                   lineK "}"
 
@@ -133,7 +134,7 @@ genKernel f = genKernel' (f (locArray  "res" (var "tid")))  -- TODO This needs t
       d <- incVar
       let m = "mem" ++ show d
       lineK $ m ++ " = malloc(" ++ show siz ++ ");"
-      gen $ f (locArray m) (array m siz)
+      genKernel' $ f (locArray m) (array m siz)
       lineK $ "free(" ++ m ++ ");"
     genKernel' (AllocNew _ _ _) = error "allocNew in genKernel'"
 

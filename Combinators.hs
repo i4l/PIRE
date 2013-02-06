@@ -26,7 +26,6 @@ parProg len f = AllocNew (TPointer TInt) (Num len) $ \location -> par (Num 0) (N
                                                                 -- location :: Loc Expr :: Expr -> Program
                                                                 -- lambda   :: (Expr -> Program) -> Program
 
-
 fe :: Expr -> Expr
 fe e = e .+ e
 
@@ -35,7 +34,11 @@ exPar = parProg 10 fe
 
 example :: Gen ()
 --example = setupHeadings >> setupOCL >> gen exPar >> setupEnd
-example = setupHeadings >> gen exPar >> setupEnd
+example = setupHeadings >> gen exPar2 >> setupEnd
+
+-- TODO don't want to explicit array
+exPar2 :: Program
+exPar2 = parProg 10 $ \e -> Index "A" [e] .+ Index "A" [e] 
 
 
 ------------------------------------------------------------
