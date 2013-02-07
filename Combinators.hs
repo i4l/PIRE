@@ -29,6 +29,17 @@ parProg len f = AllocNew (TPointer TInt) (Num len) $ \location arr -> par (Num 0
                                                                  -- location :: Loc Expr :: Expr -> Program
                                                                  -- lambda   :: (Expr -> Program) -> Program
 
+dualPar :: (Expr -> Expr -> Expr) -> Int -> Program
+dualPar f len = AllocNew (TPointer TInt) (Num len) $ \loc1 arr1 -> 
+                  AllocNew (TPointer TInt) (Num len) $ \_ arr2 -> 
+                    par (Num 0) (Num len) $ 
+                      \e -> loc1 (f (pull (doit arr1) e) (pull (doit arr2) e))
+
+vecMul :: Program
+vecMul = dualPar (\a b -> a .* b) 10
+
+
+
 forProg :: Int -> (Expr -> Expr) -> Program
 forProg len f = Alloc  (Num len) $
   \allocf arr -> for (Num 0) (Num len)
@@ -49,7 +60,7 @@ exFor = forProg 10 fe
 
 example :: Gen ()
 --example = setupHeadings >> setupOCL >> gen exPar >> setupEnd
-example = setupHeadings >> gen exPar2 >> setupEnd
+example = setupHeadings >> gen vecMul >> setupEnd
 
 -- TODO don't want to mention explicit array names
 exPar2 :: Program

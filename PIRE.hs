@@ -219,7 +219,7 @@ class Pushy p where
   toPush :: Array p a -> Array Push a
 
 instance Pushy Push where
-  toPush arr = arr
+  toPush = id
 
 instance Pushy Pull where
   toPush arr =

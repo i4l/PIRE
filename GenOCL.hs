@@ -82,10 +82,18 @@ gen (AllocNew t siz f) = do
   let m = "mem" ++ show d
   line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
   k <- genKernel f [(m, d)]
-  line "// do memory allocation for OCL"
+  line "\n  // do memory allocation for OCL"
+  let result = "mem" ++ show (resultID k)
+  line $ show t ++ " " ++ result ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+  line "// read back from GPU"
   return ()
 
-data Kernel = Kernel --Placeholder
+
+------------------------------------------------------------
+-- Kernel generation
+
+-- TODO: What else should go here?
+data Kernel = Kernel {resultID :: Int}
 
 
 -- Assumption: param 0 is result array.
@@ -99,13 +107,13 @@ genKernel f names = do
   let arr1 = arrPrefix ++  show k1
   genKernel' (f (locArray res (var "tid")) 
                 (array arr1 (error "fill in size for Array")))  
-  return Kernel
+  return $ Kernel (1)
   where
     -- We need to treat Programs differently in the kernel code (I think?)
     genKernel' :: Program -> Gen ()
     genKernel' Skip = lineK "0;"
     genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
-    genKernel' (p1 :>> p2) = genKernel' p1 >> genKernel' p2
+    genKernel' (p1 :>> p2) = genKernel' p1 >> genKernel' p2 
     genKernel' (If c p1 p2) = do
                 lineK $ "if( " ++ show c ++ " ) { "
                 indent 2
@@ -151,9 +159,24 @@ genKernel f names = do
       lineK $ m ++ " = malloc(" ++ show siz ++ ");"
       genKernel' $ f (locArray m) (array m siz)
       lineK $ "free(" ++ m ++ ");"
-    genKernel' (AllocNew _ _ _) = error "Discovered allocNew in genKernel'. What were you thinking?"
+    genKernel' p@(AllocNew t siz f) = do
+      d <- incVar
+      let m = "mem" ++ show d
+      line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+      k <- genKernel f [(m, d)]
+     -- line "\n  // do memory allocation for OCL"
+     -- let result = "mem" ++ show (resultID k)
+     -- line $ show t ++ " " ++ result ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+     -- line "// read back from GPU"
+      return ()
+      
+    
+--    error "Discovered allocNew in genKernel'." -- TODO should probably be permitted. 
 
- 
+
+------------------------------------------------------------
+-- Extras
+
 setupHeadings :: Gen ()
 setupHeadings = do
   line "#include <stdio.h>"
