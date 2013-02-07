@@ -77,7 +77,7 @@ printMap :: Gen a -> IO ()
 printMap g = do
   let e = execState g emptyEnv
       m = Map.toList (paramMap e)
-      m' = map (\(h,k) -> "hostAlloc " ++ show h ++ " is mapped to kernelParam " ++  show k ++ "\n") m
+      m' = map (\(h,k) -> "mem" ++ show h ++ " is mapped to arr" ++  show k ++ "\n") m
   putStrLn $ concat m'
 
 

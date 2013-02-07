@@ -76,9 +76,6 @@ data Program
 
 -- splitting these into two allows us to potentially reuse old decls/names (I think)
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
---  | AllocNew Type Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
-
---  | AllocNew Type Size (Array Pull Expr -> Loc Expr -> Program) -- "openCL" allocation 
 
   | AllocNew Type Size (Loc Expr -> Array Pull Expr -> Program)
 data Type = TInt | TChar | TFloat | TPointer Type

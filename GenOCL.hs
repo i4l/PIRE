@@ -93,13 +93,12 @@ genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Gen Ke
 genKernel f names = do
   let arrPrefix = "arr"
   v0 <- incVar
-  let res = "res" ++ show v0
+  let res = "arr" ++ show v0
   addKernelParam v0
-  --v1 <- incVar
-  let inputArr = arrPrefix ++  (show $ snd $ head names)
+  let arr1 = arrPrefix ++  (show $ snd $ head names)
   addKernelParam (snd $ head names)
-  genKernel' (f (locArray  res (var "tid")) 
-                (array inputArr (error "fill in size for Array")))  
+  genKernel' (f (locArray res (var "tid")) 
+                (array arr1 (error "fill in size for Array")))  
   return Kernel
   where
     -- We need to treat Programs differently in the kernel code (I think?)
@@ -126,7 +125,7 @@ genKernel f names = do
       paramMapSize <- fmap Map.size getParamMap
       let removeLastComma = reverse . drop 1 . reverse
           arrPrefix       = "arr"
-          parameters      = (removeLastComma . concat) [ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize]]
+          parameters      = (removeLastComma . concat) [ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize-1]]
 
       lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
       lineK "int tid = get_global_id(0);"
