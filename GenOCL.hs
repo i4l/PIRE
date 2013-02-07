@@ -88,11 +88,15 @@ gen (AllocNew t siz f) = do
 data Kernel = Kernel --Placeholder
 
 genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> Gen Kernel
--- TODO This needs to be more controlled
 genKernel f = do
-  param <- incParam
-  let p = "arr" ++ show param
-  genKernel' (f (locArray  "res" (var "tid")) (array p (error "fill in size for Array")))  
+  let arrPrefix = "arr"
+  v0 <- incVar
+  let res      = arrPrefix ++ show v0
+  addKernelParam v0
+  v1 <- incVar
+  let inputArr = arrPrefix ++ show v1
+  genKernel' (f (locArray  res (var "tid")) 
+                (array inputArr (error "fill in size for Array")))  
   return Kernel
   where
     -- We need to treat Programs differently in the kernel code (I think?)
@@ -113,16 +117,13 @@ genKernel f = do
 
     genKernel' (Par _ max p) = do
       d <- incVar
-      let tid = "tid"
+      let tid     = "tid"
       let kerName = 'k' : show d
---      lineK $ "__kernel void " ++ kerName ++ " (__global int *A, __global int *res) {" -- TODO ..please.. fix me.
 
       paramMapSize <- fmap Map.size getParamMap
       let removeLastComma = reverse . drop 1 . reverse
           arrPrefix       = "arr"
-          parameters      = if paramMapSize == 0
-                            then ""
-                            else (removeLastComma . concat) [ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize]]
+          parameters      = (removeLastComma . concat) [ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize]]
 
       lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
       lineK "int tid = get_global_id(0);"

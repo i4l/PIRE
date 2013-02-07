@@ -12,12 +12,12 @@ import qualified Data.Map as Map
 type Gen a = State Env a
 
 data Env = Env 
-          { varCount     :: Int      -- Variable counter
-          , code         :: [String] -- Accumulated code
-          , iDepth       :: Int      -- Indent depth
-          , kernelFile   :: FilePath -- Name of the file containing kernels
-          , kernelCode   :: [String] -- Accumulated kernel code
-          , paramCounter :: Int      -- Kernel parameter counter
+          { varCount     :: Int             -- Variable counter
+          , code         :: [String]        -- Accumulated code
+          , iDepth       :: Int             -- Indent depth
+          , kernelFile   :: FilePath        -- Name of the file containing kernels
+          , kernelCode   :: [String]        -- Accumulated kernel code
+          , paramCounter :: Int             -- Kernel parameter counter
           , paramMap     :: Map.Map Int Int -- Mapping allocations in Host -> Kernel params.
           }
 
@@ -27,10 +27,9 @@ extractCode g e = code $ execState g e
 line :: String -> Gen ()
 line s = modify $ \env -> env{code = code env ++ 
                                       lines
-                                        (concat (replicate (iDepth env) " ") ++ s)
+                                        (concat (replicate (iDepth env) " ") ++ s)}
 
 
-                             }
 
 indent :: Int -> Gen ()
 indent i = modify $ \env -> env{iDepth = iDepth env + i}
