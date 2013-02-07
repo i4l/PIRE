@@ -6,28 +6,13 @@ import PIRE
 import GenOCL
 import Util
 
---singleton :: Array Pull Expr
---singleton = array "a" (Num 1)
 
-add, mul :: Int -> Int -> Expr
-
-add x y = Num x .+ Num y
-mul x y = Num x .* Num y
-
-(??) :: Bool -> (Program, Program) -> Program
-True  ?? (p1,p2)  = iff (Num 1) p1 p2
-False ?? (p1,p2)  = iff (Num 0) p1 p2
-
-
--- Parallelise this via openCl
 parProg :: Int -> (Expr -> Expr) -> Program
 parProg len f = AllocNew (TPointer TInt) (Num len) $ \location arr -> par (Num 0) (Num len) 
                                                                       (\e -> location  (f 
                                                                                           (pull (doit arr) e) 
                                                                                        )
                                                                       )
-                                                                 -- location :: Loc Expr :: Expr -> Program
-                                                                 -- lambda   :: (Expr -> Program) -> Program
 
 dualPar :: (Expr -> Expr -> Expr) -> Int -> Program
 dualPar f len = AllocNew (TPointer TInt) (Num len) $ \loc1 arr1 -> 
@@ -39,7 +24,7 @@ vecMul :: Program
 vecMul = dualPar (\a b -> a .* b) 10
 
 
-
+-- A sequential for-loop for inspiration.
 forProg :: Int -> (Expr -> Expr) -> Program
 forProg len f = Alloc  (Num len) $
   \allocf arr -> for (Num 0) (Num len)
@@ -49,22 +34,21 @@ forProg len f = Alloc  (Num len) $
                         ) 
                  )
 
-fe :: Expr -> Expr
-fe e = e .+ e
+add :: Expr -> Expr
+add e = e .+ e
 
 exPar :: Program
-exPar = parProg 10 fe
+exPar = parProg 10 add
 
 exFor :: Program
-exFor = forProg 10 fe
+exFor = forProg 10 add
 
 example :: Gen ()
 --example = setupHeadings >> setupOCL >> gen exPar >> setupEnd
 example = setupHeadings >> gen vecMul >> setupEnd
 
--- TODO don't want to mention explicit array names
 exPar2 :: Program
-exPar2 = parProg 10 $ fe
+exPar2 = parProg 10 $ add
 
 ------------------------------------------------------------
 -- helpers

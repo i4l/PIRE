@@ -46,22 +46,22 @@ gen (Par start max p) = do
 --  lineK "}"
 
 gen (For e1 e2 p) = do
-  d <- incVar
-  let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
-  line $ show TInt ++ " " ++ i ++ ";"
-  line $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
-                 ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
-  indent 2
-  gen (p (var i))
-  unindent 2
-  line "}"
+   d <- incVar
+   let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+   line $ show TInt ++ " " ++ i ++ ";"
+   line $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
+                  ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
+   indent 2
+   gen (p (var i))
+   unindent 2
+   line "}"
 
 gen (Alloc siz f) = do 
-  d <- incVar
-  let m = "mem" ++ show d
-  line $ m ++ " = malloc(" ++ show siz ++ ");"
-  gen $ f (locArray m) (array m siz)
-  line $ "free(" ++ m ++ ");"
+   d <- incVar
+   let m = "mem" ++ show d
+   line $ m ++ " = malloc(" ++ show siz ++ ");"
+   gen $ f (locArray m) (array m siz)
+   line $ "free(" ++ m ++ ");"
 
 
 {- TODO: Compile the program (f) into a kernel.
@@ -96,7 +96,7 @@ gen (AllocNew t siz f) = do
 data Kernel = Kernel {resultID :: Int}
 
 
--- Assumption: param 0 is result array.
+-- Assumption: param 0 is the result array.
 genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Gen Kernel
 genKernel f names = do
   let arrPrefix = "arr"
@@ -127,7 +127,7 @@ genKernel f names = do
 
     genKernel' (Par _ max p) = do
       let tid     = "tid"
-      let kerName = 'k' : show 0 -- TODO fix
+      let kerName = 'k' : show 0 -- TODO fix (might have multiple kernels)
 
       paramMapSize <- fmap Map.size getParamMap
       let removeLastComma = reverse . drop 1 . reverse
@@ -163,16 +163,10 @@ genKernel f names = do
       d <- incVar
       let m = "mem" ++ show d
       line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-      k <- genKernel f [(m, d)]
-     -- line "\n  // do memory allocation for OCL"
-     -- let result = "mem" ++ show (resultID k)
-     -- line $ show t ++ " " ++ result ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-     -- line "// read back from GPU"
-      return ()
-      
-    
---    error "Discovered allocNew in genKernel'." -- TODO should probably be permitted. 
+      k <- genKernel f [(m, d)] -- TODO this needs to go. Causes unnecessary parameters in Kernels.
 
+      return ()
+    
 
 ------------------------------------------------------------
 -- Extras

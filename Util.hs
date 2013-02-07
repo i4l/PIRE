@@ -30,7 +30,6 @@ line s = modify $ \env -> env{code = code env ++
                                         (concat (replicate (iDepth env) " ") ++ s)}
 
 
-
 indent :: Int -> Gen ()
 indent i = modify $ \env -> env{iDepth = iDepth env + i}
 
