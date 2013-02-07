@@ -23,7 +23,7 @@ False ?? (p1,p2)  = iff (Num 0) p1 p2
 parProg :: Int -> (Expr -> Expr) -> Program
 parProg len f = AllocNew (TPointer TInt) (Num len) $ \location arr -> par (Num 0) (Num len) 
                                                                       (\e -> location  (f 
-                                                                                        (pull (doit arr) e) 
+                                                                                          (pull (doit arr) e) 
                                                                                        )
                                                                       )
                                                                  -- location :: Loc Expr :: Expr -> Program

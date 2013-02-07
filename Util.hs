@@ -62,10 +62,11 @@ incParamCounter = do
 getParamMap :: Gen (Map.Map Int Int)
 getParamMap = gets paramMap
 
-addKernelParam :: Int -> Gen ()
+addKernelParam :: Int -> Gen Int
 addKernelParam hostAllocId = do
   new <- incParamCounter
   modify $ \env -> env {paramMap =  Map.insert hostAllocId new (paramMap env)}
+  return new
 
 lookupKernelParam :: Int -> Gen (Maybe Int)
 lookupKernelParam hostAllocId = do

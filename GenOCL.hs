@@ -93,10 +93,10 @@ genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Gen Ke
 genKernel f names = do
   let arrPrefix = "arr"
   v0 <- incVar
-  let res = "arr" ++ show v0
-  addKernelParam v0
-  let arr1 = arrPrefix ++  (show $ snd $ head names)
-  addKernelParam (snd $ head names)
+  k0 <-addKernelParam v0
+  let res = "arr" ++ show k0
+  k1 <- addKernelParam (snd $ head names)
+  let arr1 = arrPrefix ++  show k1
   genKernel' (f (locArray res (var "tid")) 
                 (array arr1 (error "fill in size for Array")))  
   return Kernel
@@ -118,9 +118,8 @@ genKernel f names = do
                 lineK "}"
 
     genKernel' (Par _ max p) = do
-      d <- incVar
       let tid     = "tid"
-      let kerName = 'k' : show d
+      let kerName = 'k' : show 0 -- TODO fix
 
       paramMapSize <- fmap Map.size getParamMap
       let removeLastComma = reverse . drop 1 . reverse
