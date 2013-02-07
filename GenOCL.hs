@@ -2,7 +2,7 @@ module GenOCL where
 
 import Util
 import PIRE
-
+import qualified Data.Map as Map
 {- 
  - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
@@ -89,8 +89,11 @@ data Kernel = Kernel --Placeholder
 
 genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> Gen Kernel
 -- TODO This needs to be more controlled
-genKernel f = genKernel' (f (locArray  "res" (var "tid")) (array "lookMeUp" (error "fill in size for Array")))  
-              >> return Kernel
+genKernel f = do
+  param <- incParam
+  let p = "arr" ++ show param
+  genKernel' (f (locArray  "res" (var "tid")) (array p (error "fill in size for Array")))  
+  return Kernel
   where
     -- We need to treat Programs differently in the kernel code (I think?)
     genKernel' :: Program -> Gen ()
@@ -112,7 +115,16 @@ genKernel f = genKernel' (f (locArray  "res" (var "tid")) (array "lookMeUp" (err
       d <- incVar
       let tid = "tid"
       let kerName = 'k' : show d
-      lineK $ "__kernel void " ++ kerName ++ " (__global int *A, __global int *res) {" -- TODO ..please.. fix me.
+--      lineK $ "__kernel void " ++ kerName ++ " (__global int *A, __global int *res) {" -- TODO ..please.. fix me.
+
+      paramMapSize <- fmap Map.size getParamMap
+      let removeLastComma = reverse . drop 1 . reverse
+          arrPrefix       = "arr"
+          parameters      = if paramMapSize == 0
+                            then ""
+                            else (removeLastComma . concat) [ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize]]
+
+      lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
       lineK "int tid = get_global_id(0);"
       lineK $ "if( tid < " ++ show max ++ " ) {"
       genKernel' $ p (var tid)

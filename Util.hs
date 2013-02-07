@@ -53,6 +53,9 @@ incVar = do
   modify $ \env -> env{varCount = varCount env + 1}
   return d
 
+getParamMap :: Gen (Map.Map Int Int)
+getParamMap = gets paramMap
+
 addKernelParam :: Int -> Gen ()
 addKernelParam hostAllocId = do
   new <- incParam
