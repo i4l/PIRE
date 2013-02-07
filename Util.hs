@@ -41,29 +41,45 @@ unindent i = modify $ \env -> env{iDepth = iDepth env - i}
 getVar :: Gen Int
 getVar = gets varCount
 
-incParam :: Gen Int
-incParam = do
-  p <- gets paramCounter
-  return p
-
 incVar :: Gen Int
 incVar = do
   d <- getVar
   modify $ \env -> env{varCount = varCount env + 1}
   return d
 
+getParamCounter :: Gen Int
+getParamCounter = do
+  p <- gets paramCounter
+  return p
+
+incParamCounter :: Gen Int
+incParamCounter = do
+  d <- getParamCounter
+  modify $ \env -> env{paramCounter = paramCounter env + 1}
+  return d
+
+
 getParamMap :: Gen (Map.Map Int Int)
 getParamMap = gets paramMap
 
 addKernelParam :: Int -> Gen ()
 addKernelParam hostAllocId = do
-  new <- incParam
+  new <- incParamCounter
   modify $ \env -> env {paramMap =  Map.insert hostAllocId new (paramMap env)}
 
 lookupKernelParam :: Int -> Gen (Maybe Int)
 lookupKernelParam hostAllocId = do
   m <- gets paramMap
   return $ Map.lookup hostAllocId m
+
+
+printMap :: Gen a -> IO ()
+printMap g = do
+  let e = execState g emptyEnv
+      m = Map.toList (paramMap e)
+      m' = map (\(h,k) -> "hostAlloc " ++ show h ++ " is mapped to kernelParam " ++  show k ++ "\n") m
+  putStrLn $ concat m'
+
 
 emptyEnv :: Env
 emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty

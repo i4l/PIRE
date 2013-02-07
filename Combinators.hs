@@ -55,7 +55,6 @@ example = setupHeadings >> gen exPar2 >> setupEnd
 exPar2 :: Program
 exPar2 = parProg 10 $ fe
 
-
 ------------------------------------------------------------
 -- helpers
 

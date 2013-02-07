@@ -78,23 +78,26 @@ gen (Alloc siz f) = do
 -}
 
 gen (AllocNew t siz f) = do
-  d <- getVar
+  d <- incVar
   let m = "mem" ++ show d
   line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-  k <- genKernel $ f
+  k <- genKernel f [(m, d)]
   line "// do memory allocation for OCL"
   return ()
 
 data Kernel = Kernel --Placeholder
 
-genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> Gen Kernel
-genKernel f = do
+
+-- Assumption: param 0 is result array.
+genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Gen Kernel
+genKernel f names = do
   let arrPrefix = "arr"
   v0 <- incVar
-  let res      = arrPrefix ++ show v0
+  let res = "res" ++ show v0
   addKernelParam v0
-  v1 <- incVar
-  let inputArr = arrPrefix ++ show v1
+  --v1 <- incVar
+  let inputArr = arrPrefix ++  (show $ snd $ head names)
+  addKernelParam (snd $ head names)
   genKernel' (f (locArray  res (var "tid")) 
                 (array inputArr (error "fill in size for Array")))  
   return Kernel
