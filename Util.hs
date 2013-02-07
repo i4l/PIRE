@@ -18,7 +18,7 @@ data Env = Env
           , kernelFile   :: FilePath -- Name of the file containing kernels
           , kernelCode   :: [String] -- Accumulated kernel code
           , paramCounter :: Int      -- Kernel parameter counter
-          , paramMap     :: Map.Map Int Int
+          , paramMap     :: Map.Map Int Int -- Mapping allocations in Host -> Kernel params.
           }
 
 extractCode :: Gen a -> Env -> [String]
@@ -42,6 +42,10 @@ unindent i = modify $ \env -> env{iDepth = iDepth env - i}
 getVar :: Gen Int
 getVar = gets varCount
 
+incParam :: Gen Int
+incParam = do
+  p <- gets paramCounter
+  return p
 
 incVar :: Gen Int
 incVar = do
@@ -49,8 +53,18 @@ incVar = do
   modify $ \env -> env{varCount = varCount env + 1}
   return d
 
+addKernelParam :: Int -> Gen ()
+addKernelParam hostAllocId = do
+  new <- incParam
+  modify $ \env -> env {paramMap =  Map.insert hostAllocId new (paramMap env)}
+
+lookupKernelParam :: Int -> Gen (Maybe Int)
+lookupKernelParam hostAllocId = do
+  m <- gets paramMap
+  return $ Map.lookup hostAllocId m
+
 emptyEnv :: Env
-emptyEnv = Env 0 [] 0 "kernels.cl" []
+emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty
 
 
 ------------------------------------------------------------
