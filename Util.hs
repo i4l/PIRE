@@ -19,6 +19,7 @@ data Env = Env
           , kernelCode   :: [String]        -- Accumulated kernel code
           , paramCounter :: Int             -- Kernel parameter counter
           , paramMap     :: Map.Map Int Int -- Mapping allocations in Host -> Kernel params.
+          , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> Host allocations
           }
 
 extractCode :: Gen a -> Env -> [String]
@@ -47,9 +48,7 @@ incVar = do
   return d
 
 getParamCounter :: Gen Int
-getParamCounter = do
-  p <- gets paramCounter
-  return p
+getParamCounter = gets paramCounter
 
 incParamCounter :: Gen Int
 incParamCounter = do
@@ -65,12 +64,19 @@ addKernelParam :: Int -> Gen Int
 addKernelParam hostAllocId = do
   new <- incParamCounter
   modify $ \env -> env {paramMap =  Map.insert hostAllocId new (paramMap env)}
+  modify $ \env -> env {hostAllocMap =  Map.insert new hostAllocId (hostAllocMap env)}
+  
   return new
 
 lookupKernelParam :: Int -> Gen (Maybe Int)
 lookupKernelParam hostAllocId = do
-  m <- gets paramMap
+  m <- getParamMap
   return $ Map.lookup hostAllocId m
+
+lookupHostAlloc :: Int -> Gen (Maybe Int)
+lookupHostAlloc kernParam = do
+  m <- getParamMap
+  return $ Map.lookup kernParam m
 
 
 printMap :: Gen a -> IO ()
@@ -82,7 +88,7 @@ printMap g = do
 
 
 emptyEnv :: Env
-emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty
+emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty Map.empty
 
 
 ------------------------------------------------------------

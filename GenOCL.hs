@@ -3,6 +3,7 @@ module GenOCL where
 import Util
 import PIRE
 import qualified Data.Map as Map
+import Data.Maybe
 {- 
  - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
@@ -101,13 +102,14 @@ genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Gen Ke
 genKernel f names = do
   let arrPrefix = "arr"
   v0 <- incVar
-  k0 <-addKernelParam v0
+  k0 <- addKernelParam v0
   let res = "arr" ++ show k0
   k1 <- addKernelParam (snd $ head names)
   let arr1 = arrPrefix ++  show k1
   genKernel' (f (locArray res (var "tid")) 
-                (array arr1 (error "fill in size for Array")))  
-  return $ Kernel (1)
+                (array arr1 (error "fill in size for Array")))
+  newHostMem <- lookupHostAlloc k1
+  return $ Kernel (fromJust newHostMem)
   where
     -- We need to treat Programs differently in the kernel code (I think?)
     genKernel' :: Program -> Gen ()

@@ -45,7 +45,7 @@ exFor = forProg 10 add
 
 example :: Gen ()
 --example = setupHeadings >> setupOCL >> gen exPar >> setupEnd
-example = setupHeadings >> gen vecMul >> setupEnd
+example = setupHeadings >> setupOCL >> gen vecMul >> setupEnd
 
 exPar2 :: Program
 exPar2 = parProg 10 $ add
