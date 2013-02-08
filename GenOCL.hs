@@ -80,17 +80,42 @@ gen (Alloc siz f) = do
 
 gen (AllocNew t siz f) = do
   let objPostfix = "_obj"
+      memPrefix  = "mem"
+
+  -- Allocate for argument
   d <- incVar
   let m = "mem" ++ show d
   line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-  line $ "cl_mem " ++ m ++ objPostfix ++ " = clCreateBuffer(context, CL_MEM_READ_ONLY, " ++ show siz ++ "*sizeof(int), NULL, NULL)"
 
-  result <- fmap ((++) "mem" . show . resultID) (genKernel f [(m, d)])
-  line $ show t ++ " " ++ result ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-  line $ "cl_mem " ++ result ++ objPostfix ++ " = clCreateBuffer(context, CL_MEM_WRITE_ONLY, " ++ show siz ++ "*sizeof(int), NULL, NULL)"
+  -- Allocate for result
+  k <- fmap resultID (genKernel f [(m, d)])
+  line $ show t ++ " " ++ memPrefix ++ show k ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
 
-  line "// read back from GPU"
+  line "\n"
 
+  allocMap <- fmap Map.toList getHostAllocMap
+  
+  let g (h,k) = "cl_mem " ++ memPrefix ++ show h ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+                (if k /= 0 then "CL_MEM_READ_ONLY" else "CL_MEM_WRITE_ONLY") ++
+                ", " ++ show siz ++ "*sizeof(int), NULL, NULL)"
+  mapM_ line (map g allocMap)
+
+  -- copy data to cl_mem buffers
+
+  -- create kernel & build program
+  
+  -- set arguments to kernel
+  let h (h,k) = "clSetKernelArg(kernel, " ++ show k ++ 
+                       ", sizeof(cl_mem), (void *)&" ++ memPrefix ++ show h ++ objPostfix ++ ");"
+  mapM_ line (map h allocMap)
+
+  
+
+
+--  resArgNo <- fmap fromJust $ lookupForKernel k -- set result first
+--  line $ "clSetKernelArg(kernel, " ++ show resArgNo ++ ", sizeof(cl_mem), (void *)&" ++ m ++ objPostfix ++ ");"
+--  arg1No   <- fmap fromJust $ lookupForKernel d -- set first argument
+--  line $ "clSetKernelArg(kernel, " ++ show arg1No ++ ", sizeof(cl_mem), (void *)&" ++ m ++ objPostfix ++ ");"
 
 ------------------------------------------------------------
 -- Kernel generation
@@ -110,7 +135,7 @@ genKernel f names = do
   let arr1 = arrPrefix ++ show k1
   genKernel' (f (locArray res (var "tid")) 
                 (array arr1 (error "ERROR!: fill in size for Array")))
-  newHostMem <- lookupHostAlloc k0
+  newHostMem <- lookupForHost k0
   return $ Kernel (fromJust newHostMem)
   where
     genKernel' :: Program -> Gen ()
@@ -170,7 +195,8 @@ genKernel f names = do
       line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
       k <- genKernel f [(m, d)] -- TODO this needs to go. Causes unnecessary parameters in Kernels.
       
-      line $ "cl_mem " ++ m ++ objPostfix ++ " = clCreateBuffer(context, CL_MEM_READ_ONLY, " ++ show siz ++ "*sizeof(int), NULL, NULL)"
+--      line $ "cl_mem " ++ m ++ objPostfix ++ " = clCreateBuffer(context, CL_MEM_READ_ONLY, " ++ show siz ++ "*sizeof(int), NULL, NULL)"
+    
 
       return ()
     

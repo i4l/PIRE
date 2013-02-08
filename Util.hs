@@ -22,6 +22,13 @@ data Env = Env
           , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> Host allocations
           }
 
+-- Not decided on whether to use or not
+data MemObj = Mem
+          { nameInKernel :: Int
+          , nameInHost   :: Int
+          }
+
+
 extractCode :: Gen a -> Env -> [String]
 extractCode g e = code $ execState g e
 
@@ -60,6 +67,10 @@ incParamCounter = do
 getParamMap :: Gen (Map.Map Int Int)
 getParamMap = gets paramMap
 
+getHostAllocMap :: Gen (Map.Map Int Int)
+getHostAllocMap = gets hostAllocMap
+
+
 addKernelParam :: Int -> Gen Int
 addKernelParam hostAllocId = do
   new <- incParamCounter
@@ -68,13 +79,13 @@ addKernelParam hostAllocId = do
   
   return new
 
-lookupKernelParam :: Int -> Gen (Maybe Int)
-lookupKernelParam hostAllocId = do
+lookupForKernel :: Int -> Gen (Maybe Int)
+lookupForKernel hostAllocId = do
   m <- getParamMap
   return $ Map.lookup hostAllocId m
 
-lookupHostAlloc :: Int -> Gen (Maybe Int)
-lookupHostAlloc kernParam = do
+lookupForHost :: Int -> Gen (Maybe Int)
+lookupForHost kernParam = do
   m <- gets hostAllocMap
   return $ Map.lookup kernParam m
 
