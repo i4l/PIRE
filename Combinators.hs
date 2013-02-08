@@ -30,7 +30,7 @@ forProg len f = Alloc  (Num len) $
   \allocf arr -> for (Num 0) (Num len)
                  (\e -> allocf e 
                         (f 
-                         (pull (doit arr) (Num 5)) 
+                          (pull (doit arr) (Num 5)) 
                         ) 
                  )
 
@@ -44,8 +44,7 @@ exFor :: Program
 exFor = forProg 10 add
 
 example :: Gen ()
---example = setupHeadings >> setupOCL >> gen exPar >> setupEnd
-example = setupHeadings >> setupOCL >> gen vecMul >> setupEnd
+example = setupHeadings >> gen vecMul >> setupEnd
 
 exPar2 :: Program
 exPar2 = parProg 10 $ add

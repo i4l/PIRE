@@ -75,7 +75,7 @@ lookupKernelParam hostAllocId = do
 
 lookupHostAlloc :: Int -> Gen (Maybe Int)
 lookupHostAlloc kernParam = do
-  m <- getParamMap
+  m <- gets hostAllocMap
   return $ Map.lookup kernParam m
 
 
@@ -85,6 +85,11 @@ printMap g = do
       m = Map.toList (paramMap e)
       m' = map (\(h,k) -> "mem" ++ show h ++ " is mapped to arr" ++  show k ++ "\n") m
   putStrLn $ concat m'
+  let m2 = Map.toList (hostAllocMap e)
+      m2' = map (\(k,h) -> "arr" ++ show k ++ " is mapped to mem" ++  show h ++ "\n") m2
+  putStrLn $ concat m2'
+
+  
 
 
 emptyEnv :: Env
