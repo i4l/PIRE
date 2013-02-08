@@ -93,8 +93,10 @@ gen (AllocNew t siz f) = do
 
   line "\n"
 
+  -- fetch the Map, so we have something to work with
   allocMap <- fmap Map.toList getHostAllocMap
   
+  -- create cl_mem buffers
   let g (h,k) = "cl_mem " ++ memPrefix ++ show h ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
                 (if k /= 0 then "CL_MEM_READ_ONLY" else "CL_MEM_WRITE_ONLY") ++
                 ", " ++ show siz ++ "*sizeof(int), NULL, NULL)"
@@ -143,15 +145,15 @@ genKernel f names = do
     genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
     genKernel' (p1 :>> p2) = genKernel' p1 >> genKernel' p2 
     genKernel' (If c p1 p2) = do
-                lineK $ "if( " ++ show c ++ " ) { "
-                indent 2
-                genKernel' p1
-                unindent 2
-                lineK "else { "
-                indent 2
-                genKernel' p2
-                unindent 2
-                lineK "}"
+      lineK $ "if( " ++ show c ++ " ) { "
+      indent 2
+      genKernel' p1
+      unindent 2
+      lineK "else { "
+      indent 2
+      genKernel' p2
+      unindent 2
+      lineK "}"
 
     genKernel' (Par _ max p) = do
       let tid     = "tid"
@@ -172,15 +174,15 @@ genKernel f names = do
       lineK "}"
 
     genKernel' (For e1 e2 p) = do
-                  d <- incVar
-                  let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
-                  lineK $ show TInt ++ " " ++ i ++ ";"
-                  lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
-                                  ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
-                  indent 2
-                  genKernel' (p (var i))
-                  unindent 2
-                  lineK "}"
+      d <- incVar
+      let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+      lineK $ show TInt ++ " " ++ i ++ ";"
+      lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
+                      ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
+      indent 2
+      genKernel' (p (var i))
+      unindent 2
+      lineK "}"
 
     genKernel' (Alloc siz f) = do 
       d <- incVar
@@ -188,6 +190,7 @@ genKernel f names = do
       lineK $ m ++ " = malloc(" ++ show siz ++ ");"
       genKernel' $ f (locArray m) (array m siz)
       lineK $ "free(" ++ m ++ ");"
+
     genKernel' p@(AllocNew t siz f) = do
       let objPostfix = "_obj"
       d <- incVar
@@ -195,8 +198,6 @@ genKernel f names = do
       line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
       k <- genKernel f [(m, d)] -- TODO this needs to go. Causes unnecessary parameters in Kernels.
       
---      line $ "cl_mem " ++ m ++ objPostfix ++ " = clCreateBuffer(context, CL_MEM_READ_ONLY, " ++ show siz ++ "*sizeof(int), NULL, NULL)"
-    
 
       return ()
     
