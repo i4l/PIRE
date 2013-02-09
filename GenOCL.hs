@@ -86,11 +86,11 @@ gen (AllocNew t siz f) = do
   -- Allocate for argument
   d <- incVar
   let m = "mem" ++ show d
-  line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+  line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
 
   -- Allocate for result
   resID <- fmap resultID (genKernel f [(m, d)] False)
-  line $ show t ++ " " ++ memPrefix ++ show resID ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");\n\n"
+  line $ show t ++ " " ++ memPrefix ++ show resID ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ removePointer t ++ ")*" ++ show siz ++ ");\n\n"
 
   -- fetch the Map, so we have something to work with
   allocMap <- fmap Map.toList getHostAllocMap
@@ -102,8 +102,8 @@ gen (AllocNew t siz f) = do
   mapM_ line (map createBuffers allocMap)
 
   -- copy data to cl_mem buffers
-  let copyBuffers (h,_) = "clEnqueWriteBuffer(command_queue, " ++ memPrefix ++ show h ++ objPostfix ++ ", CL_TRUE, 0, " ++ 
-                          show siz ++ " * sizeof(" ++ removePointer t ++"), " ++ memPrefix ++ show h ++ ", NULL, NULL);"
+  let copyBuffers (h,_) = "clEnqueueWriteBuffer(command_queue, " ++ memPrefix ++ show h ++ objPostfix ++ ", CL_TRUE, 0, " ++ 
+                          show siz ++ " * sizeof(" ++ removePointer t ++"), " ++ memPrefix ++ show h ++ ", 0, NULL, NULL);"
   resAlloc <- fmap fromJust $  lookupForKernel 0 
   let removeRes = delete (resAlloc, 0) -- we don't want to copy the result array to the GPU.
   mapM_ line (map copyBuffers (removeRes allocMap))
@@ -121,10 +121,10 @@ gen (AllocNew t siz f) = do
   -- launch kernel
   line $ "size_t global_item_size = " ++ show siz ++ ";"
   line $ "size_t local_item_size = "  ++ show siz ++ ";"
-  line "clEnqeueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
+  line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
 
   --read back to result array
-  line $ "clEnqeueReadBuffer(command_queue, " ++ memPrefix ++ show resID ++ objPostfix ++ ", CL_TRUE, 0, " ++ show siz ++
+  line $ "clEnqueueReadBuffer(command_queue, " ++ memPrefix ++ show resID ++ objPostfix ++ ", CL_TRUE, 0, " ++ show siz ++
          "* sizeof(" ++ removePointer t ++ "), " ++ memPrefix ++ show resID ++ ", 0, NULL, NULL);\n\n"
 
   
@@ -199,7 +199,7 @@ genKernel f names isCalledNested = do
     genKernel' (Alloc siz f) = do 
       d <- incVar
       let m = "mem" ++ show d
-      lineK $ m ++ " = malloc(" ++ show siz ++ ");"
+      lineK $ m ++ " = malloc(" ++ show siz ++ ");" -- TODO needs a type cast before malloc?
       genKernel' $ f (locArray m) (array m siz)
       lineK $ "free(" ++ m ++ ");"
 
@@ -208,7 +208,7 @@ genKernel f names isCalledNested = do
       let objPostfix = "_obj"
       d <- incVar
       let m = "mem" ++ show d
-      line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+      line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
       genKernel f [(m, d)] True -- TODO this needs to go. Causes unnecessary parameters in Kernels.
       
       return ()
