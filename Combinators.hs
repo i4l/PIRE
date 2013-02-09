@@ -44,7 +44,7 @@ exFor :: Program
 exFor = forProg 10 add
 
 example :: Gen ()
-example = setupHeadings >> gen vecMul >> setupEnd
+example = setupHeadings >> setupOCL >>gen vecMul >> setupEnd
 
 exPar2 :: Program
 exPar2 = parProg 10 $ add
@@ -57,5 +57,6 @@ showProg prog = putStr $ unlines $ (extractCode prog emptyEnv) ++ (extractCodeK 
 
 
 toFile :: Gen () -> FilePath -> IO ()
-toFile prog path = writeFile path (unlines $ extractCode prog emptyEnv)
+toFile prog path = writeFile path (unlines $ extractCode prog emptyEnv) >>
+                   writeFile (kernelFile emptyEnv) (unlines $ extractKernelCode prog emptyEnv)
 

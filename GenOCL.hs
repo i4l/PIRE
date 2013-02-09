@@ -4,6 +4,7 @@ import Util
 import PIRE
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.List
 {- 
  - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
@@ -88,36 +89,46 @@ gen (AllocNew t siz f) = do
   line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
 
   -- Allocate for result
-  k <- fmap resultID (genKernel f [(m, d)])
-  line $ show t ++ " " ++ memPrefix ++ show k ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-
-  line "\n"
+  resID <- fmap resultID (genKernel f [(m, d)] False)
+  line $ show t ++ " " ++ memPrefix ++ show resID ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");\n\n"
 
   -- fetch the Map, so we have something to work with
   allocMap <- fmap Map.toList getHostAllocMap
   
   -- create cl_mem buffers
-  let g (h,k) = "cl_mem " ++ memPrefix ++ show h ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+  let createBuffers (h,k) = "cl_mem " ++ memPrefix ++ show h ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
                 (if k /= 0 then "CL_MEM_READ_ONLY" else "CL_MEM_WRITE_ONLY") ++
-                ", " ++ show siz ++ "*sizeof(int), NULL, NULL)"
-  mapM_ line (map g allocMap)
+                ", " ++ show siz ++ "*sizeof(" ++ removePointer t ++ "), NULL, NULL);"
+  mapM_ line (map createBuffers allocMap)
 
   -- copy data to cl_mem buffers
+  let copyBuffers (h,_) = "clEnqueWriteBuffer(command_queue, " ++ memPrefix ++ show h ++ objPostfix ++ ", CL_TRUE, 0, " ++ 
+                          show siz ++ " * sizeof(" ++ removePointer t ++"), " ++ memPrefix ++ show h ++ ", NULL, NULL);"
+  resAlloc <- fmap fromJust $  lookupForKernel 0 
+  let removeRes = delete (resAlloc, 0) -- we don't want to copy the result array to the GPU.
+  mapM_ line (map copyBuffers (removeRes allocMap))
 
   -- create kernel & build program
+  line "cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, NULL);"
+  line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
+  line "cl_kernel kernel = clCreateKernel(program, \"k0\", NULL);" 
   
   -- set arguments to kernel
-  let h (h,k) = "clSetKernelArg(kernel, " ++ show k ++ 
-                       ", sizeof(cl_mem), (void *)&" ++ memPrefix ++ show h ++ objPostfix ++ ");"
-  mapM_ line (map h allocMap)
+  let setArgs (h,k) = "clSetKernelArg(kernel, " ++ show k ++ 
+                      ", sizeof(cl_mem), (void *)&" ++ memPrefix ++ show h ++ objPostfix ++ ");"
+  mapM_ line (map setArgs allocMap)
+
+  -- launch kernel
+  line $ "size_t global_item_size = " ++ show siz ++ ";"
+  line $ "size_t local_item_size = "  ++ show siz ++ ";"
+  line "clEnqeueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
+
+  --read back to result array
+  line $ "clEnqeueReadBuffer(command_queue, " ++ memPrefix ++ show resID ++ objPostfix ++ ", CL_TRUE, 0, " ++ show siz ++
+         "* sizeof(" ++ removePointer t ++ "), " ++ memPrefix ++ show resID ++ ", 0, NULL, NULL);\n\n"
 
   
 
-
---  resArgNo <- fmap fromJust $ lookupForKernel k -- set result first
---  line $ "clSetKernelArg(kernel, " ++ show resArgNo ++ ", sizeof(cl_mem), (void *)&" ++ m ++ objPostfix ++ ");"
---  arg1No   <- fmap fromJust $ lookupForKernel d -- set first argument
---  line $ "clSetKernelArg(kernel, " ++ show arg1No ++ ", sizeof(cl_mem), (void *)&" ++ m ++ objPostfix ++ ");"
 
 ------------------------------------------------------------
 -- Kernel generation
@@ -127,11 +138,12 @@ data Kernel = Kernel {resultID :: Int}
 
 
 -- Assumption: param 0 is the result array.
-genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Gen Kernel
-genKernel f names = do
+genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Bool -> Gen Kernel
+genKernel f names isCalledNested = do
   let arrPrefix = "arr"
   v0 <- incVar
-  k0 <- addKernelParam v0
+  -- This prevents the extra parameter that would be generated from the nested appearances AllocNew
+  k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing. This
   let res = "arr" ++ show k0
   k1 <- addKernelParam (snd $ head names)
   let arr1 = arrPrefix ++ show k1
@@ -191,15 +203,16 @@ genKernel f names = do
       genKernel' $ f (locArray m) (array m siz)
       lineK $ "free(" ++ m ++ ");"
 
+    -- The internal version of AllocNew (that happends within another AllocNew) is slightly different.
     genKernel' p@(AllocNew t siz f) = do
       let objPostfix = "_obj"
       d <- incVar
       let m = "mem" ++ show d
       line $ show t ++ " " ++ m ++ " = malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-      k <- genKernel f [(m, d)] -- TODO this needs to go. Causes unnecessary parameters in Kernels.
+      genKernel f [(m, d)] True -- TODO this needs to go. Causes unnecessary parameters in Kernels.
       
-
       return ()
+
     
 
 ------------------------------------------------------------

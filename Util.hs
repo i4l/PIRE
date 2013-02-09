@@ -7,6 +7,7 @@ module Util where
 import Control.Monad.State
 import qualified Data.Map as Map
 
+import PIRE
 
 
 type Gen a = State Env a
@@ -31,6 +32,9 @@ data MemObj = Mem
 
 extractCode :: Gen a -> Env -> [String]
 extractCode g e = code $ execState g e
+
+extractKernelCode :: Gen a -> Env -> [String]
+extractKernelCode g e = kernelCode $ execState g e
 
 line :: String -> Gen ()
 line s = modify $ \env -> env{code = code env ++ 
@@ -119,3 +123,12 @@ lineK s = modify $ \env -> env {kernelCode = kernelCode env ++ [s]}
 
 extractCodeK :: Gen a -> Env -> [String]
 extractCodeK g e = kernelCode $ execState g e
+
+-- other
+
+-- remove all pointer wrappings from a Type
+removePointer :: Type -> String
+removePointer TInt         = "Int"
+removePointer TChar        = "char"
+removePointer TFloat       = "float"
+removePointer (TPointer t) = removePointer t
