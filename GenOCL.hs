@@ -89,11 +89,24 @@ gen (AllocNew t siz f) = do
   line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
 
   -- Allocate for result
-  resID <- fmap resultID (genKernel f [(m, d)] False)
+  kernInfo <- (genKernel f [(m, d)] False)
+  let resID = resultID kernInfo
   line $ show t ++ " " ++ memPrefix ++ show resID ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ removePointer t ++ ")*" ++ show siz ++ ");\n\n"
 
   -- fetch the Map, so we have something to work with
   allocMap <- fmap Map.toList getHostAllocMap
+  
+ 
+  -- initialize allocated arrays
+  let Array len (Pull ixf) = getArray kernInfo
+  
+  line $ "for (int i = 0; i < " ++ show len ++ "; i++) {"
+  indent 2
+
+--  line $ show $ ixf (var "i")
+
+  unindent 2
+  line "}"
   
   -- create cl_mem buffers
   let createBuffers (h,k) = "cl_mem " ++ memPrefix ++ show h ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
@@ -101,15 +114,18 @@ gen (AllocNew t siz f) = do
                 ", " ++ show siz ++ "*sizeof(" ++ removePointer t ++ "), NULL, NULL);"
   mapM_ line (map createBuffers allocMap)
 
+
   -- copy data to cl_mem buffers
-  let copyBuffers (h,_) = "clEnqueueWriteBuffer(command_queue, " ++ memPrefix ++ show h ++ objPostfix ++ ", CL_TRUE, 0, " ++ 
-                          show siz ++ " * sizeof(" ++ removePointer t ++"), " ++ memPrefix ++ show h ++ ", 0, NULL, NULL);"
+  let copyBuffers (h,_) = "clEnqueueWriteBuffer(command_queue, " ++ memPrefix ++ show h ++ 
+                          objPostfix ++ ", CL_TRUE, 0, " ++ show siz ++ " * sizeof(" ++ 
+                          removePointer t ++"), " ++ memPrefix ++ show h ++ ", 0, NULL, NULL);"
   resAlloc <- fmap fromJust $  lookupForKernel 0 
   let removeRes = delete (resAlloc, 0) -- we don't want to copy the result array to the GPU.
   mapM_ line (map copyBuffers (removeRes allocMap))
 
   -- create kernel & build program
-  line "cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, NULL);"
+  line $ "cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
+         "(const size_t *)&source_size, NULL);"
   line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
   line "cl_kernel kernel = clCreateKernel(program, \"k0\", NULL);" 
   
@@ -134,7 +150,7 @@ gen (AllocNew t siz f) = do
 -- Kernel generation
 
 -- TODO: What else should go here?
-data Kernel = Kernel {resultID :: Int}
+data Kernel = Kernel {resultID :: Int, getArray :: Array Pull Expr}
 
 
 -- Assumption: param 0 is the result array.
@@ -146,11 +162,11 @@ genKernel f names isCalledNested = do
   k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing. This
   let res = "arr" ++ show k0
   k1 <- addKernelParam (snd $ head names)
-  let arr1 = arrPrefix ++ show k1
+  let arr1 = array (arrPrefix ++ show k1) (Num 10) --(error "ERROR!: fill in size for Array")
   genKernel' (f (locArray res (var "tid")) 
-                (array arr1 (error "ERROR!: fill in size for Array")))
+                arr1)
   newHostMem <- lookupForHost k0
-  return $ Kernel (fromJust newHostMem)
+  return $ Kernel (fromJust newHostMem) arr1
   where
     genKernel' :: Program -> Gen ()
     genKernel' Skip = lineK "0;"
@@ -210,6 +226,8 @@ genKernel f names isCalledNested = do
       let m = "mem" ++ show d
       line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
       genKernel f [(m, d)] True -- TODO this needs to go. Causes unnecessary parameters in Kernels.
+
+
       
       return ()
 
