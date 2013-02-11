@@ -29,14 +29,15 @@ type Index = Expr
 var :: Name -> Expr
 var v = Index v []
 
+-- This instance is quite limited.
 instance Ord Expr where
   e1 <= e2 = (toInt e1) <= (toInt e2)
-
-toInt :: Expr -> Int
-toInt (Num n)    = n
-toInt (a :-: b)  = (toInt a) - (toInt b)
-toInt (a :/: b)  = (toInt a) `div` (toInt b)
-toInt (a :*: b)  = (toInt a) * (toInt b)
+    where
+      toInt :: Expr -> Int
+      toInt (Num n)    = n
+      toInt (a :-: b)  = (toInt a) - (toInt b)
+      toInt (a :/: b)  = (toInt a) `div` (toInt b)
+      toInt (a :*: b)  = (toInt a) * (toInt b)
 
 
 instance Show Expr where
@@ -88,9 +89,10 @@ data Program
 -- splitting these into two allows us to potentially reuse old decls/names (I think)
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 
-  | AllocNew Type Size (Loc Expr -> Array Pull Expr -> Program)
+  -- | AllocNew Type Size (Loc Expr -> Array Pull Expr -> Program)
+  | AllocNew Type Size (Array Pull Expr) (Loc Expr -> Program)
 data Type = TInt | TChar | TFloat | TPointer Type
-
+ 
 
 showProgram :: Int -> Program -> [String]
 showProgram d Skip =

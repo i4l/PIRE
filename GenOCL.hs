@@ -79,7 +79,7 @@ gen (Alloc siz f) = do
                                    -- enqueueWriteBuffer, createProgramWithSource, buildProgram etc..)
 -}
 
-gen (AllocNew t siz f) = do
+gen (AllocNew t siz arr f) = do
   let objPostfix = "_obj"
       memPrefix  = "mem"
 
@@ -89,7 +89,7 @@ gen (AllocNew t siz f) = do
   line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
 
   -- Allocate for result
-  kernInfo <- (genKernel f [(m, d)] False)
+  kernInfo <- (genKernel f [(m, d)] arr False)
   let resID = resultID kernInfo
   line $ show t ++ " " ++ memPrefix ++ show resID ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ removePointer t ++ ")*" ++ show siz ++ ");\n\n"
 
@@ -99,12 +99,12 @@ gen (AllocNew t siz f) = do
  
   -- initialize allocated arrays
   let Array len (Pull ixf) = getArray kernInfo
-  
-  line $ "for (int i = 0; i < " ++ show len ++ "; i++) {"
+      loopVar    = "i"
+      hostAllocs = map fst $ filter (\(_,k) -> k /= 0 ) allocMap
+      allocs     = map (\h -> Assign (memPrefix ++ show h) [var "i"] (ixf (var "i"))) hostAllocs
+  line $ "for (int " ++  loopVar ++ "= 0; i < " ++ show len ++ "; i++) {"
   indent 2
-
---  line $ show $ ixf (var "i")
-
+  mapM_ gen allocs
   unindent 2
   line "}"
   
@@ -152,19 +152,19 @@ gen (AllocNew t siz f) = do
 data Kernel = Kernel {resultID :: Int, getArray :: Array Pull Expr}
 
 -- Assumption: param 0 is the result array.
-genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Bool -> Gen Kernel
-genKernel f names isCalledNested = do
+--genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Bool -> Gen Kernel
+genKernel :: (Loc Expr -> Program) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
+genKernel f names arr isCalledNested = do
   let arrPrefix = "arr"
   v0 <- incVar
   -- This prevents the extra parameter that would be generated from the nested appearances AllocNew
   k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing.
   let res = "arr" ++ show k0
   k1 <- addKernelParam (snd $ head names)
-  let arr1 = array (arrPrefix ++ show k1) (Num 10) --(error "ERROR!: fill in size for Array")
-  genKernel' (f (locArray res (var "tid")) 
-                arr1)
+--  let arr1 = array (arrPrefix ++ show k1) (Num 10) --(error "ERROR!: fill in size for Array")
+  genKernel' $ f (locArray res (var "tid"))
   newHostMem <- lookupForHost k0
-  return $ Kernel (fromJust newHostMem) arr1
+  return $ Kernel (fromJust newHostMem) arr
   where
     genKernel' :: Program -> Gen ()
     genKernel' Skip = lineK "0;"
@@ -218,12 +218,12 @@ genKernel f names isCalledNested = do
       lineK $ "free(" ++ m ++ ");"
 
     -- The internal version of AllocNew (that happends within another AllocNew) is slightly different.
-    genKernel' p@(AllocNew t siz f) = do
-      let objPostfix = "_obj"
+    genKernel' (AllocNew t siz arr f) = do
+--      let objPostfix = "_obj"
       d <- incVar
       let m = "mem" ++ show d
       line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-      genKernel f [(m, d)] True -- TODO this needs to go. Causes unnecessary parameters in Kernels.
+      genKernel f [(m, d)] arr True -- TODO this needs to go. Causes unnecessary parameters in Kernels.
 
 
       

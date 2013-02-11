@@ -3,7 +3,7 @@ module Util where
 {- 
  - Utility functions for generating code.
 -}
-
+ 
 import Control.Monad.State
 import qualified Data.Map as Map
 
