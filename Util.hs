@@ -19,8 +19,9 @@ data Env = Env
           , kernelFile   :: FilePath        -- Name of the file containing kernels
           , kernelCode   :: [String]        -- Accumulated kernel code
           , paramCounter :: Int             -- Kernel parameter counter
-          , paramMap     :: Map.Map Int Int -- Mapping allocations in Host -> Kernel params.
-          , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> Host allocations
+          , paramMap     :: Map.Map Int Int -- Mapping AllocID -> Kernel params.
+          , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> AllocID
+          , inits        :: Map.Map Int (Index -> Expr) -- AllocID -> ixf 
           }
 
 -- Not decided on whether to use or not
@@ -104,11 +105,17 @@ printMap g = do
       m2' = map (\(k,h) -> "arr" ++ show k ++ " is mapped to mem" ++  show h ++ "\n") m2
   putStrLn $ concat m2'
 
+
+addInitFunc :: Int -> (Index -> Expr) -> Gen ()
+addInitFunc allocID f = modify $ \env -> env {inits = Map.insert allocID f (inits env)}
+
+getInitFuncs :: Gen (Map.Map Int (Index -> Expr))
+getInitFuncs = gets inits
   
 
 
 emptyEnv :: Env
-emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty Map.empty
+emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty Map.empty Map.empty
 
 
 ------------------------------------------------------------

@@ -87,6 +87,7 @@ gen (AllocNew t siz arr f) = do
   d <- incVar
   let m = "mem" ++ show d
   line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+  addInitFunc d (pull $ doit arr)
 
   -- Allocate for result
   kernInfo <- (genKernel f [(m, d)] arr False)
@@ -95,16 +96,15 @@ gen (AllocNew t siz arr f) = do
 
   -- fetch the Map, so we have something to work with
   allocMap <- fmap Map.toList getHostAllocMap
-  
  
   -- initialize allocated arrays
-  let Array len (Pull ixf) = getArray kernInfo
-      loopVar    = "i"
-      hostAllocs = map fst $ filter (\(_,k) -> k /= 0 ) allocMap
-      allocs     = map (\h -> Assign (memPrefix ++ show h) [var "i"] (ixf (var "i"))) hostAllocs
-  line $ "for (int " ++  loopVar ++ "= 0; i < " ++ show len ++ "; i++) {"
+  initFuncs <- fmap Map.toList getInitFuncs
+  let len          = size $ getArray kernInfo
+      loopVar      = "i"
+      allocStrings = map (\(h,f) -> Assign (memPrefix ++ show h) [var loopVar] (f (var loopVar))) initFuncs
+  line $ "for (int " ++  loopVar ++ " = 0; i < " ++ show len ++ "; i++) {"
   indent 2
-  mapM_ gen allocs
+  mapM_ gen allocStrings
   unindent 2
   line "}"
   
@@ -221,6 +221,7 @@ genKernel f names arr isCalledNested = do
     genKernel' (AllocNew t siz arr f) = do
 --      let objPostfix = "_obj"
       d <- incVar
+      addInitFunc d (pull $ doit arr)
       let m = "mem" ++ show d
       line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
       genKernel f [(m, d)] arr True -- TODO this needs to go. Causes unnecessary parameters in Kernels.

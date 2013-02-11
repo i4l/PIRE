@@ -24,7 +24,7 @@ import Util
 
 dualPar' :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> (Array p Expr) -> (Array p Expr) -> Program
 dualPar' t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 -> 
-                          AllocNew (TPointer t) len arr1 $ \_   ->
+                          AllocNew (TPointer t) len arr2 $ \_   ->
                             par (Num 0) len $
                               \e -> loc1 (f (ixf1 e) (ixf2 e))
   where len  = min (size arr1) (size arr2) -- change p ~ Pushy later
@@ -34,7 +34,7 @@ dualPar' t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 ->
 
 
 vecMul :: Program
-vecMul = dualPar' TInt (\a b -> a .* b) (Array len (Pull (.+ (Num 5)))) (Array len (Pull id))
+vecMul = dualPar' TInt (\a b -> a .* b) (Array len (Pull (.+ (Num 5)))) (Array len (Pull (.+ (Num 7))))
   where len = Num 20
 
 
