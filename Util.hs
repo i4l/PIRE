@@ -24,12 +24,6 @@ data Env = Env
           , inits        :: Map.Map Int (Index -> Expr) -- AllocID -> ixf 
           }
 
--- Not decided on whether to use or not
-data MemObj = Mem
-          { nameInKernel :: Int
-          , nameInHost   :: Int
-          }
-
 
 extractCode :: Gen a -> Env -> [String]
 extractCode g e = code $ execState g e

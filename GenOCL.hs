@@ -148,21 +148,19 @@ gen (AllocNew t siz arr f) = do
 ------------------------------------------------------------
 -- Kernel generation
 
--- TODO: What else should go here?
 data Kernel = Kernel {resultID :: Int, getArray :: Array Pull Expr}
 
 -- Assumption: param 0 is the result array.
---genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Bool -> Gen Kernel
+-- The Bool is for deciding if to allocate the resulting array (set False by FIRST called).
 genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
-genKernel f names arr isCalledNested = do
+genKernel progFun names arr isCalledNested = do
   let arrPrefix = "arr"
   v0 <- incVar
-  -- This prevents the extra parameter that would be generated from the nested appearances AllocNew
   k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing.
   let res = "arr" ++ show k0
   k1 <- addKernelParam (snd $ head names)
-  let arr1 = array (arrPrefix ++ show k1) (size arr) --(error "ERROR!: fill in size for Array")
-  genKernel' $ f (locArray res (var "tid")) arr1
+  let arr1 = array (arrPrefix ++ show k1) (size arr)
+  genKernel' $ progFun (locArray res (var "tid")) arr1
   newHostMem <- lookupForHost k0
   return $ Kernel (fromJust newHostMem) arr
   where
@@ -181,9 +179,9 @@ genKernel f names arr isCalledNested = do
       unindent 2
       lineK "}"
 
-    genKernel' (Par _ max p) = do
+    genKernel' (Par _ bound p) = do
       let tid     = "tid"
-      let kerName = 'k' : show 0 -- TODO fix (might have multiple kernels)
+      let kerName = 'k' : show (0 :: Int) -- TODO fix (might have multiple kernels)
 
       paramMapSize <- fmap Map.size getParamMap
       let removeLastComma = reverse . drop 1 . reverse
@@ -193,7 +191,7 @@ genKernel f names arr isCalledNested = do
 
       lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
       lineK "int tid = get_global_id(0);"
-      lineK $ "if( tid < " ++ show max ++ " ) {"
+      lineK $ "if( tid < " ++ show bound ++ " ) {"
       genKernel' $ p (var tid)
 
       lineK "}"
@@ -219,12 +217,11 @@ genKernel f names arr isCalledNested = do
 
     -- The internal version of AllocNew (that happends within another AllocNew) is slightly different.
     genKernel' (AllocNew t siz arr f) = do
---      let objPostfix = "_obj"
       d <- incVar
       addInitFunc d (pull $ doit arr)
       let m = "mem" ++ show d
       line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-      genKernel f [(m, d)] arr True -- TODO this needs to go. Causes unnecessary parameters in Kernels.
+      genKernel f [(m, d)] arr True 
 
 
       
