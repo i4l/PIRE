@@ -65,19 +65,6 @@ gen (Alloc siz f) = do
    line $ "free(" ++ m ++ ");"
 
 
-{- TODO: Compile the program (f) into a kernel.
- - Return kernel information s.t. we can pass/read
- - memory to/from GPU.
- - Program should probably not be parameterized over Expr,
- - but rather over the tid (i.e. not parameterized at all).
-
- - Pseudo:
- (AllocNew t siz f) = do
-  kernInfo <- compileToKernel f -- output f to kernel.
-  gen kernInfo                  -- make host program generate whatever needs to be generated (cl_mems,
-                                   -- enqueueWriteBuffer, createProgramWithSource, buildProgram etc..)
--}
-
 gen (AllocNew t siz arr f) = do
   let objPostfix = "_obj"
       memPrefix  = "mem"
@@ -91,7 +78,8 @@ gen (AllocNew t siz arr f) = do
   -- Allocate for result
   kernInfo <- (genKernel f [(m, d)] arr False)
   let resID = resultID kernInfo
-  line $ show t ++ " " ++ memPrefix ++ show resID ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ removePointer t ++ ")*" ++ show siz ++ ");\n\n"
+  line $ show t ++ " " ++ memPrefix ++ show resID ++ " = (" ++ show t ++ ") malloc(" ++ 
+          "sizeof(" ++ removePointer t ++ ")*" ++ show siz ++ ");\n\n"
 
   -- fetch the Map, so we have something to work with
   allocMap <- fmap Map.toList getHostAllocMap
@@ -138,10 +126,8 @@ gen (AllocNew t siz arr f) = do
   line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
 
   --read back to result array
-  line $ "clEnqueueReadBuffer(command_queue, " ++ memPrefix ++ show resID ++ objPostfix ++ ", CL_TRUE, 0, " ++ show siz ++
-         "* sizeof(" ++ removePointer t ++ "), " ++ memPrefix ++ show resID ++ ", 0, NULL, NULL);\n\n"
-
-  
+  line $ "clEnqueueReadBuffer(command_queue, " ++ memPrefix ++ show resID ++ objPostfix ++ ", CL_TRUE, 0, " ++
+          show siz ++ "* sizeof(" ++ removePointer t ++ "), " ++ memPrefix ++ show resID ++ ", 0, NULL, NULL);\n\n"
 
 
 ------------------------------------------------------------
@@ -164,9 +150,10 @@ genKernel f names arr isCalledNested = do
   let kernelArr = array (arrPrefix ++ show k1) (size arr)
   genKernel' $ f (locArray res $ var "tid") kernelArr
 
-  newHostMem <- lookupForHost k0
+  newHostMem <- lookupForHost k0 -- k0 is the result array
   return $ Kernel (fromJust newHostMem)
   where
+    -- This is the dual to Gen - for Programs in kernels.
     genKernel' :: Program -> Gen ()
     genKernel' Skip = lineK "0;"
     genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
@@ -218,16 +205,13 @@ genKernel f names arr isCalledNested = do
       genKernel' $ f (locArray m) (array m siz)
       lineK $ "free(" ++ m ++ ");"
 
-    -- The internal version of AllocNew (that happends within another AllocNew) is slightly different.
+    -- The internal version of AllocNew (that happends within another AllocNew).
     genKernel' (AllocNew t siz arr f) = do
       d <- incVar
       addInitFunc d (pull $ doit arr)
       let m = "mem" ++ show d
       line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
       genKernel f [(m, d)] arr True 
-
-
-      
       return ()
 
     

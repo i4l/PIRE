@@ -83,23 +83,19 @@ a     .<= b          = a :<=: b
 data Program
   = Skip
   | Assign Name [Expr] Expr
-  | Program :>> Program
+  | Program :>> Program             -- Program Seq.
   | If Expr Program Program
-  | For Expr Expr (Expr -> Program)
+  | For Expr Expr (Expr -> Program) -- Sequential Loop
   | Par Expr Expr (Expr -> Program) -- Parallel Loop
 
 -- Splitting these into two allows us to potentially reuse old decls/names (I think)
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 
   -- | AllocNew Type Size (Loc Expr -> Array Pull Expr -> Program)
-  | AllocNew Type Size (Array Pull Expr) (Loc Expr -> Array Pull Expr -> Program)
-data Type = TInt | TChar | TFloat | TPointer Type
+  | AllocNew Type Size (Array Pull Expr) (Loc Expr        ->
+                                          Array Pull Expr -> 
+                                          Program)
 
-instance Show Type where
-  show TInt = "int"
-  show TChar = "char"
-  show TFloat = "float"
-  show (TPointer t) = show t ++ "*"
 
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for Programs
@@ -122,29 +118,35 @@ p    .>> Skip = p
 p    .>> q    = p :>> q
 
 -----------------------------------------------------------------------------
--- locations:
+-- Types
 
--- A location models what can be on the LHS of an assignment-sign in C.
--- examples: x, arr[17], arr[n][m], etc. In other words, something
--- to which we can write a result.
+data Type = TInt | TChar | TFloat | TPointer Type
 
--- The simplest way to represent a location is a function from result
--- to a program that writes that result to the location.
+instance Show Type where
+  show TInt = "int"
+  show TChar = "char"
+  show TFloat = "float"
+  show (TPointer t) = show t ++ "*"
 
+-----------------------------------------------------------------------------
+-- Locations
+
+
+-- LHS of an assignment.
 type Loc a = a -> Program
 
 
-nil :: Loc a
-nil = \_ -> Skip
+--nil :: Loc a
+--nil = \_ -> Skip
 
-loc :: Name -> Loc Expr
-loc v = \x -> Assign v [] x
-
-(&) :: Loc a -> Loc b -> Loc (a,b)
-loc1 & loc2 = \(x,y) -> loc1 x .>> loc2 y
-
-locMap :: (b -> a) -> Loc a -> Loc b
-locMap f loc = \x -> loc (f x)
+--loc :: Name -> Loc Expr
+--loc v = \x -> Assign v [] x
+--
+--(&) :: Loc a -> Loc b -> Loc (a,b)
+--loc1 & loc2 = \(x,y) -> loc1 x .>> loc2 y
+--
+--locMap :: (b -> a) -> Loc a -> Loc b
+--locMap f loc = \x -> loc (f x)
 
 locArray :: Name -> Index -> Loc Expr
 locArray v i = \x -> Assign v [i] x
