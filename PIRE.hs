@@ -1,5 +1,6 @@
 -- Built on a Representation by Koen Lindström Claessen.
 
+
 {-
  - PIRE - a Parallel Intermediate Representation for Embedded languages
 -}
@@ -27,6 +28,16 @@ type Index = Expr
 
 var :: Name -> Expr
 var v = Index v []
+
+instance Ord Expr where
+  e1 <= e2 = (toInt e1) <= (toInt e2)
+
+toInt :: Expr -> Int
+toInt (Num n)    = n
+toInt (a :-: b)  = (toInt a) - (toInt b)
+toInt (a :/: b)  = (toInt a) `div` (toInt b)
+toInt (a :*: b)  = (toInt a) * (toInt b)
+
 
 instance Show Expr where
   show (Num n)      = show n

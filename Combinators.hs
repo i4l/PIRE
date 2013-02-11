@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 module Combinators where
 
 -- A small combinator library
@@ -20,8 +21,23 @@ dualPar f len = AllocNew (TPointer TInt) (Num len) $ \loc1 arr1 ->
                     par (Num 0) (Num len) $ 
                       \e -> loc1 (f (pull (doit arr1) e) (pull (doit arr2) e))
 
+
+dualPar' :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> (Array p Expr) -> (Array p Expr) -> Program
+dualPar' t f arr1 arr2 = AllocNew (TPointer t) len $ \loc1 internalArr1 -> 
+                          AllocNew (TPointer t) len $ \_ internalArr2   ->
+                            par (Num 0) len $
+                              \e -> loc1 (f (ixf1 e) (ixf2 e))
+
+
+  where len  = min (size arr1) (size arr2) -- change p ~ Pushy later
+        ixf1 = (pull . doit) arr1
+        ixf2 = (pull . doit) arr2
+
+
+
 vecMul :: Program
-vecMul = dualPar (\a b -> a .* b) 10
+vecMul = dualPar' TInt (\a b -> a .* b) (Array len (Pull id)) (Array len (Pull id))
+  where len = (Num 20)
 
 
 -- A sequential for-loop for inspiration.
@@ -44,7 +60,7 @@ exFor :: Program
 exFor = forProg 10 add
 
 example :: Gen ()
-example = setupHeadings >> setupOCL >>gen vecMul >> setupEnd
+example = setupHeadings >> gen vecMul >> setupEnd
 
 exPar2 :: Program
 exPar2 = parProg 10 $ add

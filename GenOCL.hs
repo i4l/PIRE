@@ -114,7 +114,6 @@ gen (AllocNew t siz f) = do
                 ", " ++ show siz ++ "*sizeof(" ++ removePointer t ++ "), NULL, NULL);"
   mapM_ line (map createBuffers allocMap)
 
-
   -- copy data to cl_mem buffers
   let copyBuffers (h,_) = "clEnqueueWriteBuffer(command_queue, " ++ memPrefix ++ show h ++ 
                           objPostfix ++ ", CL_TRUE, 0, " ++ show siz ++ " * sizeof(" ++ 
@@ -152,14 +151,13 @@ gen (AllocNew t siz f) = do
 -- TODO: What else should go here?
 data Kernel = Kernel {resultID :: Int, getArray :: Array Pull Expr}
 
-
 -- Assumption: param 0 is the result array.
 genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Bool -> Gen Kernel
 genKernel f names isCalledNested = do
   let arrPrefix = "arr"
   v0 <- incVar
   -- This prevents the extra parameter that would be generated from the nested appearances AllocNew
-  k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing. This
+  k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing.
   let res = "arr" ++ show k0
   k1 <- addKernelParam (snd $ head names)
   let arr1 = array (arrPrefix ++ show k1) (Num 10) --(error "ERROR!: fill in size for Array")
