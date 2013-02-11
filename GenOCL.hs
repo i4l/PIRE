@@ -9,7 +9,6 @@ import Data.List
  - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
 
--- TODO parameterize gen over Host and Kernel to avoid code duplication.
 -- TODO Text.PrettyPrint
 
 gen :: Program -> Gen ()
@@ -99,7 +98,7 @@ gen (AllocNew t siz arr f) = do
  
   -- initialize allocated arrays
   initFuncs <- fmap Map.toList getInitFuncs
-  let len          = size $ getArray kernInfo
+  let len          = size $ arr
       loopVar      = "i"
       allocStrings = map (\(h,f) -> Assign (memPrefix ++ show h) [var loopVar] (f (var loopVar))) initFuncs
   line $ "for (int " ++  loopVar ++ " = 0; i < " ++ show len ++ "; i++) {"
@@ -148,21 +147,25 @@ gen (AllocNew t siz arr f) = do
 ------------------------------------------------------------
 -- Kernel generation
 
-data Kernel = Kernel {resultID :: Int, getArray :: Array Pull Expr}
+data Kernel = Kernel {resultID :: Int}
 
 -- Assumption: param 0 is the result array.
 -- The Bool is for deciding if to allocate the resulting array (set False by FIRST called).
 genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
-genKernel progFun names arr isCalledNested = do
+genKernel f names arr isCalledNested = do
   let arrPrefix = "arr"
   v0 <- incVar
   k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing.
+  
+  -- Create a new array which is used inside the kernel.
+  -- Pass it to the function f which takes Loc and Array.
   let res = "arr" ++ show k0
   k1 <- addKernelParam (snd $ head names)
-  let arr1 = array (arrPrefix ++ show k1) (size arr)
-  genKernel' $ progFun (locArray res (var "tid")) arr1
+  let kernelArr = array (arrPrefix ++ show k1) (size arr)
+  genKernel' $ f (locArray res $ var "tid") kernelArr
+
   newHostMem <- lookupForHost k0
-  return $ Kernel (fromJust newHostMem) arr
+  return $ Kernel (fromJust newHostMem)
   where
     genKernel' :: Program -> Gen ()
     genKernel' Skip = lineK "0;"
