@@ -151,6 +151,8 @@ type Loc a = a -> Program
 locArray :: Name -> Index -> Loc Expr
 locArray v i = \x -> Assign v [i] x
 
+locNest :: Name -> [Index] -> Loc Expr
+locNest v is = \x -> Assign v is x
 
 -----------------------------------------------------------------------------
 -- Arrays
