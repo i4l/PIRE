@@ -153,7 +153,7 @@ data Kernel = Kernel {resultID :: Int, getArray :: Array Pull Expr}
 
 -- Assumption: param 0 is the result array.
 --genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Bool -> Gen Kernel
-genKernel :: (Loc Expr -> Program) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
+genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
 genKernel f names arr isCalledNested = do
   let arrPrefix = "arr"
   v0 <- incVar
@@ -161,8 +161,8 @@ genKernel f names arr isCalledNested = do
   k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing.
   let res = "arr" ++ show k0
   k1 <- addKernelParam (snd $ head names)
---  let arr1 = array (arrPrefix ++ show k1) (Num 10) --(error "ERROR!: fill in size for Array")
-  genKernel' $ f (locArray res (var "tid"))
+  let arr1 = array (arrPrefix ++ show k1) (size arr) --(error "ERROR!: fill in size for Array")
+  genKernel' $ f (locArray res (var "tid")) arr1
   newHostMem <- lookupForHost k0
   return $ Kernel (fromJust newHostMem) arr
   where
