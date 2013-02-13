@@ -61,7 +61,7 @@ parLoop' t f arr = AllocNew t (size arr) arr $
 -- Example programs
 
 a = parLoop' TInt id (Array (Num 10) (Pull id))
-
+ 
 
 -- Vector multiplication
 vecMul :: Program
@@ -77,9 +77,9 @@ vecMul = parLoop2 TInt (.*) vec1 vec2
 --                         } 
 
 
-forLoop' :: (Expr -> Expr) -> Array2 Pull Expr -> Program
-forLoop' f (Array2 len (Pull ixf) dim) = ForDim (Num 0) len dim $ 
-                                          \e arr -> Assign "arr" [var "j"] (ixf e)
+forLoop' :: (Expr -> Expr) -> Array2 Pull Expr -> Program  
+forLoop' f arr@(Array2 len (Pull ixf) dim) = ForDim (Num 0) len arr $ 
+                                          \loc internalArr -> loc $ (pull $ theData internalArr) (var "v")
                                                           
 b = forLoop' (.+ (Num 5)) (Array2 (Num 10) (Pull (.* (Num 4))) 2)
 

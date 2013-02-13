@@ -59,22 +59,28 @@ gen (For e1 e2 p) = do
    line "}"
 
 ----TODO testing multi-dim arrays
-gen(ForDim start len dim f) = do
-  let brackets = concat $ take dim $ repeat $ "[" ++ show (len./(Num dim)) ++ "]" 
+gen(ForDim start len arr f) = do
+  let brackets = concat $ take (dim arr) $ repeat $ "[" ++ show (len./(Num (dim arr))) ++ "]" 
   line $ "int arr" ++ brackets ++ ";"
   d <- incVar
   let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
 
-  loopsInits <- replicateM dim $ do v <- incVar
-                                    let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
-                                    return $ "for( " ++ loopVar ++ " = " ++ show (Num 0) ++ "; "  
-                                                       ++ loopVar ++ " < " ++ show (len ./ (Num dim)) ++ "; " ++ loopVar ++ "++ ) {"                                                  
+  loopsInits <- replicateM (dim arr) $ do v <- incVar
+                                          let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
+                                          return $ "for( " ++ loopVar ++ " = " ++ show (Num 0) ++ "; "  
+                                                           ++ loopVar ++ " < " ++ show (len ./ (Num (dim arr))) ++ "; " ++ loopVar ++ "++ ) {"                                                  
   mapM_ (\str -> indent 2 >> str) $ map (line) loopsInits
-  indent 2
+  indent 2 
+
+  d1 <- incVar
+  let arrName = "arr" ++ show d1
+  -- fix "i". Must be passed along or something.
+  gen $ f (locNest arrName [(var "i"), var "j"]) arr
+
 --  gen (f (var loopVar))
 --  gen $ f $ Index "arr" [var "i", var "j"]
   unindent 2
-  replicateM dim $ line "}" >> unindent 2
+  replicateM (dim arr) $ line "}" >> unindent 2
   line "}"
 
 gen (Alloc siz f) = do 

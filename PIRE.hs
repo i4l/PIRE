@@ -88,7 +88,7 @@ data Program
   | For Expr Expr (Expr -> Program) -- Sequential Loop
   | Par Expr Expr (Expr -> Program) -- Parallel Loop
 
-  | ForDim Expr Expr DIM (Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
+  | ForDim Expr Expr (Array2 Pull Expr) (Loc Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
 
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 
