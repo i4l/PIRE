@@ -27,7 +27,7 @@ import Util
 -- TODO change p ~ Pushable later
 
 
-parLoop2 :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> (Array p Expr) -> (Array p Expr) -> Program
+parLoop2 :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> Array p Expr -> Array p Expr -> Program
 parLoop2 t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 -> 
                           AllocNew (TPointer t) len arr2 $ \_    kernelArray2 ->
                             par (Num 0) len $
@@ -63,8 +63,10 @@ forProg len f = Alloc (Num len) $
 
 -- Vector multiplication
 vecMul :: Program
-vecMul = parLoop2 TInt (.*) (Array len (Pull (.* (Num 2)))) (Array len (Pull (.+ (Num 1))))
-  where len = Num 20
+vecMul = parLoop2 TInt (.*) vec1 vec2
+  where len  = Num 10
+        vec1 = Array len (Pull (.* (Num 2)))
+        vec2 = Array len (Pull (.+ (Num 1)))
 
 --matMult :: Program
 --matMult = parLoop2Nest TInt (.*) arr1 arr2
@@ -82,7 +84,7 @@ inc1Par :: Gen ()
 inc1Par = gen $ parLoop TInt (.+ (Num 1)) (Array (Num 15) (Pull id))
 
 example :: Gen ()
-example = setupHeadings >> gen vecMul >> setupEnd
+example = setupHeadings >> setupOCL >> gen vecMul >> setupPrint "mem1" 10 >> setupEnd
 
 
 

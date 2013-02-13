@@ -72,7 +72,8 @@ gen (AllocNew t siz arr f) = do
   -- Allocate for argument
   d <- incVar
   let m = "mem" ++ show d
-  line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+  line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++
+          "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
   addInitFunc d (pull $ doit arr)
 
   -- Allocate for result
@@ -86,10 +87,14 @@ gen (AllocNew t siz arr f) = do
  
   -- initialize allocated arrays
   initFuncs <- fmap Map.toList getInitFuncs
+  v <- incVar
   let len          = size $ arr
-      loopVar      = "i"
-      allocStrings = map (\(h,f) -> Assign (memPrefix ++ show h) [var loopVar] (f (var loopVar))) initFuncs
-  line $ "for (int " ++  loopVar ++ " = 0; i < " ++ show len ++ "; i++) {"
+      loopVar      = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
+      allocStrings = map (\(h,f) -> Assign 
+                                      (memPrefix ++ show h) 
+                                      [var loopVar] (f (var loopVar))) initFuncs
+  line $ "int " ++ loopVar ++ ";"
+  line $ "for ( " ++ loopVar ++ " = 0; " ++ loopVar ++ " < " ++ show len ++ "; " ++  loopVar ++ "++ ) {"
   indent 2
   mapM_ gen allocStrings
   unindent 2
@@ -266,4 +271,11 @@ setupOCL = do
   line "\n\n"
 
 
-
+setupPrint :: String -> Int -> Gen ()
+setupPrint alloc len = do
+  d <- incVar
+  let loopVar =  ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+  line $ "int " ++ loopVar ++ ";"
+  line $ "for (" ++ loopVar ++ " = 0; " ++ loopVar ++ " < " ++ show len ++ "; " ++ loopVar ++ "++ ) {"
+  line $ "printf(\"%d\\n\"," ++ alloc ++ "[" ++ loopVar ++ "] );"
+  line "}"
