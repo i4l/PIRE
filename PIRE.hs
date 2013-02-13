@@ -80,6 +80,8 @@ a     .<= b          = a :<=: b
 -----------------------------------------------------------------------------
 -- Program - AST type
 
+type DIM = Int
+
 data Program
   = Skip
   | Assign Name [Expr] Expr
@@ -88,10 +90,10 @@ data Program
   | For Expr Expr (Expr -> Program) -- Sequential Loop
   | Par Expr Expr (Expr -> Program) -- Parallel Loop
 
--- Splitting these into two allows us to potentially reuse old decls/names (I think)
+  | ForDim Expr DIM (Expr -> Program) -- TODO experimental!
+
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 
-  -- | AllocNew Type Size (Loc Expr -> Array Pull Expr -> Program)
   | AllocNew Type Size (Array Pull Expr) (Loc Expr        ->
                                           Array Pull Expr -> 
                                           Program)

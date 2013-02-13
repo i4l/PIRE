@@ -68,12 +68,22 @@ vecMul = parLoop2 TInt (.*) vec1 vec2
         vec1 = Array len (Pull (.* (Num 2)))
         vec2 = Array len (Pull (.+ (Num 1)))
 
---matMult :: Program
---matMult = parLoop2Nest TInt (.*) arr1 arr2
---  where
---    len = (Num 10)
---    arr1 = Array len (Pull id)
---    arr2 = Array len (Pull id)
+data Array2 p a = Array2 { arrSize  :: Size
+                         , theData  :: p a
+                        -- , segments :: Pull Int
+                         , dim      :: DIM
+                         } 
+
+
+arrTest :: Array2 Pull Expr
+arrTest = Array2 (Num 20)
+                 (Pull id)
+                 2
+
+forLoop' :: (Expr -> Expr) -> Array2 Pull Expr -> Program
+forLoop' f (Array2 len (Pull ixf) dim) = ForDim len dim $
+                                          \e -> Assign "arr" [] $ ixf e
+
 
 
 

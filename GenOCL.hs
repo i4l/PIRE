@@ -5,6 +5,7 @@ import PIRE
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.List
+import Control.Monad
 {- 
  - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
@@ -56,6 +57,25 @@ gen (For e1 e2 p) = do
    gen (p (var i))
    unindent 2
    line "}"
+
+--TODO testing multi-dim arrays
+gen(ForDim len dim f) = do
+  let brackets = concat $ take dim $ repeat $ "[" ++ show (len./(Num dim)) ++ "]" 
+  line $ "int arr" ++ brackets ++ ";"
+  d <- incVar
+  let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+
+  loopsInits <- fmap (take dim . repeat) $ do v <- incVar
+                                              let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
+                                              return $ "for( " ++ loopVar ++ " = " ++ show (Num 0) ++ "; "  
+                                                                  ++ loopVar ++ " < " ++ show (len ./ (Num dim)) ++ "; " ++ loopVar ++ "++ ) {"                                                  
+  mapM_ (\str -> indent 2 >> str) $ map (line) loopsInits
+  indent 2
+--  gen (f (var loopVar))
+  gen $ f $ Index "arr" [var "i", var "j"]
+  unindent 2
+  replicateM dim $ line "}" >> unindent 2
+  line "}"
 
 gen (Alloc siz f) = do 
    d <- incVar
