@@ -80,8 +80,6 @@ a     .<= b          = a :<=: b
 -----------------------------------------------------------------------------
 -- Program - AST type
 
-type DIM = Int
-
 data Program
   = Skip
   | Assign Name [Expr] Expr
@@ -90,7 +88,7 @@ data Program
   | For Expr Expr (Expr -> Program) -- Sequential Loop
   | Par Expr Expr (Expr -> Program) -- Parallel Loop
 
-  | ForDim Expr DIM (Expr -> Program) -- TODO experimental!
+  | ForDim Expr Expr DIM (Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
 
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 
@@ -158,6 +156,17 @@ locNest v is = \x -> Assign v is x
 
 -----------------------------------------------------------------------------
 -- Arrays
+
+type DIM = Int
+
+data Array2 p a = Array2 { arrSize  :: Size
+                         , theData  :: p a
+                         , dim      :: DIM
+                         } 
+
+
+
+
 
 -- We have two array types, Pull and Push.
 -- TODO: explain difference

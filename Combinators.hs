@@ -45,12 +45,11 @@ forProg len f = Alloc (Num len) $
   \allocf arr -> for (Num 0) (Num len) $ 
                   \e -> allocf e $ f e
 
---forProg2 :: Int -> (Expr -> Expr -> Expr) -> Array Pull Expr -> Array pull Expr -> Program
---forProg2 len f arr1 arr2 = Alloc (Num len) $ 
---                            \allocf arr -> for (Num 0) (Num len) $
---                              \e1 -> Alloc (Num len) $
---                                \allocf' arr' -> for (Num 0) (Num len) $
---                                  \e2  -> (allocf (allocf' e1)) (f ((pull $ doit arr1)(var "i")) (var "j"))
+
+
+parLoop' :: Type -> (Expr -> Expr) -> Array Pull Expr -> Program
+parLoop' t f arr = AllocNew t (size arr) arr $
+                      \loc internalArr -> undefined
 
 --parLoop2Nest :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> (Array p Expr) -> (Array p Expr) -> Program
 --parLoop2Nest t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 -> 
@@ -61,6 +60,9 @@ forProg len f = Alloc (Num len) $
 -----------------------------------------------------------------------------
 -- Example programs
 
+a = parLoop' TInt id (Array (Num 10) (Pull id))
+
+
 -- Vector multiplication
 vecMul :: Program
 vecMul = parLoop2 TInt (.*) vec1 vec2
@@ -68,21 +70,22 @@ vecMul = parLoop2 TInt (.*) vec1 vec2
         vec1 = Array len (Pull (.* (Num 2)))
         vec2 = Array len (Pull (.+ (Num 1)))
 
-data Array2 p a = Array2 { arrSize  :: Size
-                         , theData  :: p a
-                        -- , segments :: Pull Int
-                         , dim      :: DIM
-                         } 
+--data Array2 p a = Array2 { arrSize  :: Size
+--                         , theData  :: p a
+--                        -- , segments :: Pull Int
+--                         , dim      :: DIM
+--                         } 
 
-
-arrTest :: Array2 Pull Expr
-arrTest = Array2 (Num 20)
-                 (Pull id)
-                 2
 
 forLoop' :: (Expr -> Expr) -> Array2 Pull Expr -> Program
-forLoop' f (Array2 len (Pull ixf) dim) = ForDim len dim $
-                                          \e -> Assign "arr" [] $ ixf e
+forLoop' f (Array2 len (Pull ixf) dim) = ForDim (Num 0) len dim $ 
+                                          \e arr -> Assign "arr" [var "j"] (ixf e)
+                                                          
+b = forLoop' (.+ (Num 5)) (Array2 (Num 10) (Pull (.* (Num 4))) 2)
+
+--forLoop' :: (Expr -> Expr) -> Array2 Pull Expr -> Program
+--forLoop' f (Array2 len (Pull ixf) dim) = ForDim len dim $
+--                                          \e -> Assign "arr" [] $ ixf e
 
 
 
