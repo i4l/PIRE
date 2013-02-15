@@ -92,6 +92,8 @@ data Program
 
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
 
+  | AllocDim Type Size (Array2 Pull Expr) (Loc Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
+
   | AllocNew Type Size (Array Pull Expr) (Loc Expr        ->
                                           Array Pull Expr -> 
                                           Program)

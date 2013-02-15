@@ -68,7 +68,8 @@ gen(ForDim start len arr f) = do
   loopsInits <- replicateM (dim arr) $ do v <- incVar
                                           let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
                                           return $ "for( " ++ loopVar ++ " = " ++ show (Num 0) ++ "; "  
-                                                           ++ loopVar ++ " < " ++ show (len ./ (Num (dim arr))) ++ "; " ++ loopVar ++ "++ ) {"                                                  
+                                                           ++ loopVar ++ " < " ++ show (len ./ (Num (dim arr))) 
+                                                           ++ "; " ++ loopVar ++ "++ ) {"                                                  
   mapM_ (\str -> indent 2 >> str) $ map (line) loopsInits
   indent 2 
 
@@ -90,6 +91,8 @@ gen (Alloc siz f) = do
    gen $ f (locArray m) (array m siz)
    line $ "free(" ++ m ++ ");"
 
+gen (AllocDim t siz arr f) = do 
+  undefined
 
 gen (AllocNew t siz arr f) = do
   let objPostfix = "_obj"
