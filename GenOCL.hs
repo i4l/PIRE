@@ -92,7 +92,12 @@ gen (Alloc siz f) = do
    line $ "free(" ++ m ++ ");"
 
 gen (AllocDim t siz arr f) = do 
-  undefined
+   d <- incVar
+   let m = "mem" ++ show d
+   line $ m ++ " = malloc(" ++ show siz ++ ");"
+   gen $ f (locArray m) arr
+   line $ "free(" ++ m ++ ");"
+
 
 gen (AllocNew t siz arr f) = do
   let objPostfix = "_obj"

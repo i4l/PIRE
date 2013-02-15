@@ -37,36 +37,10 @@ parLoop2 t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 ->
 
 forLoop2' :: Type -> (Expr -> Expr -> Expr) -> Array2 Pull Expr -> Array2 Pull Expr -> Program  
 forLoop2' t f input1 input2 = AllocDim t len input1 $ \loc1 iarr1 ->
-                               AllocDim t len input2 $ \loc2 iarr2 -> undefined
-
-
+                               AllocDim t len input2 $ \loc2 iarr2 -> 
+                                for (Num 0) len $ \e -> loc1 e (f (pull (theData iarr1) e) (pull (theData iarr2) e))
   where len = min (arrSize input1) (arrSize input1)
 
-
-
---parLoop :: (p ~ Pull) => Type -> (Expr -> Expr) -> (Array p Expr) -> Program
---parLoop t f arr = AllocNew (TPointer t) (size arr) arr $ \loc1 kernelArray -> 
---                        par (Num 0) (size arr) $
---                          \e -> loc1 (f (pull (doit kernelArray) e) )
---
----- A sequential for-loop program
---forProg :: Int -> (Expr -> Expr) -> Program
---forProg len f = Alloc (Num len) $
---  \allocf arr -> for (Num 0) (Num len) $ 
---                  \e -> allocf e $ f e
---
---
---
---parLoop' :: Type -> (Expr -> Expr) -> Array Pull Expr -> Program
---parLoop' t f arr = AllocNew t (size arr) arr $
---                      \loc internalArr -> undefined
-
---parLoop2Nest :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> (Array p Expr) -> (Array p Expr) -> Program
---parLoop2Nest t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 -> 
---                              AllocNew (TPointer t) len arr2 $ \loc2 kernelArray2 ->
---                                par (Num 0) len $
---                                  \e -> locNest [e] (f (pull (doit kernelArray1) e) (pull (doit kernelArray2) e))
---      where len  = min (size arr1) (size arr2) 
 -----------------------------------------------------------------------------
 -- Example programs
 
