@@ -91,11 +91,13 @@ gen (Alloc siz f) = do
    gen $ f (locArray m) (array m siz)
    line $ "free(" ++ m ++ ");"
 
-gen (AllocDim t siz arr f) = do 
+gen (AllocDim t siz arr@(Array2 len (Pull ixf) dim) f) = do 
    d <- incVar
    let m = "mem" ++ show d
    line $ m ++ " = malloc(" ++ show siz ++ ");"
-   gen $ f (locArray m) arr
+   line $ "// Init'ing array"
+   let iarr = Array2 len (Pull $ \e -> Index m [e]) dim
+   gen $ f (locArray m) iarr
    line $ "free(" ++ m ++ ");"
 
 

@@ -29,14 +29,13 @@ var v = Index v []
 
 -- This instance is quite limited.
 instance Ord Expr where
-  e1 <= e2 = (toInt e1) <= (toInt e2)
-    where
-      toInt :: Expr -> Int
-      toInt (Num n)    = n
-      toInt (a :-: b)  = (toInt a) - (toInt b)
-      toInt (a :/: b)  = (toInt a) `div` (toInt b)
-      toInt (a :*: b)  = (toInt a) * (toInt b)
-
+  e1 <= e2 = toInt e1<= toInt e2
+toInt :: Expr -> Int
+toInt (Num n)    = n
+toInt (a :-: b)  = toInt a - toInt b
+toInt (a :/: b)  = toInt a `div` toInt b
+toInt (a :*: b)  = toInt a * toInt b
+toInt _          = undefined
 
 instance Show Expr where
   show (Num n)      = show n

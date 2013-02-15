@@ -37,9 +37,18 @@ parLoop2 t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 ->
 
 forLoop2' :: Type -> (Expr -> Expr -> Expr) -> Array2 Pull Expr -> Array2 Pull Expr -> Program  
 forLoop2' t f input1 input2 = AllocDim t len input1 $ \loc1 iarr1 ->
-                               AllocDim t len input2 $ \loc2 iarr2 -> 
-                                for (Num 0) len $ \e -> loc1 e (f (pull (theData iarr1) e) (pull (theData iarr2) e))
+                               AllocDim t len input2 $ \_    iarr2 -> 
+                                nestFor (dim input1) (toInt len) Skip
+                                --for (Num 0) len $ \e -> loc1 e (f (pull (theData iarr1) e) (pull (theData iarr2) e))
   where len = min (arrSize input1) (arrSize input1)
+
+-- TODO introduce padding if (length mod dim != 0)?
+nestFor :: DIM -> Int -> Program -> Program
+nestFor d totalLength = nestFor' d (d-1) totalLength
+  where 
+    nestFor' :: DIM -> Int -> Int -> Program -> Program
+    nestFor' d ctr totalLength innerMost = for (Num 0) (Num $ totalLength `div` d) 
+                (\e -> if ctr == 0 then innerMost else nestFor' d (ctr - 1) totalLength innerMost)
 
 -----------------------------------------------------------------------------
 -- Example programs
@@ -55,7 +64,7 @@ vecMul = parLoop2 TInt (.*) vec1 vec2
 
                                                           
 vecMul2 = forLoop2' TInt (.*) arr1 arr2
-  where arr1 = Array2 (Num 10) (Pull (.* (Num 4))) 2
+  where arr1 = Array2 (Num 10) (Pull (.* (Num 3))) 2
         arr2 = Array2 (Num 10) (Pull (.* (Num 4))) 2
 
 --forLoop' :: (Expr -> Expr) -> Array2 Pull Expr -> Program
