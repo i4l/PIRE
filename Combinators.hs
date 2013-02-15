@@ -39,8 +39,8 @@ forLoop2' :: Type -> (Expr -> Expr -> Expr) -> Array2 Pull Expr -> Array2 Pull E
 forLoop2' t f input1 input2 = AllocDim t len input1 $ \loc1 iarr1 ->
                                AllocDim t len input2 $ \_    iarr2 -> 
                                 nestFor (dim input1) (toInt len) $
-                                    \e -> loc1 e (f (pull (theData iarr1) e) (pull (theData iarr2) e))
-                                --for (Num 0) len $ \e -> loc1 e (f (pull (theData iarr1) e) (pull (theData iarr2) e))
+                                    \e -> loc1 e -- e should be all of the loop vars
+                                              (f (pull (theData iarr1) e) (pull (theData iarr2) e))
   where len = min (arrSize input1) (arrSize input1)
 
 -- TODO introduce padding if (length mod dim != 0)?

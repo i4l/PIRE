@@ -90,7 +90,8 @@ data Program
   | ForDim Expr Expr (Array2 Pull Expr) (Loc Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
 
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
-
+  
+  -- Alloc for multi-dim arrays.
   | AllocDim Type Size (Array2 Pull Expr) ((Index -> Loc Expr) -> Array2 Pull Expr -> Program) -- TODO experimental!
 
   | AllocNew Type Size (Array Pull Expr) (Loc Expr        ->
