@@ -70,11 +70,11 @@ vecMul = parLoop2 TInt (.*) vec1 vec2
         vec1 = Array len (Pull (.* (Num 2)))
         vec2 = Array len (Pull (.+ (Num 1)))
 
---data Array2 p a = Array2 { arrSize  :: Size
---                         , theData  :: p a
---                        -- , segments :: Pull Int
---                         , dim      :: DIM
---                         } 
+
+
+--forLoopNest :: (a -> a) -> Array Pull a -> Program
+--forLoopNest f (Array len (Pull ixf)) = for (Num 0) len $
+--                                            \e -> Assign "var" [] (ixf $ f e)
 
 
 forLoop' :: (Expr -> Expr) -> Array2 Pull Expr -> Program  
