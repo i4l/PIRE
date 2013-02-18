@@ -22,6 +22,7 @@ data Env = Env
           , paramMap     :: Map.Map Int Int -- Mapping AllocID -> Kernel params.
           , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> AllocID
           , inits        :: Map.Map Int (Index -> Expr) -- AllocID -> ixf 
+          , loopVars     :: [Int] -- TODO experimental for AllocDim
           }
 
 
@@ -109,7 +110,7 @@ getInitFuncs = gets inits
 
 
 emptyEnv :: Env
-emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty Map.empty Map.empty
+emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty Map.empty Map.empty []
 
 
 ------------------------------------------------------------

@@ -6,6 +6,11 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.List
 import Control.Monad
+import Control.Monad.State
+
+import Text.PrettyPrint
+
+
 {- 
  - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
@@ -93,11 +98,15 @@ gen (Alloc siz f) = do
 
 gen (AllocDim t siz arr@(Array2 len (Pull ixf) dim) f) = do 
    d <- incVar
+   modify $ \env -> env{loopVars = d : loopVars env} -- remember this variable name
    let m = "mem" ++ show d
    line $ m ++ " = malloc(" ++ show siz ++ ");"
    line $ "// Init'ing array " ++ m
    let iarr = Array2 len (Pull $ \e -> Index m [e]) dim
-   gen $ f (locArray m) iarr
+   loopers <- gets loopVars
+   let loopers' = map ((++) "mem" . show) loopers
+   gen $ f (locNest m) iarr
+  -- gen $ f (locArray m) iarr
    --gen $ f (locNest m) iarr
    line $ "free(" ++ m ++ ");"
 
