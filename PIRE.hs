@@ -87,12 +87,12 @@ data Program
   | For Expr Expr (Expr -> Program) -- Sequential Loop
   | Par Expr Expr (Expr -> Program) -- Parallel Loop
 
-  | ForDim Expr Expr (Array2 Pull Expr) (Loc Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
+--  | ForDim Expr Expr (Array2 Pull Expr) (Loc Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
 
   | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
   
   -- Alloc for multi-dim arrays.
-  | AllocDim Type Size (Array2 Pull Expr) (([Index] -> Loc Expr) -> Array2 Pull Expr -> Program) -- TODO experimental!
+ -- | AllocDim Type Size (Array2 Pull Expr) (([Index] -> Loc Expr) -> Array2 Pull Expr -> Program) -- TODO experimental!
 
   | AllocNew Type Size (Array Pull Expr) (Loc Expr        ->
                                           Array Pull Expr -> 
@@ -159,12 +159,12 @@ locNest v is = \x -> Assign v is x
 -----------------------------------------------------------------------------
 -- Arrays
 
-type DIM = Int
-
-data Array2 p a = Array2 { arrSize  :: Size
-                         , theData  :: p a
-                         , dim      :: DIM
-                         } 
+--type DIM = Int
+--
+--data Array2 p a = Array2 { arrSize  :: Size
+--                         , theData  :: p a
+--                         , dim      :: DIM
+--                         } 
 
 
 

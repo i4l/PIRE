@@ -96,19 +96,19 @@ gen (Alloc siz f) = do
    gen $ f (locArray m) (array m siz)
    line $ "free(" ++ m ++ ");"
 
-gen (AllocDim t siz arr@(Array2 len (Pull ixf) dim) f) = do 
-   d <- incVar
-   modify $ \env -> env{loopVars = d : loopVars env} -- remember this variable name
-   let m = "mem" ++ show d
-   line $ m ++ " = malloc(" ++ show siz ++ ");"
-   line $ "// Init'ing array " ++ m
-   let iarr = Array2 len (Pull $ \e -> Index m [e]) dim
-   loopers <- gets loopVars
-   let loopers' = map ((++) "mem" . show) loopers
-   gen $ f (locNest m) iarr
-  -- gen $ f (locArray m) iarr
-   --gen $ f (locNest m) iarr
-   line $ "free(" ++ m ++ ");"
+--gen (AllocDim t siz arr@(Array2 len (Pull ixf) dim) f) = do 
+--   d <- incVar
+--   modify $ \env -> env{loopVars = d : loopVars env} -- remember this variable name
+--   let m = "mem" ++ show d
+--   line $ m ++ " = malloc(" ++ show siz ++ ");"
+--   line $ "// Init'ing array " ++ m
+--   let iarr = Array2 len (Pull $ \e -> Index m [e]) dim
+--   loopers <- gets loopVars
+--   let loopers' = map ((++) "mem" . show) loopers
+--   gen $ f (locNest m) iarr
+--  -- gen $ f (locArray m) iarr
+--   --gen $ f (locNest m) iarr
+--   line $ "free(" ++ m ++ ");"
 
 
 gen (AllocNew t siz arr f) = do
