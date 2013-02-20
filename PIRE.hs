@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-
  - PIRE - a Parallel Intermediate Representation for Embedded languages
  - --- Built on a Representation by Koen Lindström Claessen --- 
@@ -11,15 +12,26 @@ module PIRE where
 
 type Name = String
 
-data Expr
-  = Num Int
-  | Index Name [Expr]
-  | Expr :+: Expr
-  | Expr :-: Expr
-  | Expr :/: Expr
-  | Expr :*: Expr
-  | Expr :<=: Expr
- deriving ( Eq )
+data Expr a where
+  Num    :: Num a => a -> Expr a
+  Index  :: Name -> [Expr a] -> Expr a
+  (:+:)  :: Expr a -> Expr a -> Expr a
+  (:-:)  :: Expr a -> Expr a -> Expr a
+  (:*:)  :: Expr a -> Expr a -> Expr a
+  (:/:)  :: Expr a -> Expr a -> Expr a
+  (:<=:) :: Expr a -> Expr a -> Expr a
+
+
+
+--data Expr
+--  = Num Int
+--  | Index Name [Expr]
+--  | Expr :+: Expr
+--  | Expr :-: Expr
+--  | Expr :/: Expr
+--  | Expr :*: Expr
+--  | Expr :<=: Expr
+-- deriving ( Eq )
 
 type Size  = Expr
 type Index = Expr
