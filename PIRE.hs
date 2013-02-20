@@ -95,6 +95,7 @@ a     .<= b          = a :<=: b
 data Program a where
   Skip     :: Program a
   Assign   :: Name -> [Expr] -> Expr -> Program a
+  Decl     :: Array Pull a -> Size -> Loc a a -> Program a -- Experimental construct for Declaration
   (:>>)    :: Program a -> Program a -> Program a
   If       :: Expr -> Program a -> Program a -> Program a
   For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
@@ -102,7 +103,10 @@ data Program a where
   Alloc    :: Size -> ((Index -> Loc (Expr) a) -> Array Pull (Expr) -> Program a) -> Program a
   AllocNew :: Type -> Size -> (Array Pull (Expr)) -> (Loc (Expr) a -> Array Pull (Expr) -> Program a) -> Program a
 
-
+-- TODO 
+--f :: Size -> Loc a -> Program a
+alloc :: Array Pull a -> Size -> Loc a a -> Program a
+alloc arr s = \loc -> Decl arr s loc
 
 --data Program
 --  = Skip
@@ -158,9 +162,9 @@ instance Show Type where
 -----------------------------------------------------------------------------
 -- Locations
 
-
 -- TODO 
 --f :: Size -> Loc a -> Program a
+
 
 -- LHS of an assignment.
 type Loc a b = a -> Program b
