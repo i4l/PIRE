@@ -33,23 +33,23 @@ data Expr a where
 --  | Expr :<=: Expr
 -- deriving ( Eq )
 
-type Size  = Expr
-type Index = Expr
+type Size  = Expr Int
+type Index a = Expr a 
 
-var :: Name -> Expr
+var :: Name -> Expr a
 var v = Index v []
 
 -- This instance is quite limited.
-instance Ord Expr where
+instance Ord (Expr a) where
   e1 <= e2 = toInt e1<= toInt e2
-toInt :: Expr -> Int
+toInt :: Expr a -> Int
 toInt (Num n)    = n
 toInt (a :-: b)  = toInt a - toInt b
 toInt (a :/: b)  = toInt a `div` toInt b
 toInt (a :*: b)  = toInt a * toInt b
 toInt _          = undefined
 
-instance Show Expr where
+instance Show (Expr a) where
   show (Num n)      = show n
   show (Index a is) = a ++ concat [ "[" ++ show i ++ "]" | i <- is ]
   show (a :+: b)    = "(" ++ show a ++ "+" ++ show b ++ ")"
@@ -62,7 +62,7 @@ instance Show Expr where
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for expressions
 
-(.+), (.-), (.<=), (./), (.*) :: Expr -> Expr -> Expr
+(.+), (.-), (.<=), (./), (.*) :: Expr a -> Expr a -> Expr a
 Num 0 .+ b     = b
 a     .+ Num 0 = a
 Num a .+ Num b = Num (a+b)
@@ -91,42 +91,54 @@ a     .<= b          = a :<=: b
 -----------------------------------------------------------------------------
 -- Program - AST type
 
-data Program
-  = Skip
-  | Assign Name [Expr] Expr
-  | Program :>> Program             -- Program Seq.
-  | If Expr Program Program
-  | For Expr Expr (Expr -> Program) -- Sequential Loop
-  | Par Expr Expr (Expr -> Program) -- Parallel Loop
+data Program a where
+  Skip     :: Program a
+  Assign   :: Name -> [Expr a] -> Expr a -> Program a
+  (:>>)    :: Program a -> Program a -> Program a
+  If       :: Expr a -> Program a -> Program a -> Program a
+  For      :: Expr a -> Expr a -> (Expr a -> Program a) -> Program a
+  Par      :: Expr a -> Expr a -> (Expr a -> Program a) -> Program a
+  Alloc    :: Size -> ((Index a -> Loc (Expr a) a) -> Array Pull (Expr a) -> Program a) -> Program a
+  AllocNew :: Type -> Size -> (Array Pull (Expr a)) -> (Loc (Expr a) a -> Array Pull (Expr a) -> Program a) -> Program a
 
---  | ForDim Expr Expr (Array2 Pull Expr) (Loc Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
 
-  | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
-  
-  -- Alloc for multi-dim arrays.
- -- | AllocDim Type Size (Array2 Pull Expr) (([Index] -> Loc Expr) -> Array2 Pull Expr -> Program) -- TODO experimental!
 
-  | AllocNew Type Size (Array Pull Expr) (Loc Expr        ->
-                                          Array Pull Expr -> 
-                                          Program)
-
+--data Program
+--  = Skip
+--  | Assign Name [Expr] Expr
+--  | Program :>> Program             -- Program Seq.
+--  | If Expr Program Program
+--  | For Expr Expr (Expr -> Program) -- Sequential Loop
+--  | Par Expr Expr (Expr -> Program) -- Parallel Loop
+--
+----  | ForDim Expr Expr (Array2 Pull Expr) (Loc Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
+--
+--  | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
+--  
+--  -- Alloc for multi-dim arrays.
+-- -- | AllocDim Type Size (Array2 Pull Expr) (([Index] -> Loc Expr) -> Array2 Pull Expr -> Program) -- TODO experimental!
+--
+--  | AllocNew Type Size (Array Pull Expr) (Loc Expr        ->
+--                                          Array Pull Expr -> 
+--                                          Program)
+--
 
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for Programs
 
-iff :: Expr -> Program -> Program -> Program
+iff :: Expr a -> Program a -> Program a -> Program a
 iff (Num c) p q = if c /= 0 then p else q
 iff c       p q = If c p q
 
-for :: Expr -> Expr -> (Expr -> Program) -> Program
+for :: Expr a -> Expr a -> (Expr a -> Program a) -> Program a
 for (Num a) (Num b) _ | a > b = Skip
 for a       b       p         = For a b p
 
-par :: Expr -> Expr -> (Expr -> Program) -> Program
+par :: Expr a -> Expr  a-> (Expr a -> Program a) -> Program a
 par (Num a) (Num b) _ | a > b = Skip
 par a       b       p         = Par a b p
 
-(.>>) :: Program -> Program -> Program
+(.>>) :: Program a -> Program a -> Program a
 Skip .>> q    = q
 p    .>> Skip = p
 p    .>> q    = p :>> q
@@ -146,8 +158,11 @@ instance Show Type where
 -- Locations
 
 
+-- TODO 
+--f :: Size -> Loc a -> Program a
+
 -- LHS of an assignment.
-type Loc a = a -> Program
+type Loc a b = a -> Program b
 
 
 --nil :: Loc a
@@ -162,11 +177,11 @@ type Loc a = a -> Program
 --locMap :: (b -> a) -> Loc a -> Loc b
 --locMap f loc = \x -> loc (f x)
 
-locArray :: Name -> Index -> Loc Expr
+locArray :: Name -> Index a -> Loc (Expr a) a
 locArray v i = \x -> Assign v [i] x
 
-locNest :: Name -> [Index] -> Loc Expr
-locNest v is = \x -> Assign v is x
+--locNest :: Name -> [Index] -> Loc Expr
+--locNest v is = \x -> Assign v is x
 
 -----------------------------------------------------------------------------
 -- Arrays
@@ -185,9 +200,9 @@ locNest v is = \x -> Assign v is x
 -- We have two array types, Pull and Push.
 -- TODO: explain difference
 
-data Pull a = Pull { pull :: Index -> a }
+data Pull a = Pull { pull :: Index a -> a }
 
-data Push a = Push { push :: (Index -> Loc a) -> Program }
+data Push a = Push { push :: (Index a -> Loc a a) -> Program a }
 
 -- An array is a size and an array type (Pull or Push)
 data Array p a =
@@ -202,7 +217,7 @@ instance Functor Push where
   fmap f (Push p) = Push $ \iloc -> p (\i -> iloc i . f)
 
 -- primitive (named) arrays
-array :: Name -> Size -> Array Pull Expr
+array :: Name -> Size -> Array Pull (Expr a)
 array arr n =
   Array{ size = n
        , doit = Pull $ \i -> Index arr [i]
