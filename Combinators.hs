@@ -2,7 +2,7 @@
 
 module Combinators where
 
--- A small combinator library
+-- A combinator library
 
 import PIRE
 import GenOCL
@@ -12,7 +12,7 @@ import Util
 
 
 -----------------------------------------------------------------------------
--- Building blocks
+-- Interface
 
 {- How things works (using zipWithP as example):
  - The arrays passed to zipWithP' describe the arrays in the host program, i.e.
@@ -42,6 +42,14 @@ mapP t f arr = AllocNew (TPointer t) len arr $
   where len = size arr
 
 
+sum2D :: (p ~ Pull) => Type -> Array p (Array p Expr) -> Program
+sum2D t arr = AllocNew (TPointer t) len (pull (doit arr) (Num 0)) $ 
+              \loc kernelArr -> par (Num 0) len $
+                \e -> undefined
+  where len = size arr
+        f = (.+)
+
+
 -----------------------------------------------------------------------------
 -- Example programs
 
@@ -52,6 +60,7 @@ vecMul = zipWithP TInt (.*) vec1 vec2
         vec1 = Array len (Pull (.* (Num 2)))
         vec2 = Array len (Pull (.+ (Num 1)))
 
+-- adds 1 to each element in the array
 add1 :: Program
 add1 = mapP TInt (.+ (Num 1)) arr
   where len = Num 10
