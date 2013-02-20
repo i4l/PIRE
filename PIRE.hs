@@ -12,15 +12,16 @@ module PIRE where
 
 type Name = String
 
-data Expr a where
-  Num    :: Num a => a -> Expr a
-  Index  :: Name -> [Expr a] -> Expr a
-  (:+:)  :: Expr a -> Expr a -> Expr a
-  (:-:)  :: Expr a -> Expr a -> Expr a
-  (:*:)  :: Expr a -> Expr a -> Expr a
-  (:/:)  :: Expr a -> Expr a -> Expr a
-  (:<=:) :: Expr a -> Expr a -> Expr a
+data Expr where
+  Num    :: Int -> Expr
+  Index  :: Name -> [Expr] -> Expr
+  (:+:)  :: Expr -> Expr -> Expr
+  (:-:)  :: Expr -> Expr -> Expr
+  (:*:)  :: Expr -> Expr -> Expr
+  (:/:)  :: Expr -> Expr -> Expr
+  (:<=:) :: Expr -> Expr -> Expr
 
+instance Eq Expr where
 
 
 --data Expr
@@ -33,23 +34,23 @@ data Expr a where
 --  | Expr :<=: Expr
 -- deriving ( Eq )
 
-type Size  = Expr Int
-type Index a = Expr a 
+type Size  = Expr
+type Index = Expr 
 
-var :: Name -> Expr a
+var :: Name -> Expr
 var v = Index v []
 
 -- This instance is quite limited.
-instance Ord (Expr a) where
+instance Ord (Expr) where
   e1 <= e2 = toInt e1<= toInt e2
-toInt :: Expr a -> Int
+toInt :: Expr -> Int
 toInt (Num n)    = n
 toInt (a :-: b)  = toInt a - toInt b
 toInt (a :/: b)  = toInt a `div` toInt b
 toInt (a :*: b)  = toInt a * toInt b
 toInt _          = undefined
 
-instance Show (Expr a) where
+instance Show (Expr) where
   show (Num n)      = show n
   show (Index a is) = a ++ concat [ "[" ++ show i ++ "]" | i <- is ]
   show (a :+: b)    = "(" ++ show a ++ "+" ++ show b ++ ")"
@@ -62,7 +63,7 @@ instance Show (Expr a) where
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for expressions
 
-(.+), (.-), (.<=), (./), (.*) :: Expr a -> Expr a -> Expr a
+(.+), (.-), (.<=), (./), (.*) :: Expr -> Expr -> Expr
 Num 0 .+ b     = b
 a     .+ Num 0 = a
 Num a .+ Num b = Num (a+b)
@@ -93,13 +94,13 @@ a     .<= b          = a :<=: b
 
 data Program a where
   Skip     :: Program a
-  Assign   :: Name -> [Expr a] -> Expr a -> Program a
+  Assign   :: Name -> [Expr] -> Expr -> Program a
   (:>>)    :: Program a -> Program a -> Program a
-  If       :: Expr a -> Program a -> Program a -> Program a
-  For      :: Expr a -> Expr a -> (Expr a -> Program a) -> Program a
-  Par      :: Expr a -> Expr a -> (Expr a -> Program a) -> Program a
-  Alloc    :: Size -> ((Index a -> Loc (Expr a) a) -> Array Pull (Expr a) -> Program a) -> Program a
-  AllocNew :: Type -> Size -> (Array Pull (Expr a)) -> (Loc (Expr a) a -> Array Pull (Expr a) -> Program a) -> Program a
+  If       :: Expr -> Program a -> Program a -> Program a
+  For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
+  Par      :: Expr -> Expr -> (Expr -> Program a) -> Program a
+  Alloc    :: Size -> ((Index -> Loc (Expr) a) -> Array Pull (Expr) -> Program a) -> Program a
+  AllocNew :: Type -> Size -> (Array Pull (Expr)) -> (Loc (Expr) a -> Array Pull (Expr) -> Program a) -> Program a
 
 
 
@@ -126,15 +127,15 @@ data Program a where
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for Programs
 
-iff :: Expr a -> Program a -> Program a -> Program a
+iff :: Expr -> Program a -> Program a -> Program a
 iff (Num c) p q = if c /= 0 then p else q
 iff c       p q = If c p q
 
-for :: Expr a -> Expr a -> (Expr a -> Program a) -> Program a
+for :: Expr -> Expr -> (Expr -> Program a) -> Program a
 for (Num a) (Num b) _ | a > b = Skip
 for a       b       p         = For a b p
 
-par :: Expr a -> Expr  a-> (Expr a -> Program a) -> Program a
+par :: Expr -> Expr -> (Expr -> Program a) -> Program a
 par (Num a) (Num b) _ | a > b = Skip
 par a       b       p         = Par a b p
 
@@ -177,7 +178,7 @@ type Loc a b = a -> Program b
 --locMap :: (b -> a) -> Loc a -> Loc b
 --locMap f loc = \x -> loc (f x)
 
-locArray :: Name -> Index a -> Loc (Expr a) a
+locArray :: Name -> Index -> Loc (Expr) a
 locArray v i = \x -> Assign v [i] x
 
 --locNest :: Name -> [Index] -> Loc Expr
@@ -200,9 +201,9 @@ locArray v i = \x -> Assign v [i] x
 -- We have two array types, Pull and Push.
 -- TODO: explain difference
 
-data Pull a = Pull { pull :: Index a -> a }
+data Pull a = Pull { pull :: Index -> a }
 
-data Push a = Push { push :: (Index a -> Loc a a) -> Program a }
+data Push a = Push { push :: (Index -> Loc a a) -> Program a }
 
 -- An array is a size and an array type (Pull or Push)
 data Array p a =
@@ -210,14 +211,14 @@ data Array p a =
        , doit :: p a
        }
 
-instance Functor Pull where
-  fmap f (Pull p) = Pull $ \i -> f (p i)
-
-instance Functor Push where
-  fmap f (Push p) = Push $ \iloc -> p (\i -> iloc i . f)
+--instance Functor Pull where
+--  fmap f (Pull p) = Pull $ \i -> f (p i)
+--
+--instance Functor Push where
+--  fmap f (Push p) = Push $ \iloc -> p (\i -> iloc i . f)
 
 -- primitive (named) arrays
-array :: Name -> Size -> Array Pull (Expr a)
+array :: Name -> Size -> Array Pull (Expr)
 array arr n =
   Array{ size = n
        , doit = Pull $ \i -> Index arr [i]

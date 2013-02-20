@@ -17,7 +17,7 @@ import Text.PrettyPrint
 
 -- TODO Text.PrettyPrint
 
-gen :: Program -> Gen ()
+gen :: Program a -> Gen ()
 gen Skip = line "0;"
 
 gen (Assign name es e) = line $ show (Index name es) ++ " = " ++ show e ++ ";"
@@ -188,7 +188,7 @@ data Kernel = Kernel {resultID :: Int}
 
 -- Assumption: param 0 is the result array.
 -- The Bool is for deciding if to allocate the resulting array (set False by FIRST called).
-genKernel :: (Loc Expr -> Array Pull Expr -> Program) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
+genKernel :: (Loc Expr a -> Array Pull Expr -> Program a) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
 genKernel f names arr isCalledNested = do
   let arrPrefix = "arr"
   v0 <- incVar
@@ -205,7 +205,7 @@ genKernel f names arr isCalledNested = do
   return $ Kernel (fromJust newHostMem)
   where
     -- This is the dual to Gen - for Programs in kernels.
-    genKernel' :: Program -> Gen ()
+    genKernel' :: Program a -> Gen ()
     genKernel' Skip = lineK "0;"
     genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
     genKernel' (p1 :>> p2) = genKernel' p1 >> genKernel' p2 
