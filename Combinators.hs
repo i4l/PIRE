@@ -29,13 +29,12 @@ import Prelude hiding (zipWith)
 -- TODO change p ~ Pushable later
 
 
-zipWith :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> Array p Expr -> Array p Expr -> Program
-zipWith t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 -> 
+zipWithP :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> Array p Expr -> Array p Expr -> Program
+zipWithP t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 -> 
                           AllocNew (TPointer t) len arr2 $ \_    kernelArray2 ->
                             par (Num 0) len $
                               \e -> loc1 (f (pull (doit kernelArray1) e) (pull (doit kernelArray2) e))
   where len  = min (size arr1) (size arr2) 
-
 
 
 -----------------------------------------------------------------------------
@@ -43,7 +42,7 @@ zipWith t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 ->
 
 -- ElementWise vector multiplication
 vecMul :: Program
-vecMul = zipWith TInt (.*) vec1 vec2
+vecMul = zipWithP TInt (.*) vec1 vec2
   where len  = Num 10
         vec1 = Array len (Pull (.* (Num 2)))
         vec2 = Array len (Pull (.+ (Num 1)))
