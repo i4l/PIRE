@@ -8,33 +8,38 @@ import PIRE
 import GenOCL
 import Util
 
-import Prelude hiding (zipWith)
 
 
 
 -----------------------------------------------------------------------------
 -- Building blocks
 
-{- How things works:
- - The arrays passed to dualPar' describe the arrays in the host program, i.e.
+{- How things works (using zipWithP as example):
+ - The arrays passed to zipWithP' describe the arrays in the host program, i.e.
  - how the arrays are initialized.
 
- - The "internal arrays", i.e. those that are arguments in the functions of AllocNew
+ - The "internal arrays", i.e. the arguments in the functions of AllocNew
  - are the ones used in the kernels.
- - These should probably be separated more clearly.
  
  - Note also: quite unspecified behavior when using arrays of differing length.
 -}
 
 -- TODO change p ~ Pushable later
 
-
+-- | Parallel zipWith
 zipWithP :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> Array p Expr -> Array p Expr -> Program
 zipWithP t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 -> 
                           AllocNew (TPointer t) len arr2 $ \_    kernelArray2 ->
                             par (Num 0) len $
                               \e -> loc1 (f (pull (doit kernelArray1) e) (pull (doit kernelArray2) e))
   where len  = min (size arr1) (size arr2) 
+
+-- | Parallel map
+mapP :: (p ~ Pull) => Type -> (Expr -> Expr) -> Array p Expr -> Program
+mapP t f arr = AllocNew (TPointer t) len arr $ 
+                \loc kernelArr -> par (Num 0) len $
+                  \e -> loc (f $ pull (doit kernelArr) e)
+  where len = size arr
 
 
 -----------------------------------------------------------------------------
@@ -47,6 +52,10 @@ vecMul = zipWithP TInt (.*) vec1 vec2
         vec1 = Array len (Pull (.* (Num 2)))
         vec2 = Array len (Pull (.+ (Num 1)))
 
+add1 :: Program
+add1 = mapP TInt (.+ (Num 1)) arr
+  where len = Num 10
+        arr = Array len (Pull id)
 
 
 
