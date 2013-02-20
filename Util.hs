@@ -131,6 +131,7 @@ extractCodeK g e = kernelCode $ execState g e
 -- remove all pointer wrappings from a Type
 removePointer :: Type -> String
 removePointer TInt         = "int"
-removePointer TChar        = "char"
-removePointer TFloat       = "float"
+removePointer (TArray t)   = show (TArray t)
+--removePointer TChar        = "char"
+--removePointer TFloat       = "float"
 removePointer (TPointer t) = removePointer t

@@ -42,6 +42,14 @@ mapP t f arr = AllocNew (TPointer t) len arr $
   where len = size arr
 
 
+
+allocTest :: Program Expr
+allocTest = alloc TInt arr $ 
+              \loc -> undefined
+  where len = Num 10
+        arr = Array len $ Pull id
+        f   = (.+) (Num 5)
+
 --sum2D :: (p ~ Pull) => Type -> Array p a -> Program a
 --sum2D t arr = AllocNew (TPointer t) len arr $ 
 --              \loc kernelArr -> par (Num 0) len $

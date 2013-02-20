@@ -95,7 +95,7 @@ a     .<= b          = a :<=: b
 data Program a where
   Skip     :: Program a
   Assign   :: Name -> [Expr] -> Expr -> Program a
-  Decl     :: Array Pull a -> Size -> Loc a a -> Program a -- Experimental construct for Declaration
+  Decl     :: Type -> Size -> Loc a a -> Program a -- Experimental construct for Declaration
   (:>>)    :: Program a -> Program a -> Program a
   If       :: Expr -> Program a -> Program a -> Program a
   For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
@@ -105,9 +105,10 @@ data Program a where
 
 -- TODO 
 --f :: Size -> Loc a -> Program a
-alloc :: Array Pull a -> Size -> Loc a a -> Program a
-alloc arr s = \loc -> Decl arr s loc
 
+-- Declare a container of size s initialized with arr
+alloc :: Type -> Array Pull a -> (Loc a a -> Program a)
+alloc t (Array siz (Pull ixf)) = \loc -> Decl t siz loc
 --data Program
 --  = Skip
 --  | Assign Name [Expr] Expr
@@ -151,12 +152,13 @@ p    .>> q    = p :>> q
 -----------------------------------------------------------------------------
 -- Types
 
-data Type = TInt | TChar | TFloat | TPointer Type
+data Type = TInt | TArray Type | TPointer Type
 
 instance Show Type where
   show TInt = "int"
-  show TChar = "char"
-  show TFloat = "float"
+  show (TArray t) = show t ++ "[]"
+--  show TChar = "char"
+--  show TFloat = "float"
   show (TPointer t) = show t ++ "*"
 
 -----------------------------------------------------------------------------

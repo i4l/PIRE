@@ -22,6 +22,8 @@ gen Skip = line "0;"
 
 gen (Assign name es e) = line $ show (Index name es) ++ " = " ++ show e ++ ";"
 
+gen (Decl t siz loc) = undefined
+
 gen (p1 :>> p2) = gen p1 >> gen p2
 
 gen (If c p1 p2) = do
