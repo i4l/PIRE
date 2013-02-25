@@ -76,21 +76,21 @@ add1 = mapP TInt (.+ (Num 1)) arr
 
 
 
-type Expr2D = (Expr,Expr)
-
-add2D :: Array Pull Expr2D -> Array Pull Expr2D -> Array Pull Expr2D
-add2D arr1 arr2 = (Array (size arr1) 
-                         (Pull $ \i -> (fst (ixf1 i) .+ fst (ixf2 i) , snd (ixf1 i) .+ snd (ixf2 i))))
-  where 
-    ixf1 = pull $ doit arr1
-    ixf2 = pull $ doit arr2
-
-vecMul2D :: Program a
-vecMul2D = zipWithP TInt add2D vec1 vec2
-  where
-    len  = Num 10
-    vec1 = Array len (Pull $ const (Num 2, Num 5)) :: Array Pull Expr2D
-    vec2 = Array len (Pull (const (Num 4, Num 1))) :: Array Pull Expr2D
+--type Expr2D = (Expr,Expr)
+--
+--add2D :: Array Pull Expr2D -> Array Pull Expr2D -> Array Pull Expr2D
+--add2D arr1 arr2 = (Array (size arr1) 
+--                         (Pull $ \i -> (fst (ixf1 i) .+ fst (ixf2 i) , snd (ixf1 i) .+ snd (ixf2 i))))
+--  where 
+--    ixf1 = pull $ doit arr1
+--    ixf2 = pull $ doit arr2
+--
+--vecMul2D :: Program a
+--vecMul2D = zipWithP TInt add2D vec1 vec2
+--  where
+--    len  = Num 10
+--    vec1 = Array len (Pull $ const (Num 2, Num 5)) :: Array Pull Expr2D
+--    vec2 = Array len (Pull (const (Num 4, Num 1))) :: Array Pull Expr2D
 
 
 
