@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs #-}
-{-
+{- 
  - PIRE - a Parallel Intermediate Representation for Embedded languages
  - --- Built on a Representation by Koen Lindström Claessen --- 
 -}
