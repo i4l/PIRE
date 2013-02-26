@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleInstances #-}
 {- 
  - PIRE - a Parallel Intermediate Representation for Embedded languages
  - --- Built on a Representation by Koen Lindström Claessen --- 
@@ -193,16 +194,21 @@ locArray v i = \x -> Assign v [i] x
 -----------------------------------------------------------------------------
 -- Arrays
 
---type DIM = Int
---
---data Array2 p a = Array2 { arrSize  :: Size
---                         , theData  :: p a
---                         , dim      :: DIM
---                         } 
+data InternalRepr a = Nil | Unit a | Tuple [InternalRepr a] | Loop (Array Pull (InternalRepr a))
+type FData = InternalRepr (Expr, Type)
 
+class Flatten a where
+  toFData   :: a -> FData
+  fromFData :: FData -> a
 
+instance Flatten Expr where
+  toFData e = Unit (e, TInt)
+  fromFData (Unit (e, t)) = e
 
-
+instance Flatten a => Flatten (Array Pull a) where
+  toFData (Array len (Pull ixf)) = Loop $ Array len (Pull $ \i -> toFData $ ixf i)
+  fromFData (Loop arr) = undefined
+  
 
 -- We have two array types, Pull and Push.
 -- TODO: explain difference
@@ -224,7 +230,7 @@ data Array p a =
 --  fmap f (Push p) = Push $ \iloc -> p (\i -> iloc i . f)
 
 -- primitive (named) arrays
-array :: Name -> Size -> Array Pull (Expr)
+array :: Name -> Size -> Array Pull Expr
 array arr n =
   Array{ size = n
        , doit = Pull $ \i -> Index arr [i]
