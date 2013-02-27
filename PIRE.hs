@@ -12,79 +12,9 @@ import Flatten
 import Array
 import Types
 
------------------------------------------------------------------------------
--- Expressions
-
---type Name = String
---
---data Expr where
---  Num    :: Int -> Expr
---  Index  :: Name -> [Expr] -> Expr
---  (:+:)  :: Expr -> Expr -> Expr
---  (:-:)  :: Expr -> Expr -> Expr
---  (:*:)  :: Expr -> Expr -> Expr
---  (:/:)  :: Expr -> Expr -> Expr
---  (:<=:) :: Expr -> Expr -> Expr
---
---instance Eq Expr where
---
---type Size  = Expr
---type Index = Expr 
---
---var :: Name -> Expr
---var v = Index v []
---
--- This instance is quite limited.
-instance Ord (Expr) where
-  e1 <= e2 = toInt e1<= toInt e2
-toInt :: Expr -> Int
-toInt (Num n)    = n
-toInt (a :-: b)  = toInt a - toInt b
-toInt (a :/: b)  = toInt a `div` toInt b
-toInt (a :*: b)  = toInt a * toInt b
-toInt _          = undefined
-
-instance Show (Expr) where
-  show (Num n)      = show n
-  show (Index a is) = a ++ concat [ "[" ++ show i ++ "]" | i <- is ]
-  show (a :+: b)    = "(" ++ show a ++ "+" ++ show b ++ ")"
-  show (a :-: b)    = "(" ++ show a ++ "-" ++ show b ++ ")"
-  show (a :/: b)    = "(" ++ show a ++ "/" ++ show b ++ ")"
-  show (a :*: b)    = "(" ++ show a ++ "*" ++ show b ++ ")"
-  show (a :<=: b)   = "(" ++ show a ++ " <= " ++ show b ++ ")"
-
 
 -----------------------------------------------------------------------------
--- "Smart" Constructors for expressions
-
-(.+), (.-), (.<=), (./), (.*) :: Expr -> Expr -> Expr
-Num 0 .+ b     = b
-a     .+ Num 0 = a
-Num a .+ Num b = Num (a+b)
-a     .+ b     = a :+: b
-
-Num a .- Num b = Num (a-b)
-a     .- Num 0 = a
-a     .- b     = a :-: b
-
-Num a ./ Num b = Num (a `div` b)
-Num 0 ./ b     = Num 0
-a     ./ Num 1 = a
-a     ./ b     = a :/: b
-
-Num a .* Num b = Num (a*b)
-a     .* Num 0 = Num 0
-a     .* Num 1 = a
-Num 0 .* b     = Num 0
-Num 1 .* b     = b
-a     .* b     = a :*: b
-
-Num a .<= Num b      = Num (if a<=b then 1 else 0)
-a     .<= b | a == b = Num 1
-a     .<= b          = a :<=: b
-
------------------------------------------------------------------------------
--- Program - AST type
+-- | Program - AST type
 
 data Program a where
   Skip     :: Program a
@@ -100,25 +30,6 @@ data Program a where
 -- TODO 
 --f :: Size -> Loc a -> Program a
 
-
---data Program
---  = Skip
---  | Assign Name [Expr] Expr
---  | Program :>> Program             -- Program Seq.
---  | If Expr Program Program
---  | For Expr Expr (Expr -> Program) -- Sequential Loop
---  | Par Expr Expr (Expr -> Program) -- Parallel Loop
---
-----  | ForDim Expr Expr (Array2 Pull Expr) (Loc Expr -> Array2 Pull Expr -> Program) -- TODO experimental!
---
---  | Alloc Size ((Index -> Loc Expr) -> Array Pull Expr -> Program)
---  
---  -- Alloc for multi-dim arrays.
--- -- | AllocDim Type Size (Array2 Pull Expr) (([Index] -> Loc Expr) -> Array2 Pull Expr -> Program) -- TODO experimental!
---
---  | AllocNew Type Size (Array Pull Expr) (Loc Expr        ->
---                                          Array Pull Expr -> 
---                                          Program)
 --
 
 -----------------------------------------------------------------------------
