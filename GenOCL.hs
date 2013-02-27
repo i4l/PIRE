@@ -28,7 +28,7 @@ gen :: Program a -> Gen ()
 gen (Alloc' t siz initArr f) = do d <- incVar
                                   let m = "mem" ++ show d
                                   line $ m ++ " = malloc(" ++ show siz ++ ");"
-                                  (loop, body, loopVar) <- compileFData (toFData initArr) m
+                                  (loop, body, loopVar) <- compileFData (toFData initArr)
                                   line loop
                                   indent 2
                                   gen $ (locArray m (var loopVar)) body

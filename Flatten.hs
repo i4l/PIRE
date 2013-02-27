@@ -18,20 +18,20 @@ instance Flatten Expr where
 -- TODO Parameterize over array-type (Push and Pull).
 instance Flatten a => Flatten (Array Pull a) where
   toFData (Array len (Pull ixf)) = Loop $ Array len (Pull $ \i -> toFData $ ixf i)
-  fromFData (Loop arr) = Array (size arr) (Pull $ \x -> fromFData $ (pull $ doit arr) x)
+  fromFData (Loop arr)           = Array (size arr) (Pull $ \x -> fromFData $ (pull $ doit arr) x)
 
 
-compileFData :: FData -> Name -> Gen (String, Expr, Name)
-compileFData Nil _ = return ("",(Num 0),"")
-compileFData (Unit (e,t)) mem = return $ ("",e,"")
-compileFData (Loop (Array len (Pull ixf))) mem = do v <- incVar
-                                                    let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
-                                                    return $ 
-                                                      ("int " ++ loopVar ++ ";\n" 
-                                                        ++ "for(" ++ loopVar ++ " = 0 ; "
-                                                        ++ loopVar ++ " < " ++ show len ++ " ; "
-                                                        ++ loopVar ++ "++ ){"
-                                                      , 
-                                                        (fromFData $ ixf (var (loopVar)) :: Expr)
-                                                      , loopVar)
+compileFData :: FData -> Gen (String, Expr, Name)
+compileFData (Unit (e,t))                  = return $ ("",e,"")
+compileFData (Loop (Array len (Pull ixf))) = do 
+  v <- incVar
+  let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
+  return 
+    (    "int " ++ loopVar ++ ";\n" 
+      ++ "for(" ++ loopVar ++ " = 0 ; "
+      ++ loopVar ++ " < " ++ show len ++ " ; "
+      ++ loopVar ++ "++ ){"
+    , 
+      fromFData $ ixf (var loopVar) :: Expr
+    , loopVar)
 

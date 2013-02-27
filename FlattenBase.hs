@@ -6,7 +6,7 @@ import Types
 
 
 -- TODO parameterize over Array-type.
-data InternalRepr a = Nil | Unit a | Loop (Array Pull (InternalRepr a))
+data InternalRepr a = Unit a | Loop (Array Pull (InternalRepr a))
 
 
 -- TODO Make Expr to a, or possibly Program a?

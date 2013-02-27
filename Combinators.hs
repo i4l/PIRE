@@ -70,7 +70,7 @@ add1 = mapP TInt (.+ (Num 1)) arr
 foo' :: Program a
 foo' = foo TInt arr
   where len = Num 10
-        arr = Array len (Pull $ const (Num 5)) 
+        arr = Array len (Pull $ \i -> Array len (Pull $ id) )  --2D array
 
 
 
