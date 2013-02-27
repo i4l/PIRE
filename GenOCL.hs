@@ -33,10 +33,12 @@ gen (Alloc' t siz initArr f) = do d <- incVar
                                   indent 2
                                   gen $ (locArray m (var loopVar)) body
                                   unindent 2
+                                  --gen $ f (locArray m (var "z")) (Array (Num 50) (Pull id))
+
                                   line $ "}"
                                   line $ "free(" ++ m ++ ");"
 
-gen Skip = line "0;"
+gen Skip = line ""
 
 gen (Assign name es e) = line $ show (Index name es) ++ " = " ++ show e ++ ";"
 

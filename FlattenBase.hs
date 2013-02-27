@@ -9,6 +9,7 @@ import Types
 data InternalRepr a = Nil | Unit a | Loop (Array Pull (InternalRepr a))
 
 
+-- TODO Make Expr to a, or possibly Program a?
 type FData = InternalRepr (Expr, Type)
 
 -- | Things that can be flattened in memory (which we in PIRE take to mean things that can be allocated).

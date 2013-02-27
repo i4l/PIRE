@@ -27,8 +27,8 @@ compileFData (Unit (e,t)) mem = return $ ("",e,"")
 compileFData (Loop (Array len (Pull ixf))) mem = do v <- incVar
                                                     let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
                                                     return $ 
-                                                      ("int " ++ loopVar ++ " = 0;\n" 
-                                                        ++ "for(int " ++ loopVar ++ " = 0 ; "
+                                                      ("int " ++ loopVar ++ ";\n" 
+                                                        ++ "for(" ++ loopVar ++ " = 0 ; "
                                                         ++ loopVar ++ " < " ++ show len ++ " ; "
                                                         ++ loopVar ++ "++ ){"
                                                       , 

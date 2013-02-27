@@ -47,7 +47,8 @@ mapP t f arr = AllocNew (TPointer t) len arr $
 
 
 foo :: Flatten e => Type -> Array Pull e -> Program a
-foo t arr@(Array len (Pull ixf)) = Alloc' t len arr $ \loc iarr -> Skip 
+foo t arr@(Array len (Pull ixf)) = Alloc' t len arr $ \loc iarr -> 
+          for (Num 0) len $ \e -> add1
 
 
 -----------------------------------------------------------------------------
