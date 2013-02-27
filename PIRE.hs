@@ -27,7 +27,8 @@ data Program a where
   AllocNew :: Type -> Size -> (Array Pull (Expr)) -> (Loc (Expr) a -> Array Pull (Expr) -> Program a) -> Program a
   Alloc'   :: Flatten e => Type -> Size -> Array Pull e -> (Loc e a -> Array Pull e -> Program a) -> Program a
 
--- TODO 
+
+-- TODO does Alloc's need to be part of AST?
 --f :: Size -> Loc a -> Program a
 
 --
@@ -51,18 +52,6 @@ par a       b       p         = Par a b p
 Skip .>> q    = q
 p    .>> Skip = p
 p    .>> q    = p :>> q
-
------------------------------------------------------------------------------
--- Types
-
---data Type = TInt | TArray Type | TPointer Type
---
---instance Show Type where
---  show TInt = "int"
---  show (TArray t) = show t ++ "[]"
-----  show TChar = "char"
-----  show TFloat = "float"
---  show (TPointer t) = show t ++ "*"
 
 -----------------------------------------------------------------------------
 -- Locations

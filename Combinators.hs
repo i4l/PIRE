@@ -7,6 +7,7 @@ module Combinators where
 import PIRE
 import GenOCL
 import Util
+import Gen
 
 import Array
 import Types
@@ -45,7 +46,7 @@ mapP t f arr = AllocNew (TPointer t) len arr $
   where len = size arr
 
 
-foo :: Flatten a => Type -> Array Pull a -> Program a
+foo :: Flatten e => Type -> Array Pull e -> Program a
 foo t arr@(Array len (Pull ixf)) = Alloc' t len arr $ \loc iarr -> Skip 
 
 
@@ -64,6 +65,13 @@ add1 :: Program a
 add1 = mapP TInt (.+ (Num 1)) arr
   where len = Num 10
         arr = Array len (Pull id)
+
+foo' :: Program a
+foo' = foo TInt arr
+  where len = Num 10
+        arr = Array len (Pull $ const (Num 5)) 
+
+
 
 
 

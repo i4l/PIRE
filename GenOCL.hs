@@ -6,6 +6,7 @@ import Array
 import Types
 import Expr
 import Flatten
+import Gen
 
 import qualified Data.Map as Map
 import Data.Maybe
@@ -27,8 +28,12 @@ gen :: Program a -> Gen ()
 gen (Alloc' t siz initArr f) = do d <- incVar
                                   let m = "mem" ++ show d
                                   line $ m ++ " = malloc(" ++ show siz ++ ");"
-                                  let fdata = toFData initArr
-                                  --gen $ f (locArray m) (array m siz)
+                                  (loop, body, loopVar) <- compileFData (toFData initArr) m
+                                  line loop
+                                  indent 2
+                                  gen $ (locArray m (var loopVar)) body
+                                  unindent 2
+                                  line $ "}"
                                   line $ "free(" ++ m ++ ");"
 
 gen Skip = line "0;"
