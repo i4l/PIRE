@@ -7,40 +7,33 @@
 
 module PIRE where
 
+import Expr
+import Flatten
+import Array
+import Types
 
 -----------------------------------------------------------------------------
 -- Expressions
 
-type Name = String
-
-data Expr where
-  Num    :: Int -> Expr
-  Index  :: Name -> [Expr] -> Expr
-  (:+:)  :: Expr -> Expr -> Expr
-  (:-:)  :: Expr -> Expr -> Expr
-  (:*:)  :: Expr -> Expr -> Expr
-  (:/:)  :: Expr -> Expr -> Expr
-  (:<=:) :: Expr -> Expr -> Expr
-
-instance Eq Expr where
-
-
---data Expr
---  = Num Int
---  | Index Name [Expr]
---  | Expr :+: Expr
---  | Expr :-: Expr
---  | Expr :/: Expr
---  | Expr :*: Expr
---  | Expr :<=: Expr
--- deriving ( Eq )
-
-type Size  = Expr
-type Index = Expr 
-
-var :: Name -> Expr
-var v = Index v []
-
+--type Name = String
+--
+--data Expr where
+--  Num    :: Int -> Expr
+--  Index  :: Name -> [Expr] -> Expr
+--  (:+:)  :: Expr -> Expr -> Expr
+--  (:-:)  :: Expr -> Expr -> Expr
+--  (:*:)  :: Expr -> Expr -> Expr
+--  (:/:)  :: Expr -> Expr -> Expr
+--  (:<=:) :: Expr -> Expr -> Expr
+--
+--instance Eq Expr where
+--
+--type Size  = Expr
+--type Index = Expr 
+--
+--var :: Name -> Expr
+--var v = Index v []
+--
 -- This instance is quite limited.
 instance Ord (Expr) where
   e1 <= e2 = toInt e1<= toInt e2
@@ -96,20 +89,18 @@ a     .<= b          = a :<=: b
 data Program a where
   Skip     :: Program a
   Assign   :: Name -> [Expr] -> Expr -> Program a
-  Decl     :: Type -> Size -> Loc a a -> Program a -- Experimental construct for Declaration
   (:>>)    :: Program a -> Program a -> Program a
   If       :: Expr -> Program a -> Program a -> Program a
   For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par      :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Alloc    :: Size -> ((Index -> Loc (Expr) a) -> Array Pull (Expr) -> Program a) -> Program a
   AllocNew :: Type -> Size -> (Array Pull (Expr)) -> (Loc (Expr) a -> Array Pull (Expr) -> Program a) -> Program a
+  Alloc'   :: Flatten e => Type -> Size -> Array Pull e -> (Loc e a -> Array Pull e -> Program a) -> Program a
 
 -- TODO 
 --f :: Size -> Loc a -> Program a
 
--- Declare a container of size s initialized with arr
-alloc :: Type -> Array Pull a -> (Loc a a -> Program a)
-alloc t (Array siz (Pull ixf)) = \loc -> Decl t siz loc
+
 --data Program
 --  = Skip
 --  | Assign Name [Expr] Expr
@@ -153,14 +144,14 @@ p    .>> q    = p :>> q
 -----------------------------------------------------------------------------
 -- Types
 
-data Type = TInt | TArray Type | TPointer Type
-
-instance Show Type where
-  show TInt = "int"
-  show (TArray t) = show t ++ "[]"
---  show TChar = "char"
---  show TFloat = "float"
-  show (TPointer t) = show t ++ "*"
+--data Type = TInt | TArray Type | TPointer Type
+--
+--instance Show Type where
+--  show TInt = "int"
+--  show (TArray t) = show t ++ "[]"
+----  show TChar = "char"
+----  show TFloat = "float"
+--  show (TPointer t) = show t ++ "*"
 
 -----------------------------------------------------------------------------
 -- Locations
@@ -194,60 +185,58 @@ locArray v i = \x -> Assign v [i] x
 -----------------------------------------------------------------------------
 -- Arrays
 
-data InternalRepr a = Nil | Unit a | Tuple [InternalRepr a] | Loop (Array Pull (InternalRepr a))
-type FData = InternalRepr (Expr, Type)
-
-class Flatten a where
-  toFData   :: a -> FData
-  fromFData :: FData -> a
-
-instance Flatten Expr where
-  toFData e = Unit (e, TInt)
-  fromFData (Unit (e, t)) = e
-
-instance Flatten a => Flatten (Array Pull a) where
-  toFData (Array len (Pull ixf)) = Loop $ Array len (Pull $ \i -> toFData $ ixf i)
-  fromFData (Loop arr) = undefined
-  
-
+--data InternalRepr a = Nil | Unit a | Tuple [InternalRepr a] | Loop (Array Pull (InternalRepr a))
+--type FData = InternalRepr (Expr, Type)
+--
+--class Flatten a where
+--  toFData   :: a -> FData
+--  fromFData :: FData -> a
+--
+--instance Flatten Expr where
+--  toFData e = Unit (e, TInt)
+--  fromFData (Unit (e, t)) = e
+--
+--instance Flatten a => Flatten (Array Pull a) where
+--  toFData (Array len (Pull ixf)) = Loop $ Array len (Pull $ \i -> toFData $ ixf i)
+--  fromFData (Loop arr) = Array (size arr) (Pull $ \x -> fromFData $ (pull $ doit arr) x)
 -- We have two array types, Pull and Push.
 -- TODO: explain difference
 
-data Pull a = Pull { pull :: Index -> a }
-
-data Push a = Push { push :: (Index -> Loc a a) -> Program a }
-
--- An array is a size and an array type (Pull or Push)
-data Array p a =
-  Array{ size :: Size
-       , doit :: p a
-       }
-
---instance Functor Pull where
---  fmap f (Pull p) = Pull $ \i -> f (p i)
+--data Pull a = Pull { pull :: Index -> a }
 --
---instance Functor Push where
---  fmap f (Push p) = Push $ \iloc -> p (\i -> iloc i . f)
-
--- primitive (named) arrays
-array :: Name -> Size -> Array Pull Expr
-array arr n =
-  Array{ size = n
-       , doit = Pull $ \i -> Index arr [i]
-       }
-
--- Converting any array type to a Push array
-class Pushable p where
-  toPush :: Array p a -> Array Push a
-
-instance Pushable Push where
-  toPush = id
-
-instance Pushable Pull where
-  toPush arr =
-    Array{ size = size arr
-         , doit = Push $ \iloc -> For (Num 0) (size arr) (\i -> iloc i (pull (doit arr) i))
-         } 
+--data Push a = Push { push :: (Index -> Loc a a) -> Program a }
+--
+---- An array is a size and an array type (Pull or Push)
+--data Array p a =
+--  Array{ size :: Size
+--       , doit :: p a
+--       }
+--
+----instance Functor Pull where
+----  fmap f (Pull p) = Pull $ \i -> f (p i)
+----
+----instance Functor Push where
+----  fmap f (Push p) = Push $ \iloc -> p (\i -> iloc i . f)
+--
+---- primitive (named) arrays
+--array :: Name -> Size -> Array Pull Expr
+--array arr n =
+--  Array{ size = n
+--       , doit = Pull $ \i -> Index arr [i]
+--       }
+--
+---- Converting any array type to a Push array
+--class Pushable p where
+--  toPush :: Array p a -> Array Push a
+--
+--instance Pushable Push where
+--  toPush = id
+--
+--instance Pushable Pull where
+--  toPush arr =
+--    Array{ size = size arr
+--         , doit = Push $ \iloc -> For (Num 0) (size arr) (\i -> iloc i (pull (doit arr) i))
+--         } 
 
 ---- memorize
 --memorize :: Array Push Expr -> (Array Pull Expr -> Program) -> Program

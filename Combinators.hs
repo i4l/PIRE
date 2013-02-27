@@ -8,7 +8,10 @@ import PIRE
 import GenOCL
 import Util
 
-
+import Array
+import Types
+import Expr
+import Flatten
 
 
 -----------------------------------------------------------------------------
@@ -42,20 +45,8 @@ mapP t f arr = AllocNew (TPointer t) len arr $
   where len = size arr
 
 
-
-allocTest :: Program Expr
-allocTest = alloc TInt arr $ 
-              \loc -> undefined
-  where len = Num 10
-        arr = Array len $ Pull id
-        f   = (.+) (Num 5)
-
---sum2D :: (p ~ Pull) => Type -> Array p a -> Program a
---sum2D t arr = AllocNew (TPointer t) len arr $ 
---              \loc kernelArr -> par (Num 0) len $
---                \e -> undefined
---  where len = size arr
---        f = (.+)
+foo :: Flatten a => Type -> Array Pull a -> Program a
+foo t arr@(Array len (Pull ixf)) = Alloc' t len arr $ \loc iarr -> Skip 
 
 
 -----------------------------------------------------------------------------

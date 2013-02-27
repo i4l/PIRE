@@ -8,7 +8,9 @@ import Control.Monad.State
 import qualified Data.Map as Map
 
 import PIRE
-
+import Expr
+import Types
+import Array
 
 type Gen a = State Env a
 

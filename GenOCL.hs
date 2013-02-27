@@ -2,6 +2,11 @@ module GenOCL where
 
 import Util
 import PIRE
+import Array
+import Types
+import Expr
+import Flatten
+
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.List
@@ -18,11 +23,17 @@ import Text.PrettyPrint
 -- TODO Text.PrettyPrint
 
 gen :: Program a -> Gen ()
+
+gen (Alloc' t siz initArr f) = do d <- incVar
+                                  let m = "mem" ++ show d
+                                  line $ m ++ " = malloc(" ++ show siz ++ ");"
+                                  let fdata = toFData initArr
+                                  --gen $ f (locArray m) (array m siz)
+                                  line $ "free(" ++ m ++ ");"
+
 gen Skip = line "0;"
 
 gen (Assign name es e) = line $ show (Index name es) ++ " = " ++ show e ++ ";"
-
-gen (Decl t siz loc) = undefined
 
 gen (p1 :>> p2) = gen p1 >> gen p2
 
