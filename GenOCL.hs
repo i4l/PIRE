@@ -5,16 +5,12 @@ import PIRE
 import Array
 import Types
 import Expr
-import Flatten
 import Gen
 
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.List
-import Control.Monad
 import Control.Monad.State
 
-import Text.PrettyPrint
 
  
 {- 
@@ -31,7 +27,7 @@ gen (Alloc' t siz f) = do d <- incVar
                           
                           loopVar <- fmap fst newLoopVar
                           let partialLoc = locArray m
-                          gen $ f partialLoc
+                          gen $ f partialLoc (Index m [])
 
                           line $ "free(" ++ m ++ ");\n"
 

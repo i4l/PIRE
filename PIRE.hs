@@ -14,6 +14,8 @@ import Types
 -----------------------------------------------------------------------------
 -- | Program - AST type
 
+type ArrayName = Expr
+
 data Program a where
   Skip     :: Program a
   Assign   :: Name -> [Expr] -> Expr -> Program a
@@ -21,7 +23,7 @@ data Program a where
   If       :: Expr -> Program a -> Program a -> Program a
   For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par      :: Expr -> Expr -> (Expr -> Program a) -> Program a
-  Alloc'   :: Type -> Size -> ((Index -> Loc Expr a) -> Program a) -> Program a
+  Alloc'   :: Type -> Size -> ((Index -> Loc Expr a) -> ArrayName -> Program a) -> Program a
 
 
 --  Alloc    :: Size -> ((Index -> Loc (Expr) a) -> Array Pull (Expr) -> Program a) -> Program a
