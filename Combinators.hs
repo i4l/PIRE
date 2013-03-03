@@ -29,6 +29,9 @@ mapP t siz arr f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' [e] (f
 
 
 
+-- NOTE: If f could generate for-loops, we could (probably) have a more general initialize-function
+-- with arbitrary dimensions...?
+
 --initialize2 :: Type -> Size -> (Index -> Expr) -> (IndexedArray -> Program a) -> Program a
 --initialize2 t s f prog = Alloc' (TPointer t) (s.*s) $ \partialloc arrName -> 
 --                            for (Num 0) s $ \e -> 
