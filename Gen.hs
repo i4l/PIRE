@@ -38,14 +38,18 @@ indent i = modify $ \env -> env{iDepth = iDepth env + i}
 unindent :: Int -> Gen ()
 unindent i = modify $ \env -> env{iDepth = iDepth env - i}
 
-getVar :: Gen Int
-getVar = gets varCount
-
+-- | Generate a fresh name and increase the counter.
 incVar :: Gen Int
 incVar = do
-  d <- getVar
+  d <- gets varCount
   modify $ \env -> env{varCount = varCount env + 1}
   return d
+
+-- | Generate a new loop variable (based on the variable counter from incVar).
+newLoopVar :: Gen (String,Int)
+newLoopVar = do
+  v <- incVar
+  return $ (([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v, v)
 
 getParamCounter :: Gen Int
 getParamCounter = gets paramCounter
@@ -56,12 +60,6 @@ incParamCounter = do
   modify $ \env -> env{paramCounter = paramCounter env + 1}
   return d
 
-
-getParamMap :: Gen (Map.Map Int Int)
-getParamMap = gets paramMap
-
-getHostAllocMap :: Gen (Map.Map Int Int)
-getHostAllocMap = gets hostAllocMap
 
 
 addKernelParam :: Int -> Gen Int
@@ -74,7 +72,7 @@ addKernelParam hostAllocId = do
 
 lookupForKernel :: Int -> Gen (Maybe Int)
 lookupForKernel hostAllocId = do
-  m <- getParamMap
+  m <- gets paramMap
   return $ Map.lookup hostAllocId m
 
 lookupForHost :: Int -> Gen (Maybe Int)

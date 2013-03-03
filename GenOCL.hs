@@ -27,12 +27,17 @@ gen :: Program a -> Gen ()
 
 gen (Alloc' t siz f) = do d <- incVar
                           let m = "mem" ++ show d
-                          line $ m ++ " = malloc(" ++ show siz ++ ");"
+                          line $ show t ++ " " ++ m ++ " = malloc(" ++ show siz ++ ");"
                           indent 2
-                          unindent 2
+                          
+                          loopVar <- fmap fst newLoopVar
+                          let partialLoc = locArray m
+                          gen $ f partialLoc
 
-                          line $ "}"
-                          line $ "free(" ++ m ++ ");"
+                          unindent 2
+                         -- line $ "}"
+                          line $ "free(" ++ m ++ ");\n"
+
 
 gen Skip = line ""
 
@@ -200,7 +205,7 @@ genKernel f names arr isCalledNested = do
       let tid     = "tid"
       let kerName = 'k' : show (0 :: Int) -- TODO fix (might have multiple kernels)
 
-      paramMapSize <- fmap Map.size getParamMap
+      paramMapSize <- fmap Map.size (gets paramMap)
       let removeLastComma = reverse . drop 1 . reverse
           arrPrefix       = "arr"
           parameters      = (removeLastComma . concat) 

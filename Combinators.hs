@@ -18,10 +18,21 @@ import Flatten
 -----------------------------------------------------------------------------
 -- Interface
 
+-- | Initialize an array of length s and type t with function f, followed by the remaining program prog.
+initialize :: Type -> Size -> (Index -> Expr) -> Program a -> Program a
+initialize t s f prog = Alloc' t s $ \loc -> 
+                        for (Num 0) s (\e -> loc e (f e)) -- Initialization loop
+                      .>> prog                            -- Followed by the rest of the program
 
-zipWithP :: Type -> (Expr -> Expr -> Expr) -> Program a
-zipWithP t f = undefined
 
+zipWithP :: Type -> Size -> (Expr -> Expr -> Expr) -> Program a
+zipWithP t siz f = Alloc' t siz $ \loc' -> loc' (var "XX") $ f (Num 1) (Num 2)
+
+-- adds 1 to each element in the array
+test :: Program a
+test = initialize (TPointer TInt) len (.+ (Num 45)) $
+        zipWithP (TPointer TInt) len (.+)
+  where len = Num 10
 
 -- | Parallel zipWith
 --zipWithP :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> Array p Expr -> Array p Expr -> Program a

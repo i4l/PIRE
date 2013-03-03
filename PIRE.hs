@@ -21,7 +21,7 @@ data Program a where
   If       :: Expr -> Program a -> Program a -> Program a
   For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par      :: Expr -> Expr -> (Expr -> Program a) -> Program a
-  Alloc'   :: Type -> Size -> (Loc e a -> Program a) -> Program a
+  Alloc'   :: Type -> Size -> ((Index -> Loc Expr a) -> Program a) -> Program a
 
 
 --  Alloc    :: Size -> ((Index -> Loc (Expr) a) -> Array Pull (Expr) -> Program a) -> Program a
@@ -59,6 +59,8 @@ p    .>> q    = p :>> q
 -- LHS of an assignment.
 type Loc a b = a -> Program b
 
+locArray :: Name -> Index -> Loc Expr a
+locArray v i = \x -> Assign v [i] x
 
 --nil :: Loc a
 --nil = \_ -> Skip
@@ -72,8 +74,7 @@ type Loc a b = a -> Program b
 --locMap :: (b -> a) -> Loc a -> Loc b
 --locMap f loc = \x -> loc (f x)
 
-locArray :: Name -> Index -> Loc Expr a
-locArray v i = \x -> Assign v [i] x
+
 
 --locNest :: Name -> [Index] -> Loc Expr
 --locNest v is = \x -> Assign v is x
