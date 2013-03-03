@@ -16,7 +16,7 @@ import Control.Monad.State
 
 import Text.PrettyPrint
 
-
+ 
 {- 
  - My idea: Generate regular C, but offload Parallel loops to GPU via OpenCL interface
 -}
@@ -25,18 +25,14 @@ import Text.PrettyPrint
 
 gen :: Program a -> Gen ()
 
-gen (Alloc' t siz initArr f) = do d <- incVar
-                                  let m = "mem" ++ show d
-                                  line $ m ++ " = malloc(" ++ show siz ++ ");"
-                                  (loop, body, loopVar) <- compileFData (toFData initArr)
-                                  line loop
-                                  indent 2
-                                  gen $ (locArray m (var loopVar)) body
-                                  unindent 2
-                                  --gen $ f (locArray m (var "z")) (Array (Num 50) (Pull id))
+gen (Alloc' t siz f) = do d <- incVar
+                          let m = "mem" ++ show d
+                          line $ m ++ " = malloc(" ++ show siz ++ ");"
+                          indent 2
+                          unindent 2
 
-                                  line $ "}"
-                                  line $ "free(" ++ m ++ ");"
+                          line $ "}"
+                          line $ "free(" ++ m ++ ");"
 
 gen Skip = line ""
 
@@ -55,7 +51,7 @@ gen (If c p1 p2) = do
   unindent 2
   line "}"
 
-gen (Par start max p) = do
+gen (Par start max p) = 
     line "// Par in host code"
 --  d <- incVar
 --  let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
@@ -83,122 +79,82 @@ gen (For e1 e2 p) = do
    unindent 2
    line "}"
 
-----TODO testing multi-dim arrays
---gen(ForDim start len arr f) = do
---  let brackets = concat $ take (dim arr) $ repeat $ "[" ++ show (len./(Num (dim arr))) ++ "]" 
---  line $ "int arr" ++ brackets ++ ";"
---  d <- incVar
---  let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
---
---  loopsInits <- replicateM (dim arr) $ do v <- incVar
---                                          let loopVar = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
---                                          return $ "for( " ++ loopVar ++ " = " ++ show (Num 0) ++ "; "  
---                                                           ++ loopVar ++ " < " ++ show (len ./ (Num (dim arr))) 
---                                                           ++ "; " ++ loopVar ++ "++ ) {"                                                  
---  mapM_ (\str -> indent 2 >> str) $ map (line) loopsInits
---  indent 2 
---
---  d1 <- incVar
---  let arrName = "arr" ++ show d1
---  -- fix "i". Must be passed along or something.
---  gen $ f (locNest arrName [(var "i"), var "j"]) arr
---
-----  gen (f (var loopVar))
-----  gen $ f $ Index "arr" [var "i", var "j"]
---  unindent 2
---  replicateM_ (dim arr) $ line "}" >> unindent 2
---  line "}"
-
-gen (Alloc siz f) = do 
-   d <- incVar
-   let m = "mem" ++ show d
-   line $ m ++ " = malloc(" ++ show siz ++ ");"
-   gen $ f (locArray m) (array m siz)
-   line $ "free(" ++ m ++ ");"
-
---gen (AllocDim t siz arr@(Array2 len (Pull ixf) dim) f) = do 
+---gen (Alloc siz f) = do 
 --   d <- incVar
---   modify $ \env -> env{loopVars = d : loopVars env} -- remember this variable name
 --   let m = "mem" ++ show d
 --   line $ m ++ " = malloc(" ++ show siz ++ ");"
---   line $ "// Init'ing array " ++ m
---   let iarr = Array2 len (Pull $ \e -> Index m [e]) dim
---   loopers <- gets loopVars
---   let loopers' = map ((++) "mem" . show) loopers
---   gen $ f (locNest m) iarr
---  -- gen $ f (locArray m) iarr
---   --gen $ f (locNest m) iarr
+--   gen $ f (locArray m) (array m siz)
 --   line $ "free(" ++ m ++ ");"
 
 
-gen (AllocNew t siz arr f) = do
-  let objPostfix = "_obj"
-      memPrefix  = "mem"
-
-  -- Allocate for argument
-  d <- incVar
-  let m = "mem" ++ show d
-  line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++
-          "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-  addInitFunc d (pull $ doit arr)
-
-  -- Allocate for result
-  kernInfo <- (genKernel f [(m, d)] arr False)
-  let resID = resultID kernInfo
-  line $ show t ++ " " ++ memPrefix ++ show resID ++ " = (" ++ show t ++ ") malloc(" ++ 
-          "sizeof(" ++ removePointer t ++ ")*" ++ show siz ++ ");\n\n"
-
-  -- fetch the Map, so we have something to work with
-  allocMap <- fmap Map.toList getHostAllocMap
- 
-  -- initialize allocated arrays
-  initFuncs <- fmap Map.toList getInitFuncs
-  v <- incVar
-  let len          = size $ arr
-      loopVar      = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
-      allocStrings = map (\(h,f) -> Assign 
-                                      (memPrefix ++ show h) 
-                                      [var loopVar] (f (var loopVar))) initFuncs
-  line $ "int " ++ loopVar ++ ";"
-  line $ "for ( " ++ loopVar ++ " = 0; " ++ loopVar ++ " < " ++ show len ++ "; " ++  loopVar ++ "++ ) {"
-  indent 2
-  mapM_ gen allocStrings
-  unindent 2
-  line "}"
-  
-  -- create cl_mem buffers
-  let createBuffers (h,k) = "cl_mem " ++ memPrefix ++ show h ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
-                (if k /= 0 then "CL_MEM_READ_ONLY" else "CL_MEM_WRITE_ONLY") ++
-                ", " ++ show siz ++ "*sizeof(" ++ removePointer t ++ "), NULL, NULL);"
-  mapM_ line (map createBuffers allocMap)
-
-  -- copy data to cl_mem buffers
-  let copyBuffers (h,_) = "clEnqueueWriteBuffer(command_queue, " ++ memPrefix ++ show h ++ 
-                          objPostfix ++ ", CL_TRUE, 0, " ++ show siz ++ " * sizeof(" ++ 
-                          removePointer t ++"), " ++ memPrefix ++ show h ++ ", 0, NULL, NULL);"
-  resAlloc <- fmap fromJust $  lookupForKernel 0 
-  let removeRes = delete (resAlloc, 0) -- we don't want to copy the result array to the GPU.
-  mapM_ line (map copyBuffers (removeRes allocMap))
-
-  -- create kernel & build program
-  line $ "cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
-         "(const size_t *)&source_size, NULL);"
-  line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
-  line "cl_kernel kernel = clCreateKernel(program, \"k0\", NULL);" 
-  
-  -- set arguments to kernel
-  let setArgs (h,k) = "clSetKernelArg(kernel, " ++ show k ++ 
-                      ", sizeof(cl_mem), (void *)&" ++ memPrefix ++ show h ++ objPostfix ++ ");"
-  mapM_ line (map setArgs allocMap)
-
-  -- launch kernel
-  line $ "size_t global_item_size = " ++ show siz ++ ";"
-  line $ "size_t local_item_size = "  ++ show siz ++ ";"
-  line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
-
-  --read back to result array
-  line $ "clEnqueueReadBuffer(command_queue, " ++ memPrefix ++ show resID ++ objPostfix ++ ", CL_TRUE, 0, " ++
-          show siz ++ "* sizeof(" ++ removePointer t ++ "), " ++ memPrefix ++ show resID ++ ", 0, NULL, NULL);\n\n"
+--gen (AllocNew t siz arr f) = do
+--  let objPostfix = "_obj"
+--      memPrefix  = "mem"
+--
+--  -- Allocate for argument
+--  d <- incVar
+--  let m = "mem" ++ show d
+--  line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++
+--          "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+--  addInitFunc d (pull $ doit arr)
+--
+--  -- Allocate for result
+--  kernInfo <- (genKernel f [(m, d)] arr False)
+--  let resID = resultID kernInfo
+--  line $ show t ++ " " ++ memPrefix ++ show resID ++ " = (" ++ show t ++ ") malloc(" ++ 
+--          "sizeof(" ++ removePointer t ++ ")*" ++ show siz ++ ");\n\n"
+--
+--  -- fetch the Map, so we have something to work with
+--  allocMap <- fmap Map.toList getHostAllocMap
+-- 
+--  -- initialize allocated arrays
+--  initFuncs <- fmap Map.toList getInitFuncs
+--  v <- incVar
+--  let len          = size $ arr
+--      loopVar      = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v
+--      allocStrings = map (\(h,f) -> Assign 
+--                                      (memPrefix ++ show h) 
+--                                      [var loopVar] (f (var loopVar))) initFuncs
+--  line $ "int " ++ loopVar ++ ";"
+--  line $ "for ( " ++ loopVar ++ " = 0; " ++ loopVar ++ " < " ++ show len ++ "; " ++  loopVar ++ "++ ) {"
+--  indent 2
+--  mapM_ gen allocStrings
+--  unindent 2
+--  line "}"
+--  
+--  -- create cl_mem buffers
+--  let createBuffers (h,k) = "cl_mem " ++ memPrefix ++ show h ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+--                (if k /= 0 then "CL_MEM_READ_ONLY" else "CL_MEM_WRITE_ONLY") ++
+--                ", " ++ show siz ++ "*sizeof(" ++ removePointer t ++ "), NULL, NULL);"
+--  mapM_ line (map createBuffers allocMap)
+--
+--  -- copy data to cl_mem buffers
+--  let copyBuffers (h,_) = "clEnqueueWriteBuffer(command_queue, " ++ memPrefix ++ show h ++ 
+--                          objPostfix ++ ", CL_TRUE, 0, " ++ show siz ++ " * sizeof(" ++ 
+--                          removePointer t ++"), " ++ memPrefix ++ show h ++ ", 0, NULL, NULL);"
+--  resAlloc <- fmap fromJust $  lookupForKernel 0 
+--  let removeRes = delete (resAlloc, 0) -- we don't want to copy the result array to the GPU.
+--  mapM_ line (map copyBuffers (removeRes allocMap))
+--
+--  -- create kernel & build program
+--  line $ "cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
+--         "(const size_t *)&source_size, NULL);"
+--  line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
+--  line "cl_kernel kernel = clCreateKernel(program, \"k0\", NULL);" 
+--  
+--  -- set arguments to kernel
+--  let setArgs (h,k) = "clSetKernelArg(kernel, " ++ show k ++ 
+--                      ", sizeof(cl_mem), (void *)&" ++ memPrefix ++ show h ++ objPostfix ++ ");"
+--  mapM_ line (map setArgs allocMap)
+--
+--  -- launch kernel
+--  line $ "size_t global_item_size = " ++ show siz ++ ";"
+--  line $ "size_t local_item_size = "  ++ show siz ++ ";"
+--  line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
+--
+--  --read back to result array
+--  line $ "clEnqueueReadBuffer(command_queue, " ++ memPrefix ++ show resID ++ objPostfix ++ ", CL_TRUE, 0, " ++
+--          show siz ++ "* sizeof(" ++ removePointer t ++ "), " ++ memPrefix ++ show resID ++ ", 0, NULL, NULL);\n\n"
 
 
 ------------------------------------------------------------
@@ -269,21 +225,21 @@ genKernel f names arr isCalledNested = do
       unindent 2
       lineK "}"
 
-    genKernel' (Alloc siz f) = do 
-      d <- incVar
-      let m = "mem" ++ show d
-      lineK $ m ++ " = malloc(" ++ show siz ++ ");" -- TODO needs a type cast before malloc?
-      genKernel' $ f (locArray m) (array m siz)
-      lineK $ "free(" ++ m ++ ");"
+    --genKernel' (Alloc siz f) = do 
+    --  d <- incVar
+    --  let m = "mem" ++ show d
+    --  lineK $ m ++ " = malloc(" ++ show siz ++ ");" -- TODO needs a type cast before malloc?
+    --  genKernel' $ f (locArray m) (array m siz)
+    --  lineK $ "free(" ++ m ++ ");"
 
     -- The internal version of AllocNew (that happends within another AllocNew).
-    genKernel' (AllocNew t siz arr f) = do
-      d <- incVar
-      addInitFunc d (pull $ doit arr)
-      let m = "mem" ++ show d
-      line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-      genKernel f [(m, d)] arr True 
-      return ()
+    --genKernel' (AllocNew t siz arr f) = do
+    --  d <- incVar
+    --  addInitFunc d (pull $ doit arr)
+    --  let m = "mem" ++ show d
+    --  line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+    --  genKernel f [(m, d)] arr True 
+    --  return ()
 
     
 

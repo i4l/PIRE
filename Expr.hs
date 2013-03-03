@@ -18,17 +18,20 @@ instance Eq Expr where
 type Size  = Expr
 type Index = Expr 
 
+-- | create a 'scalar' variable
 var :: Name -> Expr
 var v = Index v []
 
-instance Ord (Expr) where
-  e1 <= e2 = toInt e1<= toInt e2
+-- | Converts an Expr to an Int, albeit in a limited fashion. 
 toInt :: Expr -> Int
 toInt (Num n)    = n
 toInt (a :-: b)  = toInt a - toInt b
 toInt (a :/: b)  = toInt a `div` toInt b
 toInt (a :*: b)  = toInt a * toInt b
 toInt _          = undefined
+
+instance Ord (Expr) where
+  e1 <= e2 = toInt e1<= toInt e2
 
 instance Show (Expr) where
   show (Num n)      = show n

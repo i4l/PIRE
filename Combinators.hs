@@ -18,84 +18,58 @@ import Flatten
 -----------------------------------------------------------------------------
 -- Interface
 
-{- How things works (using zipWithP as example):
- - The arrays passed to zipWithP' describe the arrays in the host program, i.e.
- - how the arrays are initialized.
 
- - The "internal arrays", i.e. the arguments in the functions of AllocNew
- - are the ones used in the kernels.
- 
- - Note also: quite unspecified behavior when using arrays of differing length.
--}
+zipWithP :: Type -> (Expr -> Expr -> Expr) -> Program a
+zipWithP t f = undefined
 
--- TODO change p ~ Pushable later
 
 -- | Parallel zipWith
-zipWithP :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> Array p Expr -> Array p Expr -> Program a
-zipWithP t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 -> 
-                          AllocNew (TPointer t) len arr2 $ \_    kernelArray2 ->
-                            par (Num 0) len $
-                              \e -> loc1 (f (pull (doit kernelArray1) e) (pull (doit kernelArray2) e))
-  where len  = min (size arr1) (size arr2) 
- 
--- | Parallel map
-mapP :: (p ~ Pull) => Type -> (Expr -> Expr) -> Array p Expr -> Program a
-mapP t f arr = AllocNew (TPointer t) len arr $ 
-                \loc kernelArr -> par (Num 0) len $
-                  \e -> loc (f $ pull (doit kernelArr) e)
-  where len = size arr
-
-
-foo :: Flatten e => Type -> Array Pull e -> Program a
-foo t arr@(Array len (Pull ixf)) = Alloc' t len arr $ \loc iarr -> 
-          for (Num 0) len $ \e -> add1
-
+--zipWithP :: (p ~ Pull) => Type -> (Expr -> Expr -> Expr) -> Array p Expr -> Array p Expr -> Program a
+--zipWithP t f arr1 arr2 = AllocNew (TPointer t) len arr1 $ \loc1 kernelArray1 -> 
+--                          AllocNew (TPointer t) len arr2 $ \_    kernelArray2 ->
+--                            par (Num 0) len $
+--                              \e -> loc1 (f (pull (doit kernelArray1) e) (pull (doit kernelArray2) e))
+--  where len  = min (size arr1) (size arr2) 
+-- 
+---- | Parallel map
+--mapP :: (p ~ Pull) => Type -> (Expr -> Expr) -> Array p Expr -> Program a
+--mapP t f arr = AllocNew (TPointer t) len arr $ 
+--                \loc kernelArr -> par (Num 0) len $
+--                  \e -> loc (f $ pull (doit kernelArr) e)
+--  where len = size arr
+--
+--
+--foo :: Flatten e => Type -> Array Pull e -> Program a
+--foo t arr@(Array len (Pull ixf)) = Alloc' t len arr $ \loc iarr -> 
+--          for (Num 0) len $ \e -> add1
+--
 
 -----------------------------------------------------------------------------
 -- Example programs
 
 -- ElementWise vector multiplication
-vecMul :: Program a
-vecMul = zipWithP TInt (.*) vec1 vec2
-  where len  = Num 10
-        vec1 = Array len (Pull (.* (Num 2)))
-        vec2 = Array len (Pull (.+ (Num 1)))
-
--- adds 1 to each element in the array
-add1 :: Program a
-add1 = mapP TInt (.+ (Num 1)) arr
-  where len = Num 10
-        arr = Array len (Pull id)
-
-foo' :: Program a
-foo' = foo TInt arr
-  where len = Num 10
-        arr = Array len (Pull $ \i -> Array len (Pull $ id) )  --2D array
-
-
-
-
-
---type Expr2D = (Expr,Expr)
+--vecMul :: Program a
+--vecMul = zipWithP TInt (.*) vec1 vec2
+--  where len  = Num 10
+--        vec1 = Array len (Pull (.* (Num 2)))
+--        vec2 = Array len (Pull (.+ (Num 1)))
 --
---add2D :: Array Pull Expr2D -> Array Pull Expr2D -> Array Pull Expr2D
---add2D arr1 arr2 = (Array (size arr1) 
---                         (Pull $ \i -> (fst (ixf1 i) .+ fst (ixf2 i) , snd (ixf1 i) .+ snd (ixf2 i))))
---  where 
---    ixf1 = pull $ doit arr1
---    ixf2 = pull $ doit arr2
+---- adds 1 to each element in the array
+--add1 :: Program a
+--add1 = mapP TInt (.+ (Num 1)) arr
+--  where len = Num 10
+--        arr = Array len (Pull id)
 --
---vecMul2D :: Program a
---vecMul2D = zipWithP TInt add2D vec1 vec2
---  where
---    len  = Num 10
---    vec1 = Array len (Pull $ const (Num 2, Num 5)) :: Array Pull Expr2D
---    vec2 = Array len (Pull (const (Num 4, Num 1))) :: Array Pull Expr2D
+--foo' :: Program a
+--foo' = foo TInt arr
+--  where len = Num 10
+--        arr = Array len (Pull $ \i -> Array len (Pull $ id) )  --2D array
 
 
 
-example :: Gen ()
-example = setupHeadings >> setupOCL >> gen vecMul >> setupPrint "mem1" 10 >> setupEnd
+
+--example :: Gen ()
+--example = setupHeadings >> setupOCL >> gen vecMul >> setupPrint "mem1" 10 >> setupEnd
 
 ------------------------------------------------------------
 -- helpers
@@ -113,26 +87,3 @@ toFile prog path = writeFile path (unlines $ extractCode prog emptyEnv) >>
 
 
 
-
-
---forLoop2' :: Type -> (Expr -> Expr -> Expr) -> Array2 Pull Expr -> Array2 Pull Expr -> Program  
---forLoop2' t f input1 input2 = AllocDim t len input1 $ \loc1 iarr1 ->
---                               AllocDim t len input2 $ \_    iarr2 -> 
---                                nestFor (dim input1) (toInt len) $
---                                    \e -> loc1 e -- e should be all of the loop vars
---                                              (f (pull (theData iarr1) e) (pull (theData iarr2) e))
---  where len = min (arrSize input1) (arrSize input1)
---
----- TODO introduce padding if (length mod dim != 0)?
---nestFor :: DIM -> Int -> (Expr -> Program) -> Program
---nestFor d totalLength = nestFor' d (d-1) totalLength
---  where 
---    nestFor' :: DIM -> Int -> Int -> (Expr -> Program) -> Program
---    nestFor' d ctr totalLength innerMost = for (Num 0) (Num $ totalLength `div` d) 
---                (\e -> if ctr == 0 then innerMost e else nestFor' d (ctr - 1) totalLength innerMost)
---
-
-                                                          
---vecMul2 = forLoop2' TInt (.*) arr1 arr2
---  where arr1 = Array2 (Num 10) (Pull (.* (Num 3))) 2
---        arr2 = Array2 (Num 10) (Pull (.* (Num 4))) 2

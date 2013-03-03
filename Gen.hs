@@ -17,7 +17,6 @@ data Env = Env
           , paramMap     :: Map.Map Int Int -- Mapping AllocID -> Kernel params.
           , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> AllocID
           , inits        :: Map.Map Int (Index -> Expr) -- AllocID -> ixf 
-          , loopVars     :: [Int] -- TODO experimental for AllocDim
           }
 
 line :: String -> Gen ()
@@ -31,12 +30,6 @@ extractCode g e = code $ execState g e
 
 extractKernelCode :: Gen a -> Env -> [String]
 extractKernelCode g e = kernelCode $ execState g e
-
---line :: String -> Gen ()
---line s = modify $ \env -> env{code = code env ++ 
---                                      lines
---                                        (concat (replicate (iDepth env) " ") ++ s)}
-
 
 indent :: Int -> Gen ()
 indent i = modify $ \env -> env{iDepth = iDepth env + i}
@@ -108,4 +101,4 @@ getInitFuncs :: Gen (Map.Map Int (Index -> Expr))
 getInitFuncs = gets inits
 
 emptyEnv :: Env
-emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty Map.empty Map.empty []
+emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 Map.empty Map.empty Map.empty
