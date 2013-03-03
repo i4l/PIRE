@@ -17,7 +17,7 @@ import Expr
 -- Interface
 
 -- | Initialize an array of length s and type t with function f, followed by the remaining program prog.
-initialize :: Type -> Size -> (Index -> Expr) -> (Expr -> Program a) -> Program a
+initialize :: Type -> Size -> (Index -> Expr) -> (ArrayName -> Program a) -> Program a
 initialize t s f prog = Alloc' t s $ \partialLoc arrayName -> 
                          for (Num 0) s (\e -> partialLoc e (f e)) -- Initialization loop
                         .>> 
@@ -28,10 +28,17 @@ mapP :: Type -> Size -> (Expr -> Expr) -> Program a
 mapP t siz f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' e (f (Num 2))
 
 test :: Program a
-test = initialize (TPointer TInt) len (.+ (Num 45)) $
-        \named -> mapP (TPointer TInt) len (f named)
+test = Alloc' t len $ \partialLoc arrName1 ->
+                      for (Num 0) len (\e -> partialLoc e (f e e))
+                      .>>
+                        (Alloc' t len $ \loc' _ ->
+                          for (Num 0) len $ \e -> loc' e (f arrName1 arrName1))
+
+--initialize (TPointer TInt) len (.+ (Num 45)) $
+       -- \named -> mapP (TPointer TInt) len (f named)
   where len = Num 10
         f = (.+)
+        t = (TPointer TInt)
 
 
 
