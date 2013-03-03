@@ -18,7 +18,7 @@ import Types
 type IndexedArray = [Index] -> Expr
 
 -- | A partiallly applied location for arrays expecting an index
-type PartialArrayLoc e a = Index -> Loc e a
+type PartialArrayLoc e a = [Index] -> Loc e a
 
 data Program a where
   Skip     :: Program a
@@ -28,7 +28,7 @@ data Program a where
   For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par      :: Expr -> Expr -> (Expr -> Program a) -> Program a
 
-  -- We need the 'IndexedArray' to access the allocated memory
+  -- We need the 'IndexedArray' to access the initialized memory
   Alloc'   :: Type -> Size -> (PartialArrayLoc Expr a -> IndexedArray -> Program a) -> Program a
 
 
@@ -69,6 +69,7 @@ type Loc a b = a -> Program b
 
 locArray :: Name -> Index -> Loc Expr a
 locArray v i = \x -> Assign v [i] x
+
 
 --nil :: Loc a
 --nil = \_ -> Skip

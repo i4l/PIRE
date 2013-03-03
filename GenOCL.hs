@@ -25,9 +25,8 @@ gen (Alloc' t siz f) = do d <- incVar
                           let m = "mem" ++ show d
                           line $ show t ++ " " ++ m ++ " = malloc(" ++ show siz ++ ");"
                           
-                          loopVar <- fmap fst newLoopVar
-                          let partialLoc = locArray m
-                          gen $ f partialLoc (Index m)
+                          --gen $ f (locArray m) (Index m)
+                          gen $ f (Assign m) (Index m)
 
                           line $ "free(" ++ m ++ ");\n"
 
@@ -49,7 +48,7 @@ gen (If c p1 p2) = do
   unindent 2
   line "}"
 
-gen (Par start max p) = line "// Par in host code"
+gen Par{} = line "// Par in host code"
 
 
 gen (For e1 e2 p) = do
