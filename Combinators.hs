@@ -17,28 +17,37 @@ import Expr
 -- Interface
 
 -- | Initialize an array of length s and type t with function f, followed by the remaining program prog.
-initialize :: Type -> Size -> (Index -> Expr) -> (ArrayName -> Program a) -> Program a
+initialize :: Type -> Size -> (Index -> Expr) -> (IndexedArray -> Program a) -> Program a
 initialize t s f prog = Alloc' t s $ \partialLoc arrayName -> 
                          for (Num 0) s (\e -> partialLoc e (f e)) -- Initialization loop
                         .>> 
                           prog arrayName                   -- Followed by the rest of the program
 
 
-mapP :: Type -> Size -> (Expr -> Expr) -> Program a
-mapP t siz f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' e (f (Num 2))
+mapP :: Type -> Size -> IndexedArray -> (Expr -> Expr) -> Program a
+mapP t siz arr f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' e (f $ arr [e])
 
-test :: Program a
-test = Alloc' t len $ \partialLoc arrName1 ->
-                      for (Num 0) len (\e -> partialLoc e (f e e))
-                      .>>
-                        (Alloc' t len $ \loc' _ ->
-                          for (Num 0) len $ \e -> loc' e (f arrName1 arrName1))
-
---initialize (TPointer TInt) len (.+ (Num 45)) $
-       -- \named -> mapP (TPointer TInt) len (f named)
+-- | With initialize and mapP helper functions.
+mapTest :: Program a
+mapTest = initialize t len initf $
+         \named -> mapP t len named apply
   where len = Num 10
-        f = (.+)
-        t = (TPointer TInt)
+        t = TPointer TInt
+        initf = (.* Num 3)
+        apply = (.+ Num 5)
+
+
+-- | Without initialize and mapP
+mapTest2 :: Program a
+mapTest2 = Alloc' t len $ \partialLoc arrName1 ->
+                      for (Num 0) len (\e -> partialLoc e (initf e))
+                      .>>
+                        Alloc' t len $ \loc' _ ->
+                          for (Num 0) len $ \e -> loc' e (apply $ arrName1 [e])
+  where len = Num 10
+        t = TPointer TInt
+        initf = (.* Num 3)
+        apply = (.+ Num 5)
 
 
 

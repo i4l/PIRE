@@ -27,7 +27,7 @@ gen (Alloc' t siz f) = do d <- incVar
                           
                           loopVar <- fmap fst newLoopVar
                           let partialLoc = locArray m
-                          gen $ f partialLoc (Index m [])
+                          gen $ f partialLoc (Index m)
 
                           line $ "free(" ++ m ++ ");\n"
 

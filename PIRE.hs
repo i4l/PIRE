@@ -14,8 +14,8 @@ import Types
 -----------------------------------------------------------------------------
 -- | Program - AST type
 
--- | An array is simply an Expr (e.g. a name).
-type ArrayName = Expr
+-- | An array is simply an Expr (e.g. a name). Expects a list of Indices.
+type IndexedArray = [Index] -> Expr
 
 -- | A partiallly applied location for arrays expecting an index
 type PartialArrayLoc e a = Index -> Loc e a
@@ -28,8 +28,8 @@ data Program a where
   For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par      :: Expr -> Expr -> (Expr -> Program a) -> Program a
 
-  -- We need ArrayName to access the allocated memory
-  Alloc'   :: Type -> Size -> (PartialArrayLoc Expr a -> ArrayName -> Program a) -> Program a
+  -- We need the 'IndexedArray' to access the allocated memory
+  Alloc'   :: Type -> Size -> (PartialArrayLoc Expr a -> IndexedArray -> Program a) -> Program a
 
 
   --Alloc'   :: Type -> Size -> ((Index -> Loc Expr a) -> ArrayName -> Program a) -> Program a
@@ -57,6 +57,8 @@ par a       b       p         = Par a b p
 Skip .>> q    = q
 p    .>> Skip = p
 p    .>> q    = p :>> q
+
+infixr 0 .>>
 
 -----------------------------------------------------------------------------
 -- Locations
