@@ -25,12 +25,12 @@ initialize t s f prog = Alloc' t s $ \partialLoc arrayName ->
 
 
 initialize2 :: Type -> Size -> (Index -> Expr) -> (IndexedArray -> Program a) -> Program a
-initialize2 t s f prog = Alloc' t s $ \partialloc arrName1 -> 
-                          Alloc' t s $ \_ arrName2 ->
+initialize2 t s f prog = Alloc' (TPointer t) (s.*s) $ \partialloc arrName -> 
                             for (Num 0) s $ \e -> 
-                              for (Num 0) s $ \e' -> partialloc [e,e'] (f e')
+                              for (Num 0) s (\e' -> partialloc [e,e'] (f e'))
 
-                        .>> prog arrName1
+                        .>> 
+                          prog arrName
                         
 
 mapP :: Type -> Size -> IndexedArray -> (Expr -> Expr) -> Program a
@@ -38,7 +38,7 @@ mapP t siz arr f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' [e] (f
 
 
 init2D :: Program a
-init2D = initialize2 t len initf $ \_ -> Skip
+init2D = initialize2 t len initf $ \arrName -> mapP t len arrName apply
   where len = Num 10
         t = TPointer TInt
         initf = (.* Num 3)
