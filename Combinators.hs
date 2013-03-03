@@ -21,7 +21,12 @@ initialize :: Type -> Size -> (Index -> Expr) -> (IndexedArray -> Program a) -> 
 initialize t s f prog = Alloc' t s $ \partialLoc arrayName -> 
                          for (Num 0) s (\e -> partialLoc [e] (f e)) -- Initialization loop
                         .>> 
-                          prog arrayName                          -- Followed by the rest of the program
+                          prog arrayName                            -- Followed by the rest of the program
+
+
+mapP :: Type -> Size -> IndexedArray -> (Expr -> Expr) -> Program a
+mapP t siz arr f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' [e] (f $ arr [e])
+
 
 
 --initialize2 :: Type -> Size -> (Index -> Expr) -> (IndexedArray -> Program a) -> Program a
@@ -32,13 +37,8 @@ initialize t s f prog = Alloc' t s $ \partialLoc arrayName ->
 --                        .>> 
 --                          prog arrName
                         
-
-mapP :: Type -> Size -> IndexedArray -> (Expr -> Expr) -> Program a
-mapP t siz arr f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' [e] (f $ arr [e])
-
 --mapP :: Type -> Size -> PartialArrayLoc Expr a -> IndexedArray -> (Expr -> Expr) -> Program a
 --mapP t siz loc arr f = for (Num 0) siz $ \e -> loc [e] (f $ arr [e])
-
 
 --init2D :: Program a
 --init2D = initialize2 t len initf $ \arrName -> mapP t len (Assign "XX") arrName apply
@@ -76,14 +76,12 @@ mapTest2 = Alloc' t len $ \partialLoc arrName1 ->
         apply = (.+ Num 5)
 
 
---example :: Gen ()
---example = setupHeadings >> setupOCL >> gen vecMul >> setupPrint "mem1" 10 >> setupEnd
 
 ------------------------------------------------------------
 -- helpers
 
 showProg :: Gen () -> IO ()
-showProg prog = putStr $ unlines $ (extractCode prog emptyEnv) ++ (extractCodeK prog emptyEnv)
+showProg prog = putStr $ unlines $ extractCode prog emptyEnv ++ extractCodeK prog emptyEnv
 
 
 toFile :: Gen () -> FilePath -> IO ()
