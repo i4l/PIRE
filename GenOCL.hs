@@ -28,14 +28,11 @@ gen :: Program a -> Gen ()
 gen (Alloc' t siz f) = do d <- incVar
                           let m = "mem" ++ show d
                           line $ show t ++ " " ++ m ++ " = malloc(" ++ show siz ++ ");"
-                          indent 2
                           
                           loopVar <- fmap fst newLoopVar
                           let partialLoc = locArray m
                           gen $ f partialLoc
 
-                          unindent 2
-                         -- line $ "}"
                           line $ "free(" ++ m ++ ");\n"
 
 
@@ -56,22 +53,8 @@ gen (If c p1 p2) = do
   unindent 2
   line "}"
 
-gen (Par start max p) = 
-    line "// Par in host code"
---  d <- incVar
---  let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
---  let kerName = 'k' : show d
---  lineK $ "__kernel void " ++ kerName ++ " ( __global int *A, __global int *res) {"
---  lineK "int tid = get_global_id(0);"
---  lineK "if( tid < max ) {"
---  gen (p (var i))
---
---  -- assume Parameters A,res
---  lineK $ "res [tid] = " ++ "A[tid];"
---
---  lineK "}"
---
---  lineK "}"
+gen (Par start max p) = line "// Par in host code"
+
 
 gen (For e1 e2 p) = do
    d <- incVar
@@ -80,7 +63,7 @@ gen (For e1 e2 p) = do
    line $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
                   ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
    indent 2
-   gen (p (var i))
+   gen $ p (var i)
    unindent 2
    line "}"
 
