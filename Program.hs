@@ -14,7 +14,7 @@ import Types
 -- | An array is simply an Expr (e.g. a name). Expects a list of Indices.
 type IndexedArray = [Index] -> Expr
 
--- | A partiallly applied location for arrays expecting an index
+-- | A partiallly applied location for arrays expecting indexing.
 type PartialLoc e a = [Index] -> Loc e a
 
 data Program a where
