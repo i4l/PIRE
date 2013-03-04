@@ -30,7 +30,7 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                       unindent 2
                       line "}"
 
-gen Par{} = line "// Par in host code"
+gen (Par start end f) = gen $ For start end f
 
 
 gen (For e1 e2 p) = do i <- fmap fst newLoopVar
@@ -46,11 +46,12 @@ gen (For e1 e2 p) = do i <- fmap fst newLoopVar
 gen (Alloc t dim f) = do d <- incVar
                          let m = "mem" ++ show d
                          line $ show (typeNest dim t) ++ " " ++ m ++ " = (" ++ show (typeNest dim t) ++ ") " ++
-                                  "malloc(sizeof(" ++ show (TPointer t) ++ ")*" ++ showExprList dim ++ ");"
+                                  "malloc(sizeof(" ++ show (typeNest (tail dim) t) ++ ")*" ++ showExprList dim ++ ");"
                           
                          gen $ f (locNest m) (Index m)
 
                          line $ "free(" ++ m ++ ");\n"
+
 ---gen (Alloc siz f) = do 
 --   d <- incVar
 --   let m = "mem" ++ show d

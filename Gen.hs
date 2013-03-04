@@ -60,8 +60,6 @@ incParamCounter = do
   modify $ \env -> env{paramCounter = paramCounter env + 1}
   return d
 
-
-
 addKernelParam :: Int -> Gen Int
 addKernelParam hostAllocId = do
   new <- incParamCounter
