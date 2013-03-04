@@ -7,10 +7,9 @@ module Util where
 import Control.Monad.State
 import qualified Data.Map as Map
 
-import PIRE
+import Program
 import Expr
 import Types
-import Array
 import Gen
 
 ------------------------------------------------------------

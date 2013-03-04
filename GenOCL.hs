@@ -1,8 +1,7 @@
 module GenOCL where
 
 import Util
-import PIRE
-import Array
+import Program
 import Types
 import Expr
 import Gen
@@ -21,14 +20,14 @@ import Control.Monad.State
 
 gen :: Program a -> Gen ()
 
-gen (Alloc' t siz f) = do d <- incVar
-                          let m = "mem" ++ show d
-                          line $ show t ++ " " ++ m ++ " = malloc(" ++ show siz ++ ");"
-                          
-                          --gen $ f (locArray m) (Index m)
-                          gen $ f (Assign m) (Index m)
+gen (Alloc t siz f) = do d <- incVar
+                         let m = "mem" ++ show d
+                         line $ show t ++ " " ++ m ++ " = malloc(" ++ show siz ++ ");"
+                         
+                         --gen $ f (locArray m) (Index m)
+                         gen $ f (Assign m) (Index m)
 
-                          line $ "free(" ++ m ++ ");\n"
+                         line $ "free(" ++ m ++ ");\n"
 
 
 gen Skip = line ""
@@ -143,88 +142,88 @@ gen (For e1 e2 p) = do
 ------------------------------------------------------------
 -- Kernel generation
 
-data Kernel = Kernel {resultID :: Int}
-
--- Assumption: param 0 is the result array.
--- The Bool is for deciding if to allocate the resulting array (set False by FIRST called).
-genKernel :: (Loc Expr a -> Array Pull Expr -> Program a) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
-genKernel f names arr isCalledNested = do
-  let arrPrefix = "arr"
-  v0 <- incVar
-  k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing.
-  
-  -- Create a new array which is used inside the kernel.
-  -- Pass it to the function f which takes Loc and Array.
-  let res = "arr" ++ show k0
-  k1 <- addKernelParam (snd $ head names)
-  let kernelArr = array (arrPrefix ++ show k1) (size arr)
-  genKernel' $ f (locArray res $ var "tid") kernelArr
-
-  newHostMem <- lookupForHost k0 -- k0 is the result array
-  return $ Kernel (fromJust newHostMem)
-  where
-    -- This is the dual to Gen - for Programs in kernels.
-    genKernel' :: Program a -> Gen ()
-    genKernel' Skip = lineK "0;"
-    genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
-    genKernel' (p1 :>> p2) = genKernel' p1 >> genKernel' p2 
-    genKernel' (If c p1 p2) = do
-      lineK $ "if( " ++ show c ++ " ) { "
-      indent 2
-      genKernel' p1
-      unindent 2
-      lineK "else { "
-      indent 2
-      genKernel' p2
-      unindent 2
-      lineK "}"
-
-    genKernel' (Par _ bound p) = do
-      let tid     = "tid"
-      let kerName = 'k' : show (0 :: Int) -- TODO fix (might have multiple kernels)
-
-      paramMapSize <- fmap Map.size (gets paramMap)
-      let removeLastComma = reverse . drop 1 . reverse
-          arrPrefix       = "arr"
-          parameters      = (removeLastComma . concat) 
-                            [ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize-1]]
-
-      lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
-      lineK "int tid = get_global_id(0);"
-      lineK $ "if( tid < " ++ show bound ++ " ) {"
-      genKernel' $ p (var tid)
-
-      lineK "}"
-      lineK "}"
-
-    genKernel' (For e1 e2 p) = do
-      d <- incVar
-      let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
-      lineK $ show TInt ++ " " ++ i ++ ";"
-      lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
-                      ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
-      indent 2
-      genKernel' (p (var i))
-      unindent 2
-      lineK "}"
-
-    --genKernel' (Alloc siz f) = do 
-    --  d <- incVar
-    --  let m = "mem" ++ show d
-    --  lineK $ m ++ " = malloc(" ++ show siz ++ ");" -- TODO needs a type cast before malloc?
-    --  genKernel' $ f (locArray m) (array m siz)
-    --  lineK $ "free(" ++ m ++ ");"
-
-    -- The internal version of AllocNew (that happends within another AllocNew).
-    --genKernel' (AllocNew t siz arr f) = do
-    --  d <- incVar
-    --  addInitFunc d (pull $ doit arr)
-    --  let m = "mem" ++ show d
-    --  line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
-    --  genKernel f [(m, d)] arr True 
-    --  return ()
-
-    
+--data Kernel = Kernel {resultID :: Int}
+--
+---- Assumption: param 0 is the result array.
+---- The Bool is for deciding if to allocate the resulting array (set False by FIRST called).
+--genKernel :: (Loc Expr a -> Array Pull Expr -> Program a) -> [(Name, Int)] -> Array Pull Expr -> Bool -> Gen Kernel
+--genKernel f names arr isCalledNested = do
+--  let arrPrefix = "arr"
+--  v0 <- incVar
+--  k0 <- if isCalledNested then return (-1) else addKernelParam v0 -- TODO find a way of fixing this ugly thing.
+--  
+--  -- Create a new array which is used inside the kernel.
+--  -- Pass it to the function f which takes Loc and Array.
+--  let res = "arr" ++ show k0
+--  k1 <- addKernelParam (snd $ head names)
+--  let kernelArr = array (arrPrefix ++ show k1) (size arr)
+--  genKernel' $ f (locArray res $ var "tid") kernelArr
+--
+--  newHostMem <- lookupForHost k0 -- k0 is the result array
+--  return $ Kernel (fromJust newHostMem)
+--  where
+--    -- This is the dual to Gen - for Programs in kernels.
+--    genKernel' :: Program a -> Gen ()
+--    genKernel' Skip = lineK "0;"
+--    genKernel' (Assign name es e) = lineK $ show (Index name es) ++ " = " ++ show e ++ ";"
+--    genKernel' (p1 :>> p2) = genKernel' p1 >> genKernel' p2 
+--    genKernel' (If c p1 p2) = do
+--      lineK $ "if( " ++ show c ++ " ) { "
+--      indent 2
+--      genKernel' p1
+--      unindent 2
+--      lineK "else { "
+--      indent 2
+--      genKernel' p2
+--      unindent 2
+--      lineK "}"
+--
+--    genKernel' (Par _ bound p) = do
+--      let tid     = "tid"
+--      let kerName = 'k' : show (0 :: Int) -- TODO fix (might have multiple kernels)
+--
+--      paramMapSize <- fmap Map.size (gets paramMap)
+--      let removeLastComma = reverse . drop 1 . reverse
+--          arrPrefix       = "arr"
+--          parameters      = (removeLastComma . concat) 
+--                            [ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize-1]]
+--
+--      lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
+--      lineK "int tid = get_global_id(0);"
+--      lineK $ "if( tid < " ++ show bound ++ " ) {"
+--      genKernel' $ p (var tid)
+--
+--      lineK "}"
+--      lineK "}"
+--
+--    genKernel' (For e1 e2 p) = do
+--      d <- incVar
+--      let i = ([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! d
+--      lineK $ show TInt ++ " " ++ i ++ ";"
+--      lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
+--                      ++ i ++ " < " ++ show e2 ++ "; " ++ i ++ "++ ) {"
+--      indent 2
+--      genKernel' (p (var i))
+--      unindent 2
+--      lineK "}"
+--
+--    --genKernel' (Alloc siz f) = do 
+--    --  d <- incVar
+--    --  let m = "mem" ++ show d
+--    --  lineK $ m ++ " = malloc(" ++ show siz ++ ");" -- TODO needs a type cast before malloc?
+--    --  genKernel' $ f (locArray m) (array m siz)
+--    --  lineK $ "free(" ++ m ++ ");"
+--
+--    -- The internal version of AllocNew (that happends within another AllocNew).
+--    --genKernel' (AllocNew t siz arr f) = do
+--    --  d <- incVar
+--    --  addInitFunc d (pull $ doit arr)
+--    --  let m = "mem" ++ show d
+--    --  line $ show t ++ " " ++ m ++ " = (" ++ show t ++ ") malloc(" ++ "sizeof(" ++ show t ++ ")*" ++ show siz ++ ");"
+--    --  genKernel f [(m, d)] arr True 
+--    --  return ()
+--
+--    
 
 ------------------------------------------------------------
 -- Extras

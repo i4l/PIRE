@@ -4,7 +4,7 @@ module Combinators where
 
 -- A combinator library
 
-import PIRE
+import Program
 import GenOCL
 import Util
 import Gen
@@ -18,14 +18,14 @@ import Expr
 
 -- | Initialize an array of length s and type t with function f, followed by the remaining program prog.
 initialize :: Type -> Size -> (Index -> Expr) -> (IndexedArray -> Program a) -> Program a
-initialize t s f prog = Alloc' t s $ \partialLoc arrayName -> 
+initialize t s f prog = Alloc t s $ \partialLoc arrayName -> 
                          for (Num 0) s (\e -> partialLoc [e] (f e)) -- Initialization loop
                         .>> 
                           prog arrayName                            -- Followed by the rest of the program
 
 
 mapP :: Type -> Size -> IndexedArray -> (Expr -> Expr) -> Program a
-mapP t siz arr f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' [e] (f $ arr [e])
+mapP t siz arr f = Alloc t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' [e] (f $ arr [e])
 
 
 
@@ -45,10 +45,10 @@ mapTest = initialize t len initf $
 
 -- | Without initialize and mapP
 mapTest' :: Program a
-mapTest' = Alloc' t len $ \partialLoc arrName1 ->
+mapTest' = Alloc t len $ \partialLoc arrName1 ->
                       for (Num 0) len (\e -> partialLoc [e] (initf e))
                       .>>
-                        Alloc' t len $ \loc' _ ->
+                        Alloc t len $ \loc' _ ->
                           for (Num 0) len $ \e -> loc' [e] (apply $ arrName1 [e])
   where len = Num 10
         t = TPointer TInt
