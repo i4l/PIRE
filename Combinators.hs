@@ -17,18 +17,18 @@ import Expr
 -- Interface
 
 -- | Initialize an array of length s and type t with function f, followed by the remaining program prog.
-initialize :: Type -> [Size] -> (Index -> Expr) -> (IndexedArray -> Program a) -> Program a
+initialize :: Type -> [Size] -> ([Index] -> Expr) -> (IndexedArray -> Program a) -> Program a
 initialize t dim f prog = Alloc t dim $ \partialLoc arrayName -> 
-                            nestFor dim partialLoc f
+                            nestFor dim partialLoc f []
 
                          --for (Num 0) (head dim) (\e -> partialLoc [e] $ f e) -- Initialization loop
                        -- .>> 
                        --   prog arrayName                            -- Followed by the rest of the program
 
-nestFor :: [Size] -> PartialLoc Expr a -> (Index -> Expr) -> Program a
-nestFor [] _ _     = Skip
-nestFor [x] inner f = for (Num 0) x (\e -> inner [e] (f e))
-nestFor (x:xs) p  f = for (Num 0) x (\_ -> nestFor xs p f)
+nestFor :: [Size] -> PartialLoc Expr a -> ([Index] -> Expr) -> [Expr] -> Program a
+nestFor []  _     _ _    = Skip
+nestFor [x] inner f vars = for (Num 0) x (\loopvar -> inner (reverse $ loopvar:vars) (f (loopvar:vars)))
+nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:vars))
 
 
 mapP :: Type -> [Size] -> IndexedArray -> (Expr -> Expr) -> Program a
@@ -46,7 +46,7 @@ mapTest = initialize t dim initf $
          \arrName -> mapP t dim arrName apply
   where dim = [Num 10,Num 7]
         t = TInt 
-        initf = (.* Num 3)
+        initf xs = (.+ Num 3) $ foldr1 (.*) xs
         apply = (.+ Num 5)
 
 
