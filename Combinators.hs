@@ -19,11 +19,9 @@ import Expr
 -- | Initialize an array of length s and type t with function f, followed by the remaining program prog.
 initialize :: Type -> [Size] -> ([Index] -> Expr) -> (IndexedArray -> Program a) -> Program a
 initialize t dim f prog = Alloc t dim $ \partialLoc arrayName -> 
-                            nestFor dim partialLoc f []
-
-                         --for (Num 0) (head dim) (\e -> partialLoc [e] $ f e) -- Initialization loop
-                       -- .>> 
-                       --   prog arrayName                            -- Followed by the rest of the program
+                            nestFor dim partialLoc f []   -- Build a nesting of for-loops
+                          .>>
+                            prog arrayName                -- Followed by the rest of the program
 
 nestFor :: [Size] -> PartialLoc Expr a -> ([Index] -> Expr) -> [Expr] -> Program a
 nestFor []  _     _ _    = Skip
@@ -44,9 +42,9 @@ mapP t dim arr f = Alloc t dim $ \loc' _ -> for (Num 0) (head dim) $ \e -> loc' 
 mapTest :: Program a
 mapTest = initialize t dim initf $
          \arrName -> mapP t dim arrName apply
-  where dim = [Num 10,Num 7]
+  where dim = [Num 10,Num 7, Num 5]
         t = TInt 
-        initf xs = (.+ Num 3) $ foldr1 (.*) xs
+        initf xs = (.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
         apply = (.+ Num 5)
 
 
