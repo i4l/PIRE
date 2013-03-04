@@ -4,6 +4,8 @@ module Expr where
 
 type Name = String
 
+
+-- | Expressions are the RHS in an assignment.
 data Expr where
   Num    :: Int -> Expr
   Index  :: Name -> [Expr] -> Expr
