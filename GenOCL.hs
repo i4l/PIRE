@@ -25,8 +25,7 @@ gen (Alloc t dim f) = do d <- incVar
                          line $ show (typeNest dim t) ++ " " ++ m ++ " = (" ++ show (typeNest dim t) ++ ") " ++
                                   "malloc(sizeof(" ++ show (TPointer t) ++ ")*" ++ showExprList dim ++ ");"
                           
-                         --gen $ f (locArray m) (Index m)
-                         gen $ f (Assign m) (Index m)
+                         gen $ f (locNest m) (Index m)
 
                          line $ "free(" ++ m ++ ");\n"
 

@@ -11,7 +11,6 @@ import Gen
 
 import Types
 import Expr
-import Util
 
 
 -----------------------------------------------------------------------------
@@ -20,9 +19,16 @@ import Util
 -- | Initialize an array of length s and type t with function f, followed by the remaining program prog.
 initialize :: Type -> [Size] -> (Index -> Expr) -> (IndexedArray -> Program a) -> Program a
 initialize t dim f prog = Alloc t dim $ \partialLoc arrayName -> 
-                         for (Num 0) (head dim) (\e -> partialLoc [e] $ f e) -- Initialization loop
+                            nestFor dim partialLoc 
+
+                         --for (Num 0) (head dim) (\e -> partialLoc [e] $ f e) -- Initialization loop
                        -- .>> 
                        --   prog arrayName                            -- Followed by the rest of the program
+
+nestFor :: [Size] -> PartialLoc Expr a -> Program a
+nestFor [] _      = Skip
+nestFor [x] inner = for (Num 0) x (\e -> inner [e] e)
+nestFor (x:xs) p  = for (Num 0) x (\_ -> nestFor xs p)
 
 
 mapP :: Type -> [Size] -> IndexedArray -> (Expr -> Expr) -> Program a
