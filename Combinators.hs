@@ -55,19 +55,6 @@ mapTest' = Alloc' t len $ \partialLoc arrName1 ->
         initf = (.* Num 3)
         apply = (.+ Num 5)
 
--- | Without initialize and mapP (2D)
-mapTest2D :: Program a
-mapTest2D = Alloc' t (len .* len) $ \partialLoc arrName1 ->
-                      for (Num 0) len (\e ->
-                        for (Num 0) len (\e' -> partialLoc [e,e'] (initf e')))
-                      .>>
-                        Alloc' t len $ \loc' _ ->
-                          for (Num 0) len $ \e -> loc' [e,e] (apply $ arrName1 [e])
-  where len = Num 10
-        t = TPointer TInt
-        initf = (.* Num 3)
-        apply = (.+ Num 5)
-
 
 ------------------------------------------------------------
 -- helpers
