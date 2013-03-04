@@ -44,6 +44,9 @@ instance Show (Expr) where
   show (a :*: b)    = "(" ++ show a ++ "*" ++ show b ++ ")"
   show (a :<=: b)   = "(" ++ show a ++ " <= " ++ show b ++ ")"
 
+showExprList :: [Expr] -> String
+showExprList es = init $ foldr (\e acc -> show e ++ "*" ++ acc) "" es
+
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for expressions
 

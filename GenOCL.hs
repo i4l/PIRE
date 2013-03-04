@@ -22,8 +22,8 @@ gen :: Program a -> Gen ()
 
 gen (Alloc t siz f) = do d <- incVar
                          let m = "mem" ++ show d
-                         line $ show t ++ " " ++ m ++ " = malloc(" ++ show siz ++ ");"
-                         
+                         line $ show t ++ " " ++ m ++ " = malloc(" ++ showExprList siz ++ ");"
+                          
                          --gen $ f (locArray m) (Index m)
                          gen $ f (Assign m) (Index m)
 
