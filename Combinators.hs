@@ -46,21 +46,7 @@ mapTest = initialize t dim initf $
   where dim = [Num 10, Num 7, Num 5]
         t = TInt 
         initf xs = (.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
-        apply xs = ( xs !! 0 .+ Num 5)
-
-
--- | Without initialize and mapP
---mapTest' :: Program a
---mapTest' = Alloc t [len] $ \partialLoc arrName1 ->
---                      for (Num 0) len (\e -> partialLoc [e] (initf e))
---                      .>>
---                        Alloc t [len] $ \loc' _ ->
---                          for (Num 0) len $ \e -> loc' [e] (apply $ arrName1 [e])
---  where len = Num 10
---        t = TPointer TInt
---        initf = (.* Num 3)
---        apply = (.+ Num 5)
-
+        apply xs = xs !! 0 .+ Num 5
 
 ------------------------------------------------------------
 -- helpers
