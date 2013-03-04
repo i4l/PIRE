@@ -38,8 +38,8 @@ mapP t dim arr f = Alloc t dim $ \loc' _ -> for (Num 0) (head dim) $ \e -> loc' 
 mapTest :: Program a
 mapTest = initialize t dim initf $
          \arrName -> mapP t dim arrName apply
-  where dim = [Num 10,Num 7, Num 5]
-        t = typeNest dim TInt 
+  where dim = [Num 10,Num 7]
+        t = TInt 
         initf = (.* Num 3)
         apply = (.+ Num 5)
 

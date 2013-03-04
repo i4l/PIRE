@@ -20,9 +20,10 @@ import Control.Monad.State
 
 gen :: Program a -> Gen ()
 
-gen (Alloc t siz f) = do d <- incVar
+gen (Alloc t dim f) = do d <- incVar
                          let m = "mem" ++ show d
-                         line $ show t ++ " " ++ m ++ " = malloc(" ++ showExprList siz ++ ");"
+                         line $ show (typeNest dim t) ++ " " ++ m ++ " = (" ++ show (typeNest dim t) ++ ") " ++
+                                  "malloc(sizeof(" ++ show (TPointer t) ++ ")*" ++ showExprList dim ++ ");"
                           
                          --gen $ f (locArray m) (Index m)
                          gen $ f (Assign m) (Index m)
