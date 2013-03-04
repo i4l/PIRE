@@ -29,29 +29,6 @@ mapP t siz arr f = Alloc' t siz $ \loc' _ -> for (Num 0) siz $ \e -> loc' [e] (f
 
 
 
--- NOTE: If f could generate for-loops, we could (probably) have a more general initialize-function
--- with arbitrary dimensions...?
-
---initialize2 :: Type -> Size -> (Index -> Expr) -> (IndexedArray -> Program a) -> Program a
---initialize2 t s f prog = Alloc' (TPointer t) (s.*s) $ \partialloc arrName -> 
---                            for (Num 0) s $ \e -> 
---                              for (Num 0) s (\e' -> partialloc [e,e'] (f e'))
---
---                        .>> 
---                          prog arrName
-                        
---mapP :: Type -> Size -> PartialArrayLoc Expr a -> IndexedArray -> (Expr -> Expr) -> Program a
---mapP t siz loc arr f = for (Num 0) siz $ \e -> loc [e] (f $ arr [e])
-
---init2D :: Program a
---init2D = initialize2 t len initf $ \arrName -> mapP t len (Assign "XX") arrName apply
---  where len = Num 10
---        t = TPointer TInt
---        initf = (.* Num 3)
---        apply = (.+ Num 5)
-
-
-
 
 -----------------------------------------------------------------------------
 -- Example programs
