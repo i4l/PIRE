@@ -29,8 +29,9 @@ nestFor [x] inner f vars = for (Num 0) x (\loopvar -> inner (reverse $ loopvar:v
 nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:vars))
 
 
-mapP :: Type -> [Size] -> IndexedArray -> (Expr -> Expr) -> Program a
-mapP t dim arr f = Alloc t dim $ \loc' _ -> for (Num 0) (head dim) $ \e -> loc' [e] (f $ arr [e])
+mapP :: Type -> [Size] -> ([Index] -> Expr) -> IndexedArray -> Program a
+mapP t dim arr f = Alloc t dim $ \partialLoc _ -> 
+                      nestFor dim partialLoc (\xs -> f [arr $ reverse xs]) [] 
 
 
 
@@ -42,10 +43,10 @@ mapP t dim arr f = Alloc t dim $ \loc' _ -> for (Num 0) (head dim) $ \e -> loc' 
 mapTest :: Program a
 mapTest = initialize t dim initf $
          \arrName -> mapP t dim arrName apply
-  where dim = [Num 10,Num 7, Num 5]
+  where dim = [Num 10, Num 7, Num 5]
         t = TInt 
         initf xs = (.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
-        apply = (.+ Num 5)
+        apply xs = ( xs !! 0 .+ Num 5)
 
 
 -- | Without initialize and mapP
