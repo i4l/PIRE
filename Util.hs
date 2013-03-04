@@ -12,6 +12,10 @@ import Expr
 import Types
 import Gen
 
+-- | Turns a type into a pointer of the same type. Nests length dim times.
+typeNest :: [Expr] -> Type -> Type
+typeNest dim t = iterate TPointer t !! length dim
+
 ------------------------------------------------------------
 -- Kernels
 
