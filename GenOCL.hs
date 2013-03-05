@@ -6,9 +6,9 @@ import Types
 import Expr
 import Gen
 
-import qualified Data.Map as Map
-import Data.Maybe
-import Control.Monad.State
+--import qualified Data.Map as Map
+--import Data.Maybe
+--import Control.Monad.State
 
 
 gen :: Program a -> Gen ()

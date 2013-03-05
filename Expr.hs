@@ -4,6 +4,7 @@ module Expr where
 
 type Name = String
 
+type Dim = [Size]
 
 -- | Expressions are the RHS in an assignment.
 data Expr where
