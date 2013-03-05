@@ -45,12 +45,18 @@ gen (For e1 e2 p) = do i <- fmap fst newLoopVar
 
 gen (Alloc t dim f) = do d <- incVar
                          let m = "mem" ++ show d
-                         line $ show (typeNest dim t) ++ " " ++ m ++ " = (" ++ show (typeNest dim t) ++ ") " ++
-                                  "malloc(sizeof(" ++ show (typeNest (tail dim) t) ++ ")*" ++ showExprList dim ++ ");"
-                          
-                         gen $ f (locNest m) (Index m)
+                         line $ show (typeNest dim t) ++ " " ++ m ++ " = (" ++ 
+                                show (typeNest dim t) ++ ") " ++ "malloc(sizeof(" ++ 
+                                show (typeNest (tail dim) t) ++ ")*" ++ showExprList dim ++ ");"
+                         
+                         --TODO fix alloc with loops for |dim| > 1
+                         nestForAlloc dim m "malloc(sizeof(fixme)"
 
+                         gen $ f (locNest m) (Index m)
                          line $ "free(" ++ m ++ ");\n"
+
+
+
 
 ---gen (Alloc siz f) = do 
 --   d <- incVar

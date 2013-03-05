@@ -2,6 +2,7 @@ module Gen where
 
 import Control.Monad.State
 import qualified Data.Map as Map
+import Data.List 
 
 import Expr
 
@@ -48,7 +49,7 @@ incVar = do
 newLoopVar :: Gen (String,Int)
 newLoopVar = do
   v <- incVar
-  return $ (([ "i", "j", "k" ] ++ [ "i" ++ show i | i <- [0..] ]) !! v, v)
+  return $ ((map concat (group $ (group $ concat [['i' .. 'z' ]])) ++ [ "i" ++ show i | i <- [0..] ]) !! v, v)
 
 --getParamCounter :: Gen Int
 --getParamCounter = gets paramCounter
