@@ -40,7 +40,7 @@ mapP t dim arr f = Alloc t dim $ \partialLoc _ ->
 mapTest :: Program a
 mapTest = initialize t dim initf $
          \arrName -> mapP t dim arrName apply
-  where dim = [Num 100, Num 10]
+  where dim = [Num 100]
         t = TInt 
         initf xs = (.- Num 3) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
         apply xs = xs !! 0 .+ Num 5

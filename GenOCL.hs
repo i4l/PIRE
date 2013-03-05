@@ -9,6 +9,7 @@ import Gen
 --import qualified Data.Map as Map
 --import Data.Maybe
 --import Control.Monad.State
+import Control.Monad
 
 
 gen :: Program a -> Gen ()
@@ -50,7 +51,7 @@ gen (Alloc t dim f) = do d <- incVar
                                 show (typeNest (tail dim) t) ++ ")*" ++ showExprList dim ++ ");"
                          
                          --TODO fix alloc with loops for |dim| > 1
-                         nestForAlloc dim m "malloc(sizeof(fixme)"
+                         when (length dim > 1) $ nestForAlloc dim m "malloc(sizeof(fixme))"
 
                          gen $ f (locNest m) (Index m)
                          line $ "free(" ++ m ++ ");\n"
