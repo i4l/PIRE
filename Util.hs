@@ -13,7 +13,7 @@ import Types
 import Gen
 
 -- | Turns a type into a pointer of the same type. Nests length dim times.
-typeNest :: [Expr] -> Type -> Type
+typeNest :: Dim -> Type -> Type
 typeNest dim t = iterate TPointer t !! length dim
 
 
@@ -24,24 +24,29 @@ nestFor [x] inner f vars = for (Num 0) x (\loopvar -> inner (reverse $ loopvar:v
 nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:vars))
 
 
-nestForAlloc :: Dim -> String -> String -> Gen ()
-nestForAlloc [] _ _ = return ()
-nestForAlloc [x] name inner = do l <- fmap fst newLoopVar
-                                 line $ "int " ++ l ++ ";"
-                                 line $ "for( " ++ l ++ " = 0 ; " ++
-                                        l ++ " < " ++ show x ++ "; " ++ 
-                                        l ++ "++ ) {"
-                                 indent 2
-                                 line $ name ++ " = " ++ inner
-                                 unindent 2
-                                 line "}"
-
-nestForAlloc (x:xs) name inner = do
+nestForAlloc :: Dim -> String -> Type -> [String] -> Dim -> Gen ()
+nestForAlloc [] _ _ _ _ = return ()
+nestForAlloc [x] name t loopVars acc = do l <- fmap fst newLoopVar
+                                          line $ "int " ++ l ++ ";"
+                                          line $ "for( " ++ l ++ " = 0 ; " ++
+                                                 l ++ " < " ++ show x ++ "; " ++ 
+                                                 l ++ "++ ) {"
+                                          indent 2
+                                          line $ name  ++
+                                                 concat [ "[" ++ i ++ "]" | i <- l:loopVars] ++ 
+                                                 " = (" ++ 
+                                                 show (typeNest [x] t) ++
+                                                 ") malloc(sizeof(" ++
+                                                 show (typeNest [x] t) ++ 
+                                                 ") * " ++ show x ++ ")"
+                                          unindent 2
+                                          line "}"
+nestForAlloc (x:xs) name t loopVars acc = do
   l <- fmap fst newLoopVar
   line $ "int " ++ l ++ ";"
   line $ "for( " ++ l ++ " = 0 ; " ++ l ++ " < " ++ show x ++ "; " ++ l ++ "++ ) {"
   indent 2
-  nestForAlloc xs name inner
+  nestForAlloc xs name t (l:loopVars) (x:acc)
   unindent 2
   line "}"
 

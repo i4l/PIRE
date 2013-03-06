@@ -48,16 +48,14 @@ gen (Alloc t dim f) = do d <- incVar
                          let m = "mem" ++ show d
                          line $ show (typeNest dim t) ++ " " ++ m ++ " = (" ++ 
                                 show (typeNest dim t) ++ ") " ++ "malloc(sizeof(" ++ 
-                                show (typeNest (tail dim) t) ++ ")*" ++ showExprList dim ++ ");"
+                                show (typeNest (tail dim) t) ++ ")*" ++ showMulExpr dim ++ ");"
                          
                          --TODO fix alloc with loops for |dim| > 1
-                         when (length dim > 1) $ nestForAlloc (init dim) m "malloc(sizeof(fixme))"
+                         when (length dim > 1) $ nestForAlloc (init dim) m t [] []
 
                          gen $ f (locNest m) (Index m)
                          line $ "free(" ++ m ++ ");\n"
-
-
-
+ 
 
 ---gen (Alloc siz f) = do 
 --   d <- incVar
