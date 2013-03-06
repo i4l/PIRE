@@ -45,8 +45,9 @@ instance Show (Expr) where
   show (a :*: b)    = "(" ++ show a ++ "*" ++ show b ++ ")"
   show (a :<=: b)   = "(" ++ show a ++ " <= " ++ show b ++ ")"
 
+-- | Reduce a list of Expr to a single Expr as a string.
 showMulExpr :: [Expr] -> String
-showMulExpr es = show $ foldr1 (.*) es
+showMulExpr = show . foldr1 (.*)
 
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for expressions

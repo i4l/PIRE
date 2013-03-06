@@ -47,9 +47,10 @@ incVar = do
 
 -- | Generate a new loop variable (based on the variable counter from incVar).
 newLoopVar :: Gen (String,Int)
-newLoopVar = do
-  v <- incVar
-  return $ ((map concat (group $ (group $ concat [['i' .. 'z' ]])) ++ [ "i" ++ show i | i <- [0..] ]) !! v, v)
+newLoopVar = do v <- incVar
+                return ((map concat 
+                            (group (group ['i' .. 'z' ])) ++
+                              [ 'i' : show i | i <- [0..] ]) !! v, v)
 
 --getParamCounter :: Gen Int
 --getParamCounter = gets paramCounter
