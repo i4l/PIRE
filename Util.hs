@@ -46,6 +46,13 @@ nestForAlloc (x:xs) name t loopVars acc = do
   line $ "int " ++ l ++ ";"
   line $ "for( " ++ l ++ " = 0; " ++ l ++ " < " ++ show x ++ "; " ++ l ++ "++ ) {"
   indent 2
+  line $ name  ++
+         concat [ "[" ++ i ++ "]" | i <- reverse (l:loopVars)] ++ 
+         " = (" ++ 
+         show (typeNest (x:acc) t) ++
+         ") malloc(sizeof(" ++
+         show (typeNest (tail (x:acc)) t) ++ 
+         ") * " ++ show (head xs) ++ ");"
   nestForAlloc xs name t (l:loopVars) (x:acc)
   unindent 2
   line "}"
