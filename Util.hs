@@ -27,24 +27,24 @@ nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:va
 nestForAlloc :: Dim -> String -> Type -> [String] -> Dim -> Gen ()
 nestForAlloc [] _ _ _ _ = return ()
 nestForAlloc [x] name t loopVars acc = do l <- fmap fst newLoopVar
-                                          line $ "int " ++ l ++ ";"
-                                          line $ "for( " ++ l ++ " = 0 ; " ++
-                                                 l ++ " < " ++ show x ++ "; " ++ 
-                                                 l ++ "++ ) {"
-                                          indent 2
+                                          --line $ "int " ++ l ++ ";"
+                                          --line $ "for( " ++ l ++ " = 0 ; " ++
+                                          --       l ++ " < " ++ show x ++ "; " ++ 
+                                          --       l ++ "++ ) {"
+                                          --indent 2
                                           line $ name  ++
-                                                 concat [ "[" ++ i ++ "]" | i <- l:loopVars] ++ 
+                                                 concat [ "[" ++ i ++ "]" | i <- loopVars] ++ 
                                                  " = (" ++ 
-                                                 show (typeNest [x] t) ++
+                                                 show (typeNest acc t) ++
                                                  ") malloc(sizeof(" ++
-                                                 show (typeNest [x] t) ++ 
-                                                 ") * " ++ show x ++ ")"
-                                          unindent 2
-                                          line "}"
+                                                 show (typeNest (tail acc) t) ++ 
+                                                 ") * " ++ show x ++ ");"
+                                          --unindent 2
+                                          --line "}"
 nestForAlloc (x:xs) name t loopVars acc = do
   l <- fmap fst newLoopVar
   line $ "int " ++ l ++ ";"
-  line $ "for( " ++ l ++ " = 0 ; " ++ l ++ " < " ++ show x ++ "; " ++ l ++ "++ ) {"
+  line $ "for( " ++ l ++ " = 0; " ++ l ++ " < " ++ show x ++ "; " ++ l ++ "++ ) {"
   indent 2
   nestForAlloc xs name t (l:loopVars) (x:acc)
   unindent 2

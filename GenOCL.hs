@@ -51,7 +51,7 @@ gen (Alloc t dim f) = do d <- incVar
                                 show (typeNest (tail dim) t) ++ ")*" ++ showMulExpr dim ++ ");"
                          
                          --TODO fix alloc with loops for |dim| > 1
-                         when (length dim > 1) $ nestForAlloc (init dim) m t [] []
+                         when (length dim > 1) $ nestForAlloc dim m t [] []
 
                          gen $ f (locNest m) (Index m)
                          line $ "free(" ++ m ++ ");\n"
@@ -227,7 +227,7 @@ gen (Alloc t dim f) = do d <- incVar
 setupHeadings :: Gen ()
 setupHeadings = do line "#include <stdio.h>"
                    line "#include <stdlib.h>"
-                   line "#include <CL/cl.h>"
+                   --line "#include <CL/cl.h>"
                    line "#define MAX_SOURCE_SIZE (0x100000)\n\n"
                    line "int main (void) {"
                    indent 2
