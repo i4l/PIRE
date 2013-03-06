@@ -13,8 +13,9 @@ import Types
 import Gen
 
 -- | Turns a type into a pointer of the same type. Nests length dim times.
-typeNest :: Dim -> Type -> Type
-typeNest dim t = iterate TPointer t !! length dim
+typeNest :: Type -> Dim -> Type
+typeNest t = (!!) (iterate TPointer t) . length
+--iterate TPointer t !! length dim
 
 
 -- | Nest 'length xs' number of forloops, where f becomes the innermost program written to p.
@@ -26,19 +27,19 @@ nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:va
 
 nestForAlloc :: Dim -> String -> Type -> [String] -> Dim -> Gen ()
 nestForAlloc [] _ _ _ _ = return ()
-nestForAlloc [x] name t loopVars acc = do --l <- fmap fst newLoopVar
+nestForAlloc [x] name t loopVars acc = return () --l <- fmap fst newLoopVar
                                           --line $ "int " ++ l ++ ";"
                                           --line $ "for( " ++ l ++ " = 0 ; " ++
                                           --       l ++ " < " ++ show x ++ "; " ++ 
                                           --       l ++ "++ ) {"
                                           --indent 2
-                                          line $ name  ++
-                                                 concat [ "[" ++ i ++ "]" | i <- reverse loopVars] ++ 
-                                                 " = (" ++ 
-                                                 show (typeNest acc t) ++
-                                                 ") malloc(sizeof(" ++
-                                                 show (typeNest (tail acc) t) ++ 
-                                                 ") * " ++ show x ++ ");"
+                                         -- line $ name  ++
+                                         --        concat [ "[" ++ i ++ "]" | i <- reverse loopVars] ++ 
+                                         --        " = (" ++ 
+                                         --        show (typeNest acc t) ++
+                                         --        ") malloc(sizeof(" ++
+                                         --        show (typeNest (tail acc) t) ++ 
+                                         --        ") * " ++ show x ++ ");"
                                           --unindent 2
                                           --line "}"
 nestForAlloc (x:xs) name t loopVars acc = do
@@ -49,9 +50,9 @@ nestForAlloc (x:xs) name t loopVars acc = do
   line $ name  ++
          concat [ "[" ++ i ++ "]" | i <- reverse (l:loopVars)] ++ 
          " = (" ++ 
-         show (typeNest (x:acc) t) ++
+         show (typeNest t (x:acc)) ++
          ") malloc(sizeof(" ++
-         show (typeNest (tail (x:acc)) t) ++ 
+         show (typeNest t (tail (x:acc))) ++ 
          ") * " ++ show (head xs) ++ ");"
   nestForAlloc xs name t (l:loopVars) (x:acc)
   unindent 2
