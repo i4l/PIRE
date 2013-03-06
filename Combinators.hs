@@ -39,7 +39,7 @@ mapP t dim arr f = Alloc t dim $ \partialLoc _ ->
 -- | With initialize and mapP helper functions.
 mapTest :: Program a
 mapTest = initialize t dim initf $
-         \arrName -> mapP t dim arrName apply
+         \arrName -> Skip --mapP t dim arrName apply
   where dim = [Num 10, Num 3, Num 2, Num 4, Num 5, Num 7]
         t = TInt 
         initf xs = (.- Num 3) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs

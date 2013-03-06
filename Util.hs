@@ -25,39 +25,30 @@ nestFor [x] inner f vars = for (Num 0) x (\loopvar -> inner (reverse $ loopvar:v
 nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:vars))
 
 
-nestForAlloc :: Dim -> String -> Type -> [String] -> Dim -> Gen ()
-nestForAlloc [] _ _ _ _ = return ()
-nestForAlloc [x] name t loopVars acc = return () 
-                                          --l <- fmap fst newLoopVar
-                                          --line $ "int " ++ l ++ ";"
-                                          --line $ "for( " ++ l ++ " = 0 ; " ++
-                                          --       l ++ " < " ++ show x ++ "; " ++ 
-                                          --       l ++ "++ ) {"
-                                          --indent 2
-                                         -- line $ name  ++
-                                         --        concat [ "[" ++ i ++ "]" | i <- reverse loopVars] ++ 
-                                         --        " = (" ++ 
-                                         --        show (typeNest acc t) ++
-                                         --        ") malloc(sizeof(" ++
-                                         --        show (typeNest (tail acc) t) ++ 
-                                         --        ") * " ++ show x ++ ");"
-                                          --unindent 2
-                                          --line "}"
-nestForAlloc (x:xs) name t loopVars acc = do
-  l <- fmap fst newLoopVar
-  line $ "int " ++ l ++ ";"
-  line $ "for( " ++ l ++ " = 0; " ++ l ++ " < " ++ show x ++ "; " ++ l ++ "++ ) {"
-  indent 2
-  line $ name  ++
-         concat [ "[" ++ i ++ "]" | i <- reverse (l:loopVars)] ++ 
-         " = (" ++ 
-         show (typeNest t xs) ++
-         ") malloc(sizeof(" ++
-         show (typeNest t (tail xs)) ++ 
-         ") * " ++ show (head xs) ++ ");"
-  nestForAlloc xs name t (l:loopVars) (x:acc)
-  unindent 2
-  line "}"
+-- | Nests for-loops used for allocating an array of the dimension given by first Dim.
+nestForAlloc :: Dim -> String -> Type -> Gen ()
+nestForAlloc dim lhs t = do line $ show (typeNest t dim) ++ " " ++ lhs ++ " = (" ++ 
+                                            show (typeNest t dim) ++ ") " ++ "malloc(sizeof(" ++ 
+                                            show (typeNest t (tail dim)) ++ ")*" ++ showMulExpr dim ++ ");"
+                            nest dim lhs t [] []
+  where 
+    nest [] _ _ _ _  = return ()
+    nest [_] _ _ _ _ = return () -- Case needed in order to avoid the last "extra" for-loop.
+    nest (x:xs) lhs t loopVars acc = do
+      l <- fmap fst newLoopVar
+      line $ "int " ++ l ++ ";"
+      line $ "for( " ++ l ++ " = 0; " ++ l ++ " < " ++ show x ++ "; " ++ l ++ "++ ) {"
+      indent 2
+      line $ lhs  ++
+             concat [ "[" ++ i ++ "]" | i <- reverse (l:loopVars)] ++ 
+             " = (" ++ 
+             show (typeNest t xs) ++
+             ") malloc(sizeof(" ++
+             show (typeNest t (tail xs)) ++ 
+             ") * " ++ show (head xs) ++ ");"
+      nest xs lhs t (l:loopVars) (x:acc)
+      unindent 2
+      line "}"
 
                                       
 
