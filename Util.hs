@@ -26,14 +26,14 @@ nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:va
 
 nestForAlloc :: Dim -> String -> Type -> [String] -> Dim -> Gen ()
 nestForAlloc [] _ _ _ _ = return ()
-nestForAlloc [x] name t loopVars acc = do l <- fmap fst newLoopVar
+nestForAlloc [x] name t loopVars acc = do --l <- fmap fst newLoopVar
                                           --line $ "int " ++ l ++ ";"
                                           --line $ "for( " ++ l ++ " = 0 ; " ++
                                           --       l ++ " < " ++ show x ++ "; " ++ 
                                           --       l ++ "++ ) {"
                                           --indent 2
                                           line $ name  ++
-                                                 concat [ "[" ++ i ++ "]" | i <- loopVars] ++ 
+                                                 concat [ "[" ++ i ++ "]" | i <- reverse loopVars] ++ 
                                                  " = (" ++ 
                                                  show (typeNest acc t) ++
                                                  ") malloc(sizeof(" ++
