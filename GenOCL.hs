@@ -47,7 +47,7 @@ gen (For e1 e2 p) = do i <- fmap fst newLoopVar
 gen (Alloc t dim f) = do d <- incVar
                          let m = "mem" ++ show d
                          nestForAlloc dim m t
-                         gen $ f (locNest m) (Index m)
+                         gen  $ f (locNest m) (Index m)
                          line $ "free(" ++ m ++ ");\n"
  
 

@@ -23,7 +23,8 @@ initArray t dim f prog = Alloc t dim $ \partialLoc arrayName ->
                           .>>
                             prog arrayName                -- Followed by the rest of the program
 
---initScalar
+initScalar :: Type -> Expr -> Program a -> Program a
+initScalar t e prog = Alloc t [] $ \partialLoc _ -> Skip
 
 
 
