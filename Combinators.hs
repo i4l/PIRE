@@ -33,7 +33,7 @@ printArray t s arr = for (Num 0) s $ \e -> Print t $ arr [e]
 
 -- | Experimental map (to have something to play around with).
 mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
-mapP t dim arr f prog = initArray t dim f $ \loc iarr -> --Alloc t dim $ \partialLoc iarr -> 
+mapP t dim arr f prog = initArray t dim f $ \loc iarr ->
                           nestFor dim loc (\xs -> f [arr $ reverse xs]) []
                       .>> prog iarr
 
