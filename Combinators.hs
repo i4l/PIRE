@@ -21,11 +21,11 @@ initArray :: Type -> Dim -> ([Index] -> Expr) -> (PartialLoc Expr a -> IndexedAr
 initArray t dim f prog = Alloc t dim $ \partialLoc arrayName -> 
                             nestFor dim partialLoc f []   -- Build a nesting of for-loops
                           .>>
-                            prog partialLoc arrayName                -- Followed by the rest of the program
+                            prog partialLoc arrayName     -- Followed by the rest of the program
 
 -- TODO this might be a bit off.
 initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
-initScalar t e prog = Alloc t [] $ \partialLoc arr -> partialLoc [Num 0] e .>> prog partialLoc arr
+initScalar t e = initArray t [Num 1] (const e)
 
 -- | Prints an array arr of type t and size s.
 printArray :: Type ->  Size -> IndexedArray -> Program a
