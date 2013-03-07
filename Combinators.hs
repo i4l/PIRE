@@ -17,11 +17,11 @@ import Expr
 -- Interface
 
 -- | Initialize an array of length s and type t with function f, followed by the remaining program prog.
-initArray :: Type -> Dim -> ([Index] -> Expr) -> (IndexedArray -> Program a) -> Program a
+initArray :: Type -> Dim -> ([Index] -> Expr) -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
 initArray t dim f prog = Alloc t dim $ \partialLoc arrayName -> 
                             nestFor dim partialLoc f []   -- Build a nesting of for-loops
                           .>>
-                            prog arrayName                -- Followed by the rest of the program
+                            prog partialLoc arrayName                -- Followed by the rest of the program
 
 -- TODO this might be a bit off.
 initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
@@ -33,8 +33,8 @@ printArray t s arr = for (Num 0) s $ \e -> Print t $ arr [e]
 
 -- | Experimental map (to have something to play around with).
 mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
-mapP t dim arr f prog = Alloc t dim $ \partialLoc iarr -> 
-                          nestFor dim partialLoc (\xs -> f [arr $ reverse xs]) []
+mapP t dim arr f prog = initArray t dim f $ \loc iarr -> --Alloc t dim $ \partialLoc iarr -> 
+                          nestFor dim loc (\xs -> f [arr $ reverse xs]) []
                       .>> prog iarr
 
 -- | sequential scanl on 1D array using f.
@@ -55,14 +55,16 @@ fold t s f acc arr prog = initScalar t acc $ \loc iarr ->
 -- Example programs
 
 -- | With initialize and mapP helper functions.
---mapTest :: Program a
---mapTest = initArray t dim initf $
---         \arrName -> mapP t dim arrName apply
---  where dim = [Num 10]
---        t = TInt 
---        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
---        apply xs = xs !! 0 .+ Num 5
---
+mapTest :: Program a
+mapTest = initArray t dim initf $
+            \_ arrName -> mapP t dim apply arrName $
+              \mappedArr -> printArray t (head dim) mappedArr
+
+  where dim = [Num 10]
+        t = TInt 
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+        apply xs = xs !! 0 .+ Num 5
+
 --scanTest :: Program a
 --scanTest = initArray t dim initf $
 --              \arrName -> scan t dim apply arrName
@@ -73,17 +75,19 @@ fold t s f acc arr prog = initScalar t acc $ \loc iarr ->
 
 foldTest :: Program a
 foldTest = initArray t dim initf $
-              \arrName -> fold t (head dim) apply acc arrName $
-              \foldedName -> printArray t (Num 1) foldedName
+              \_ arrName -> fold t (head dim) apply acc arrName $
+                \foldedName -> printArray t (Num 1) foldedName
   where dim = [Num 10]
         acc = Num 0
         t = TInt 
         initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
         apply = (.+)
 
-example :: Gen ()
-example = setupHeadings >> gen foldTest >> setupEnd
+exampleFold :: Gen ()
+exampleFold = setupHeadings >> gen foldTest >> setupEnd
 
+exampleMap :: Gen ()
+exampleMap = setupHeadings >> gen mapTest >> setupEnd
 ------------------------------------------------------------
 -- helpers
 
