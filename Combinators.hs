@@ -28,14 +28,14 @@ initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -
 initScalar t e prog = Alloc t [] $ \partialLoc arr -> partialLoc [Num 0] e .>> prog partialLoc arr
 
 -- | Prints an array arr of type t and size s.
---  TODO currently doesn't take type into consideration. Defaults to Int
 printArray :: Type ->  Size -> IndexedArray -> Program a
 printArray t s arr = for (Num 0) s $ \e -> Print t $ arr [e]
 
 -- | Experimental map (to have something to play around with).
-mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> Program a
-mapP t dim arr f = Alloc t dim $ \partialLoc _ -> 
-                      nestFor dim partialLoc (\xs -> f [arr $ reverse xs]) [] 
+mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
+mapP t dim arr f prog = Alloc t dim $ \partialLoc iarr -> 
+                          nestFor dim partialLoc (\xs -> f [arr $ reverse xs]) []
+                      .>> prog iarr
 
 -- | sequential scanl on 1D array using f.
 scan :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
