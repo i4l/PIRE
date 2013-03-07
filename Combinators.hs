@@ -46,10 +46,17 @@ scan t dim f arr prog = Alloc t [head dim .+ Num 1] $ \partialLoc iarr ->
 
 -- | sequential foldl on 1D array using f.
 fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
-fold t s f acc arr prog = initScalar t acc $ \loc iarr -> 
-                            for (Num 0) s (\e -> loc [Num 0] (f (iarr [Num 0]) (arr [e])))
-                        .>> prog iarr
+fold t s f acc arr prog = initScalar t acc $ \loc res -> 
+                            for (Num 0) s (\e -> loc [Num 0] (f (res [Num 0]) (arr [e])))
+                        .>> prog res
 
+--TODO only works for 1D
+zipWithP :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
+zipWithP t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
+                                for (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
+                            .>> prog res
+                                  
+                                  
 
 -----------------------------------------------------------------------------
 -- Example programs
@@ -85,6 +92,17 @@ foldTest = initArray t dim initf $
         initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
         apply = (.+)
 
+dotProd :: Program a
+dotProd = initArray t dim initf $
+            \_ arr1 -> initArray t dim initf $
+              \_ arr2 -> zipWithP t dim (.*) arr1 arr2 $ 
+                \zipRes -> fold t (head dim) (.+) (Num 0) zipRes $
+                  \foldRes -> printArray t (Num 1) foldRes
+  where dim = [Num 10]
+        t = TInt 
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs 
+
+
 exampleFold :: Gen ()
 exampleFold = setupHeadings >> gen foldTest >> setupEnd
 
@@ -93,6 +111,9 @@ exampleMap = setupHeadings >> gen mapTest >> setupEnd
 
 exampleScan :: Gen ()
 exampleScan = setupHeadings >> gen scanTest >> setupEnd
+
+exampleDotProd :: Gen ()
+exampleDotProd = setupHeadings >> gen dotProd >> setupEnd
 ------------------------------------------------------------
 -- helpers
 
