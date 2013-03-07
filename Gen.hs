@@ -52,50 +52,5 @@ newLoopVar = do v <- incVar
                             (group (group ['i' .. 'z' ])) ++
                               [ 'i' : show i | i <- [0..] ]) !! v, v)
 
---getParamCounter :: Gen Int
---getParamCounter = gets paramCounter
---
---incParamCounter :: Gen Int
---incParamCounter = do
---  d <- getParamCounter
---  modify $ \env -> env{paramCounter = paramCounter env + 1}
---  return d
---
---addKernelParam :: Int -> Gen Int
---addKernelParam hostAllocId = do
---  new <- incParamCounter
---  modify $ \env -> env {paramMap =  Map.insert hostAllocId new (paramMap env)}
---  modify $ \env -> env {hostAllocMap =  Map.insert new hostAllocId (hostAllocMap env)}
---  
---  return new
-
---lookupForKernel :: Int -> Gen (Maybe Int)
---lookupForKernel hostAllocId = do
---  m <- gets paramMap
---  return $ Map.lookup hostAllocId m
-
---lookupForHost :: Int -> Gen (Maybe Int)
---lookupForHost kernParam = do
---  m <- gets hostAllocMap
---  return $ Map.lookup kernParam m
-
-
---printMap :: Gen a -> IO ()
---printMap g = do
---  let e = execState g emptyEnv
---      m = Map.toList (paramMap e)
---      m' = map (\(h,k) -> "mem" ++ show h ++ " is mapped to arr" ++  show k ++ "\n") m
---  putStrLn $ concat m'
---  let m2 = Map.toList (hostAllocMap e)
---      m2' = map (\(k,h) -> "arr" ++ show k ++ " is mapped to mem" ++  show h ++ "\n") m2
---  putStrLn $ concat m2'
-
-
---addInitFunc :: Int -> (Index -> Expr) -> Gen ()
---addInitFunc allocID f = modify $ \env -> env {inits = Map.insert allocID f (inits env)}
---
---getInitFuncs :: Gen (Map.Map Int (Index -> Expr))
---getInitFuncs = gets inits
-
 emptyEnv :: Env
 emptyEnv = Env 0 [] 0 "kernels.cl" []  
