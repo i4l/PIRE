@@ -18,7 +18,7 @@ type IndexedArray = [Index] -> Expr
 type PartialLoc e a = [Index] -> Loc e a
 
 data Program a where
-  Print    :: Expr -> Program a
+  Print    :: Expr -> Program a -- printf for an expression
   Skip     :: Program a
   Assign   :: Name -> [Expr] -> Expr -> Program a
   (:>>)    :: Program a -> Program a -> Program a

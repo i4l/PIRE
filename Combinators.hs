@@ -44,38 +44,42 @@ scan t dim f arr = Alloc t [head dim .+ Num 1] $ \partialLoc iarr ->
                                                                 (f (iarr [e] .- Num 1) 
                                                                 (arr [e .- Num 1]))
 -- | sequential foldl on 1D array using f.
-fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> Program a
-fold t s f acc arr = initScalar t acc $ \loc iarr -> 
-                      for (Num 0) s $ \e -> loc
-                                               [Num 0] 
-                                               (f (iarr [Num 0]) 
-                                               (arr [e]))
-
+fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Size -> Program a) -> Program a
+fold t s f acc arr prog = initScalar t acc $ \loc iarr -> 
+                            for (Num 0) s (\e -> loc [Num 0] (f (iarr [Num 0]) (arr [e])))
+                                              .>> prog iarr (Num 1)
+---- | sequential foldl on 1D array using f.
+--fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> Program a
+--fold t s f acc arr = initScalar t acc $ \loc iarr -> 
+--                      for (Num 0) s $ \e -> loc
+--                                               [Num 0] 
+--                                               (f (iarr [Num 0]) 
+--                                               (arr [e]))
 
 -----------------------------------------------------------------------------
 -- Example programs
 
 -- | With initialize and mapP helper functions.
-mapTest :: Program a
-mapTest = initArray t dim initf $
-         \arrName -> mapP t dim arrName apply
-  where dim = [Num 10]
-        t = TInt 
-        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
-        apply xs = xs !! 0 .+ Num 5
-
-scanTest :: Program a
-scanTest = initArray t dim initf $
-              \arrName -> scan t dim apply arrName
-  where dim = [Num 10]
-        t = TInt 
-        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
-        apply e1 e2 = e1 .+ e2
+--mapTest :: Program a
+--mapTest = initArray t dim initf $
+--         \arrName -> mapP t dim arrName apply
+--  where dim = [Num 10]
+--        t = TInt 
+--        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+--        apply xs = xs !! 0 .+ Num 5
+--
+--scanTest :: Program a
+--scanTest = initArray t dim initf $
+--              \arrName -> scan t dim apply arrName
+--  where dim = [Num 10]
+--        t = TInt 
+--        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+--        apply e1 e2 = e1 .+ e2
 
 foldTest :: Program a
 foldTest = initArray t dim initf $
-              \arrName -> fold t (head dim) apply acc arrName
-              .>> printArray (head dim) arrName
+              \arrName -> fold t (head dim) apply acc arrName $
+              \foldedName foldedSize -> printArray foldedSize foldedName
   where dim = [Num 10]
         acc = Num 0
         t = TInt 
