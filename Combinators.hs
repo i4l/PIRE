@@ -23,6 +23,7 @@ initArray t dim f prog = Alloc t dim $ \partialLoc arrayName ->
                           .>>
                             prog arrayName                -- Followed by the rest of the program
 
+-- TODO this might be a bit off.
 initScalar :: Type -> Expr -> Program a -> Program a
 initScalar t e prog = Alloc t [] $ \partialLoc _ -> (partialLoc [Num 0] e)
 
@@ -33,7 +34,13 @@ mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> Program a
 mapP t dim arr f = Alloc t dim $ \partialLoc _ -> 
                       nestFor dim partialLoc (\xs -> f [arr $ reverse xs]) [] 
 
-
+-- | sequential scanl on 1D array using f.
+scan :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> Program a
+scan t dim f arr = Alloc t [head dim .+ Num 1] $ \partialLoc iarr -> 
+                      for (Num 1) (head dim .+ Num 1) $ \e -> partialLoc 
+                                                                [e] 
+                                                                (f (iarr [e] .- Num 1) 
+                                                                (arr [e .- Num 1]))
 
 
 -----------------------------------------------------------------------------
@@ -48,9 +55,16 @@ mapTest = initArray t dim initf $
         initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
         apply xs = xs !! 0 .+ Num 5
 
+scanTest :: Program a
+scanTest = initArray t dim initf $
+              \arrName -> scan t dim apply arrName
+  where dim = [Num 10]
+        t = TInt 
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+        apply e1 e2 = e1 .+ e2
 
 example :: Gen ()
-example = setupHeadings >> gen mapTest >> setupEnd
+example = setupHeadings >> gen scanTest >> setupEnd
 
 ------------------------------------------------------------
 -- helpers

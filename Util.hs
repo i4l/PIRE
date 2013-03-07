@@ -29,8 +29,8 @@ nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:va
 --   In case of of a scalar (empty Dim), it allocates a single chunk of type t to lhs.
 nestForAlloc :: Dim -> String -> Type -> Gen ()
 nestForAlloc [] lhs t  = line $ show (TPointer t) ++ " " ++ lhs ++ " = ("
-                       ++ show (TPointer t) ++ ") " ++ "malloc(sizeof(" 
-                       ++ show t ++ "));"
+                      ++ show (TPointer t) ++ ") " ++ "malloc(sizeof(" 
+                      ++ show t ++ "));"
 nestForAlloc dim lhs t = do line $ show (typeNest t dim) ++ " " ++ lhs ++ " = (" ++ 
                                             show (typeNest t dim) ++ ") " ++ "malloc(sizeof(" ++ 
                                             show (typeNest t (tail dim)) ++ ")*" ++ showMulExpr dim ++ ");"
