@@ -21,7 +21,7 @@ gen (Print t e) = do let printTerm = case t of
                                       TPointer x -> error "ERROR: Attempt to use pointer in in printf."
                                       x@_        -> error $ "ERROR: Attempt to use unsupported type "
                                                  ++ show x ++ "in printf."
-                     line $ "printf(\"%" ++ printTerm ++ "\"" ++ ", " ++ show e ++ ");"
+                     line $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
 
 gen (Assign name es e) = line $ show (Index name es) 
                       ++ " = " ++ show e ++ ";"

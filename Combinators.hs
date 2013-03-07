@@ -41,7 +41,7 @@ mapP t dim arr f prog = initArray t dim f $ \loc iarr ->
 scan :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 scan t dim f arr prog = Alloc t [head dim .+ Num 1] $ \partialLoc iarr -> 
                           for (Num 1) (head dim .+ Num 1) 
-                              (\e -> partialLoc [e] (f (iarr [e] .- Num 1) (arr [e .- Num 1])))
+                              (\e -> partialLoc [e] (f (iarr [e .- Num 1]) (arr [e .- Num 1])))
                       .>> prog iarr
 
 -- | sequential foldl on 1D array using f.
@@ -65,13 +65,15 @@ mapTest = initArray t dim initf $
         initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
         apply xs = xs !! 0 .+ Num 5
 
---scanTest :: Program a
---scanTest = initArray t dim initf $
---              \arrName -> scan t dim apply arrName
---  where dim = [Num 10]
---        t = TInt 
---        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
---        apply e1 e2 = e1 .+ e2
+scanTest :: Program a
+scanTest = initArray t dim initf $
+              \_ arrName -> scan t dim apply arrName $
+                \scannedArr -> printArray t (head dim) scannedArr
+           
+  where dim = [Num 10]
+        t = TInt 
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+        apply e1 e2 = e1 .+ e2
 
 foldTest :: Program a
 foldTest = initArray t dim initf $
@@ -88,6 +90,9 @@ exampleFold = setupHeadings >> gen foldTest >> setupEnd
 
 exampleMap :: Gen ()
 exampleMap = setupHeadings >> gen mapTest >> setupEnd
+
+exampleScan :: Gen ()
+exampleScan = setupHeadings >> gen scanTest >> setupEnd
 ------------------------------------------------------------
 -- helpers
 
