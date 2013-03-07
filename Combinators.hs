@@ -27,9 +27,10 @@ initArray t dim f prog = Alloc t dim $ \partialLoc arrayName ->
 initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
 initScalar t e prog = Alloc t [] $ \partialLoc arr -> partialLoc [Num 0] e .>> prog partialLoc arr
 
-
-printArray :: Size -> IndexedArray -> Program a
-printArray s arr = for (Num 0) s $ \e -> Print $ arr [e]
+-- | Prints an array arr of type t and size s.
+--  TODO currently doesn't take type into consideration. Defaults to Int
+printArray :: Type ->  Size -> IndexedArray -> Program a
+printArray t s arr = for (Num 0) s $ \e -> Print t $ arr [e]
 
 -- | Experimental map (to have something to play around with).
 mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> Program a
@@ -37,24 +38,18 @@ mapP t dim arr f = Alloc t dim $ \partialLoc _ ->
                       nestFor dim partialLoc (\xs -> f [arr $ reverse xs]) [] 
 
 -- | sequential scanl on 1D array using f.
-scan :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> Program a
-scan t dim f arr = Alloc t [head dim .+ Num 1] $ \partialLoc iarr -> 
-                      for (Num 1) (head dim .+ Num 1) $ \e -> partialLoc 
-                                                                [e] 
-                                                                (f (iarr [e] .- Num 1) 
-                                                                (arr [e .- Num 1]))
+scan :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
+scan t dim f arr prog = Alloc t [head dim .+ Num 1] $ \partialLoc iarr -> 
+                          for (Num 1) (head dim .+ Num 1) 
+                              (\e -> partialLoc [e] (f (iarr [e] .- Num 1) (arr [e .- Num 1])))
+                      .>> prog iarr
+
 -- | sequential foldl on 1D array using f.
-fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Size -> Program a) -> Program a
+fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 fold t s f acc arr prog = initScalar t acc $ \loc iarr -> 
                             for (Num 0) s (\e -> loc [Num 0] (f (iarr [Num 0]) (arr [e])))
-                                              .>> prog iarr (Num 1)
----- | sequential foldl on 1D array using f.
---fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> Program a
---fold t s f acc arr = initScalar t acc $ \loc iarr -> 
---                      for (Num 0) s $ \e -> loc
---                                               [Num 0] 
---                                               (f (iarr [Num 0]) 
---                                               (arr [e]))
+                        .>> prog iarr
+
 
 -----------------------------------------------------------------------------
 -- Example programs
@@ -79,7 +74,7 @@ fold t s f acc arr prog = initScalar t acc $ \loc iarr ->
 foldTest :: Program a
 foldTest = initArray t dim initf $
               \arrName -> fold t (head dim) apply acc arrName $
-              \foldedName foldedSize -> printArray foldedSize foldedName
+              \foldedName -> printArray t (Num 1) foldedName
   where dim = [Num 10]
         acc = Num 0
         t = TInt 
