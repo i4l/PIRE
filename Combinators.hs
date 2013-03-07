@@ -25,7 +25,7 @@ initArray t dim f prog = Alloc t dim $ \partialLoc arrayName ->
 
 -- TODO this might be a bit off.
 initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
-initScalar t e = initArray t [Num 1] (const e)
+initScalar t = initArray t [Num 1] . const
 
 -- | Prints an array arr of type t and size s.
 printArray :: Type ->  Size -> IndexedArray -> Program a
