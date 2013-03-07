@@ -24,10 +24,12 @@ initArray t dim f prog = Alloc t dim $ \partialLoc arrayName ->
                             prog arrayName                -- Followed by the rest of the program
 
 -- TODO this might be a bit off.
-initScalar :: Type -> Expr -> Program a -> Program a
-initScalar t e prog = Alloc t [] $ \partialLoc _ -> (partialLoc [Num 0] e)
+initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
+initScalar t e prog = Alloc t [] $ \partialLoc arr -> partialLoc [Num 0] e .>> prog partialLoc arr
 
 
+printArray :: Size -> IndexedArray -> Program a
+printArray s arr = for (Num 0) s $ \e -> Print $ arr [e]
 
 -- | Experimental map (to have something to play around with).
 mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> Program a
@@ -41,6 +43,13 @@ scan t dim f arr = Alloc t [head dim .+ Num 1] $ \partialLoc iarr ->
                                                                 [e] 
                                                                 (f (iarr [e] .- Num 1) 
                                                                 (arr [e .- Num 1]))
+-- | sequential foldl on 1D array using f.
+fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> Program a
+fold t s f acc arr = initScalar t acc $ \loc iarr -> 
+                      for (Num 0) s $ \e -> loc
+                                               [Num 0] 
+                                               (f (iarr [Num 0]) 
+                                               (arr [e]))
 
 
 -----------------------------------------------------------------------------
@@ -63,8 +72,18 @@ scanTest = initArray t dim initf $
         initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
         apply e1 e2 = e1 .+ e2
 
+foldTest :: Program a
+foldTest = initArray t dim initf $
+              \arrName -> fold t (head dim) apply acc arrName
+              .>> printArray (head dim) arrName
+  where dim = [Num 10]
+        acc = Num 0
+        t = TInt 
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+        apply = (.+)
+
 example :: Gen ()
-example = setupHeadings >> gen scanTest >> setupEnd
+example = setupHeadings >> gen foldTest >> setupEnd
 
 ------------------------------------------------------------
 -- helpers

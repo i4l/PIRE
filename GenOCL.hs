@@ -16,6 +16,8 @@ gen :: Program a -> Gen ()
 
 gen Skip = line ""
 
+gen (Print e) = line $ "printf(\"%i \"" ++ ", " ++ show e ++ ");"
+
 gen (Assign name es e) = line $ show (Index name es) 
                       ++ " = " ++ show e ++ ";"
 
