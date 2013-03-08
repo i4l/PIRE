@@ -66,20 +66,18 @@ mapTest :: Program a
 mapTest = initArray t dim initf $
             \_ arrName -> mapP t dim apply arrName $
               \mappedArr -> printArray t (head dim) mappedArr
-
   where dim = [Num 10]
         t = TInt 
-        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs 
         apply xs = xs !! 0 .+ Num 5
 
 scanTest :: Program a
 scanTest = initArray t dim initf $
               \_ arrName -> scan t dim apply arrName $
                 \scannedArr -> printArray t (head dim) scannedArr
-           
   where dim = [Num 10]
         t = TInt 
-        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs 
         apply e1 e2 = e1 .+ e2
 
 foldTest :: Program a
@@ -89,7 +87,7 @@ foldTest = initArray t dim initf $
   where dim = [Num 10]
         acc = Num 0
         t = TInt 
-        initf xs = (Num 3 .+) $ foldr1 (.*) xs --(.+ Num 3) $ (xs !! 0) .* (xs !! 2) -- foldr1 (.*) xs
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs
         apply = (.+)
 
 dotProd :: Program a
