@@ -98,8 +98,7 @@ dotProd = initArray t dim initf $
                   \foldRes -> printArray t (Num 1) foldRes
   where dim = [Num 10]
         t = TInt 
-        initf xs = (Num 3 .+) $ foldr1 (.*) xs 
-
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs
 
 exampleFold :: Gen ()
 exampleFold = setupHeadings >> gen foldTest >> setupEnd
