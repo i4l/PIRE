@@ -47,7 +47,7 @@ gen (Par start end f) = do let tid = "tid"
                            lineK $ "if( tid < " ++ show end ++ " ) {"
                            kdata <- genK $ f (var tid)
                            line $ "// Run parallel loop from host"
-                           setupOCLMemory paramTriples
+                           setupOCLMemory paramTriples end
 
                            lineK "}"
                            lineK "}"
@@ -100,18 +100,18 @@ getKDataExpr (a :<=: b)   = KData $ params (getKDataExpr a) ++ params (getKDataE
 getKDataExpr _            = KData []
 
 
-setupOCLMemory :: [(Name,Dim,Type)] -> Gen ()
-setupOCLMemory []           = return ()
-setupOCLMemory ((n,d,t):xs) = do let objPostfix = "_obj"
-                                     createBuffers = "cl_mem " ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
-                                                "CL_MEM_WRITE_ONLY" ++ ", " ++ "10" ++ "*sizeof(" ++ 
+setupOCLMemory :: [(Name,Dim,Type)] -> Size -> Gen ()
+setupOCLMemory []           s = return ()
+setupOCLMemory ((n,d,t):xs) s = do let objPostfix = "_obj"
+                                       createBuffers = "cl_mem " ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+                                                "CL_MEM_WRITE_ONLY" ++ ", " ++ show s ++ "*sizeof(" ++ 
                                                 removePointer t ++ "), NULL, NULL);"
-                                 line createBuffers
-                                 let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
-                                                         objPostfix ++ ", CL_TRUE, 0, " ++ show d ++ " * sizeof(" ++ 
-                                                         removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
-                                 line copyBuffers
-                                 setupOCLMemory xs
+                                   line createBuffers
+                                   let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
+                                                           objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
+                                                           removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
+                                   line copyBuffers
+                                   setupOCLMemory xs s
 
 
 
