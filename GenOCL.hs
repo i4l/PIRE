@@ -38,18 +38,21 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                       unindent 2
                       line "}"
 
+--[ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize-1]]
   
-
 gen (Par start end f) = do let tid = "tid"
-                           lineK $ "tid = " ++ "get_global_id()" ++ ";"
+                           let paramTriples = params $ grabKernelParams (f $ var tid)
+                               parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
+                           kerName <- fmap ((++) "k" . show) incVar
+                           lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
+                           lineK $ tid ++ " = " ++ "get_global_id()" ++ ";"
+                           lineK $ "if( tid < " ++ show end ++ " ) {"
                            kdata <- genK $ f (var tid)
-                           line $ "// Run parallel loop"
-                           mapM_ line $ map ((++) "// " . show) (params kdata)
+                           line $ "// Run parallel loop from host"
+                           lineK "}"
+                           lineK "}"
+                           --mapM_ line $ map ((++) "// " . show) (paramTriples)
                            return ()
--- do kerName <- storeKernelName
-                           -- let loopVar = "get_global_id(0);"
-                           --do analysis on f to conclude which arrays has to be prepped for GPU
-                           -- set up cl_mem buffers and initialize with data
 
 gen (For e1 e2 p) = do i <- fmap fst newLoopVar
                        line $ show TInt ++ " " ++ i ++ ";"
@@ -67,27 +70,33 @@ gen (Alloc t dim f) = do d <- incVar
                          gen  $ f (locNest m) (Index m)
                          line $ "free(" ++ m ++ ");\n"
  
-
-   
-genK :: Program a -> Gen KData
+-- Code gen in kernel code   
+genK :: Program a -> Gen ()
 genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
                           argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
                           kdata <- genK $ f (locNest argName) (Index argName)
-                          return $ KData $ (argName,dim,t) : params kdata
+                          --return $ KData $ (argName,dim,t) : params kdata
+                          return ()
 genK (Assign name es e) = do lineK (show (Index name es) ++ " = " ++ show e ++ ";")
-                             let kdata = getKDataExpr e -- inspect expr for what array names are used
-                             return (KData $ (name,es,TInt):(params kdata))
 genK _ = undefined
 
+
+grabKernelParams :: Program a -> KData
+grabKernelParams (Assign name es e) = let lhs = (name,es,typeNest TInt es)
+                                          rhs = getKDataExpr e
+                                      in (KData $ lhs:(params rhs))
+grabKernelParams _  = error "undefined in grabKernelParams"
+
 getKDataExpr :: Expr -> KData
-getKDataExpr (Index a is) = KData [(a,is,TInt)]
+getKDataExpr (Index a is) = KData [(a,is, typeNest TInt is)]
 getKDataExpr (a :+: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :-: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :/: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :*: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :<=: b)   = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr _            = KData []
+
 ---gen (Alloc siz f) = do 
 --   d <- incVar
 --   let m = "mem" ++ show d
