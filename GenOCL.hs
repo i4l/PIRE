@@ -43,12 +43,16 @@ gen (Par start end f) = do let tid = "tid"
                                parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
                            kerName <- fmap ((++) "k" . show) incVar
                            lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
-                           lineK $ tid ++ " = " ++ "get_global_id()" ++ ";"
+                           lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id()" ++ ";"
                            lineK $ "if( tid < " ++ show end ++ " ) {"
                            kdata <- genK $ f (var tid)
                            line $ "// Run parallel loop from host"
-                           setupOCLMemory paramTriples end
+                           line $ "cl_kernel kernel = clCreateKernel(program, \"" ++ kerName ++ "\", NULL);" 
 
+                           setupOCLMemory paramTriples 0 end
+                           runOCL kerName
+                           launchKernel 64 2
+                           readOCL "mem4" (TPointer TInt) (Num 10)
                            lineK "}"
                            lineK "}"
                            --mapM_ line $ map ((++) "// " . show) (paramTriples)
@@ -100,18 +104,42 @@ getKDataExpr (a :<=: b)   = KData $ params (getKDataExpr a) ++ params (getKDataE
 getKDataExpr _            = KData []
 
 
-setupOCLMemory :: [(Name,Dim,Type)] -> Size -> Gen ()
-setupOCLMemory []           s = return ()
-setupOCLMemory ((n,d,t):xs) s = do let objPostfix = "_obj"
-                                       createBuffers = "cl_mem " ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
-                                                "CL_MEM_WRITE_ONLY" ++ ", " ++ show s ++ "*sizeof(" ++ 
-                                                removePointer t ++ "), NULL, NULL);"
-                                   line createBuffers
-                                   let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
-                                                           objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
-                                                           removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
-                                   line copyBuffers
-                                   setupOCLMemory xs s
+setupOCLMemory :: [(Name,Dim,Type)] -> Int -> Size -> Gen ()
+setupOCLMemory []           i s = return ()
+setupOCLMemory ((n,d,t):xs) i s = do let objPostfix = "_obj"
+                                         createBuffers = "cl_mem " ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+                                                  "CL_MEM_READ_WRITE" ++ ", " ++ show s ++ "*sizeof(" ++ 
+                                                  removePointer t ++ "), NULL, NULL);"
+                                     line createBuffers
+                                     let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
+                                                             objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
+                                                             removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
+
+                                     -- set arguments to kernel
+                                     let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
+                                                         ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
+                                     line setArgs
+                                     when (i /= 0)$ line copyBuffers
+                                     setupOCLMemory xs (i+1) s
+
+runOCL :: Name -> Gen ()
+runOCL kname = do --create kernel & build program
+            line $ "cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
+                   "(const size_t *)&source_size, NULL);"
+            line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
+            --line $ "cl_kernel kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
+
+launchKernel :: Int -> Int -> Gen ()
+launchKernel global local = do 
+  line $ "size_t global_item_size = " ++ show global ++ ";"
+  line $ "size_t local_item_size = "  ++ show local ++ ";"
+  line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
+
+-- reads argument 0 from kernel
+readOCL :: Name -> Type -> Size -> Gen () 
+readOCL n t s = do
+  line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
+          show s ++ "* sizeof(" ++ removePointer t ++ "), " ++ n ++ ", 0, NULL, NULL);\n\n"
 
 
 
@@ -285,7 +313,7 @@ setupOCLMemory ((n,d,t):xs) s = do let objPostfix = "_obj"
 setupHeadings :: Gen ()
 setupHeadings = do line "#include <stdio.h>"
                    line "#include <stdlib.h>"
-                   --line "#include <CL/cl.h>"
+                   line "#include <CL/cl.h>"
                    line "#define MAX_SOURCE_SIZE (0x100000)\n\n"
                    line "int main (void) {"
                    indent 2

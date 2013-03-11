@@ -125,7 +125,7 @@ exampleDotProd :: Gen ()
 exampleDotProd = setupHeadings >> gen dotProd >> setupEnd
 
 exampleZipWith :: Gen ()
-exampleZipWith = setupHeadings >> gen zipWithTest >> setupEnd
+exampleZipWith = setupHeadings >> setupOCL >> gen zipWithTest >> setupEnd
 
 
 ------------------------------------------------------------
