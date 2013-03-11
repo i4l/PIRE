@@ -17,10 +17,10 @@ gen :: Program a -> Gen ()
 gen Skip = line ""
 
 gen (Print t e) = do let printTerm = case t of
-                                      TInt -> "i"
+                                      TInt       -> "i"
                                       TPointer x -> error "ERROR: Attempt to use pointer in in printf."
-                                      x@_        -> error $ "ERROR: Attempt to use unsupported type "
-                                                 ++ show x ++ "in printf."
+                                      x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
+                                                           show x ++ "in printf."
                      line $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
 
 gen (Assign name es e) = line $ show (Index name es) 
@@ -38,10 +38,8 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                       unindent 2
                       line "}"
 
---[ " __global int *" ++ arrPrefix ++ show i ++ "," | i <- [0.. paramMapSize-1]]
-  
 gen (Par start end f) = do let tid = "tid"
-                           let paramTriples = params $ grabKernelParams (f $ var tid)
+                               paramTriples = params $ grabKernelParams (f $ var tid)
                                parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
                            kerName <- fmap ((++) "k" . show) incVar
                            lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
@@ -49,6 +47,8 @@ gen (Par start end f) = do let tid = "tid"
                            lineK $ "if( tid < " ++ show end ++ " ) {"
                            kdata <- genK $ f (var tid)
                            line $ "// Run parallel loop from host"
+                           setupOCLMemory paramTriples
+
                            lineK "}"
                            lineK "}"
                            --mapM_ line $ map ((++) "// " . show) (paramTriples)
@@ -82,11 +82,13 @@ genK (Assign name es e) = do lineK (show (Index name es) ++ " = " ++ show e ++ "
 genK _ = undefined
 
 
+
+-- Analysis of AST - Gets the names of arrays used in the AST
 grabKernelParams :: Program a -> KData
 grabKernelParams (Assign name es e) = let lhs = (name,es,typeNest TInt es)
                                           rhs = getKDataExpr e
                                       in (KData $ lhs:(params rhs))
-grabKernelParams _  = error "undefined in grabKernelParams"
+grabKernelParams _  = error "undefined for grabKernelParams"
 
 getKDataExpr :: Expr -> KData
 getKDataExpr (Index a is) = KData [(a,is, typeNest TInt is)]
@@ -96,6 +98,22 @@ getKDataExpr (a :/: b)    = KData $ params (getKDataExpr a) ++ params (getKDataE
 getKDataExpr (a :*: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :<=: b)   = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr _            = KData []
+
+
+setupOCLMemory :: [(Name,Dim,Type)] -> Gen ()
+setupOCLMemory []           = return ()
+setupOCLMemory ((n,d,t):xs) = do let objPostfix = "_obj"
+                                     createBuffers = "cl_mem " ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+                                                "CL_MEM_WRITE_ONLY" ++ ", " ++ "10" ++ "*sizeof(" ++ 
+                                                removePointer t ++ "), NULL, NULL);"
+                                 line createBuffers
+                                 let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
+                                                         objPostfix ++ ", CL_TRUE, 0, " ++ show d ++ " * sizeof(" ++ 
+                                                         removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
+                                 line copyBuffers
+                                 setupOCLMemory xs
+
+
 
 ---gen (Alloc siz f) = do 
 --   d <- incVar
