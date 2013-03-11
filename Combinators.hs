@@ -111,6 +111,7 @@ zipWithTest = initArray t dim initf $
   where dim = [Num 10]
         t = TInt 
         initf xs = (Num 3 .+) $ foldr1 (.*) xs
+
 exampleFold :: Gen ()
 exampleFold = setupHeadings >> gen foldTest >> setupEnd
 
@@ -131,7 +132,7 @@ exampleZipWith = setupHeadings >> gen zipWithTest >> setupEnd
 -- helpers
 
 showProg :: Gen () -> IO ()
-showProg prog = putStr $ unlines $ extractCode prog emptyEnv ++ extractCodeK prog emptyEnv
+showProg prog = putStr $ unlines $ extractCode prog emptyEnv ++ ["\n//Kernel code"] ++ extractCodeK prog emptyEnv
 
 
 toFile :: Gen () -> FilePath -> IO ()

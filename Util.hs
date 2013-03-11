@@ -59,6 +59,10 @@ nestForAlloc dim lhs t = do line $ show (typeNest t dim) ++ " " ++ lhs ++ " = ("
 ------------------------------------------------------------
 -- Kernels
 
+data KData = KData
+                {params :: [(Name, Dim, Type)]
+                }
+                   
 getKernelFile :: Gen String
 getKernelFile = gets kernelFile
 

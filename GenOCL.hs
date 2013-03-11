@@ -40,7 +40,11 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
 
   
 
-gen (Par start end f) = do kdata <- genK $ f (var "get_global_id(0);")
+gen (Par start end f) = do let tid = "tid"
+                           lineK $ "tid = " ++ "get_global_id()" ++ ";"
+                           kdata <- genK $ f (var tid)
+                           line $ "// Run parallel loop"
+                           mapM_ line $ map ((++) "// " . show) (params kdata)
                            return ()
 -- do kerName <- storeKernelName
                            -- let loopVar = "get_global_id(0);"
@@ -64,18 +68,26 @@ gen (Alloc t dim f) = do d <- incVar
                          line $ "free(" ++ m ++ ");\n"
  
 
-data KData = KData
-                {params :: [(Name, Dim, Type)]
-                }
-                      
+   
 genK :: Program a -> Gen KData
 genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
                           argName <- fmap ((++) "mem" . show) incVar
+                          lineK $ "// Alloc in Kernel"
                           kdata <- genK $ f (locNest argName) (Index argName)
-                          let kdata' = KData $ (argName,dim,t) : params kdata
-                          return kdata'
-genK (Assign name depth rhs) = undefined 
+                          return $ KData $ (argName,dim,t) : params kdata
+genK (Assign name es e) = do lineK (show (Index name es) ++ " = " ++ show e ++ ";")
+                             let kdata = getKDataExpr e -- inspect expr for what array names are used
+                             return (KData $ (name,es,TInt):(params kdata))
+genK _ = undefined
 
+getKDataExpr :: Expr -> KData
+getKDataExpr (Index a is) = KData [(a,is,TInt)]
+getKDataExpr (a :+: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
+getKDataExpr (a :-: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
+getKDataExpr (a :/: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
+getKDataExpr (a :*: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
+getKDataExpr (a :<=: b)   = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
+getKDataExpr _            = KData []
 ---gen (Alloc siz f) = do 
 --   d <- incVar
 --   let m = "mem" ++ show d
