@@ -38,8 +38,14 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                       unindent 2
                       line "}"
 
-gen (Par start end f) = gen $ For start end f
+  
 
+gen (Par start end f) = do kdata <- genK $ f (var "get_global_id(0);")
+                           return ()
+-- do kerName <- storeKernelName
+                           -- let loopVar = "get_global_id(0);"
+                           --do analysis on f to conclude which arrays has to be prepped for GPU
+                           -- set up cl_mem buffers and initialize with data
 
 gen (For e1 e2 p) = do i <- fmap fst newLoopVar
                        line $ show TInt ++ " " ++ i ++ ";"
@@ -57,6 +63,18 @@ gen (Alloc t dim f) = do d <- incVar
                          gen  $ f (locNest m) (Index m)
                          line $ "free(" ++ m ++ ");\n"
  
+
+data KData = KData
+                {params :: [(Name, Dim, Type)]
+                }
+                      
+genK :: Program a -> Gen KData
+genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
+                          argName <- fmap ((++) "mem" . show) incVar
+                          kdata <- genK $ f (locNest argName) (Index argName)
+                          let kdata' = KData $ (argName,dim,t) : params kdata
+                          return kdata'
+genK (Assign name depth rhs) = undefined 
 
 ---gen (Alloc siz f) = do 
 --   d <- incVar

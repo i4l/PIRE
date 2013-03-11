@@ -57,7 +57,10 @@ zipWithP t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
                             .>> prog res
                                   
                                   
-
+zipWithP' :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
+zipWithP' t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
+                                par (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
+                            .>> prog res
 -----------------------------------------------------------------------------
 -- Example programs
 
@@ -93,13 +96,21 @@ foldTest = initArray t dim initf $
 dotProd :: Program a
 dotProd = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
-              \_ arr2 -> zipWithP t dim (.*) arr1 arr2 $ 
+              \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
                 \zipRes -> fold t (head dim) (.+) (Num 0) zipRes $
                   \foldRes -> printArray t (Num 1) foldRes
   where dim = [Num 10]
         t = TInt 
         initf xs = (Num 3 .+) $ foldr1 (.*) xs
 
+zipWithTest :: Program a
+zipWithTest = initArray t dim initf $
+            \_ arr1 -> initArray t dim initf $
+              \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
+                \zipRes -> Skip
+  where dim = [Num 10]
+        t = TInt 
+        initf xs = (Num 3 .+) $ foldr1 (.*) xs
 exampleFold :: Gen ()
 exampleFold = setupHeadings >> gen foldTest >> setupEnd
 
@@ -111,6 +122,11 @@ exampleScan = setupHeadings >> gen scanTest >> setupEnd
 
 exampleDotProd :: Gen ()
 exampleDotProd = setupHeadings >> gen dotProd >> setupEnd
+
+exampleZipWith :: Gen ()
+exampleZipWith = setupHeadings >> gen zipWithTest >> setupEnd
+
+
 ------------------------------------------------------------
 -- helpers
 
