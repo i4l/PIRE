@@ -24,7 +24,7 @@ gen (Print t e) = do let printTerm = case t of
                      line $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
 
 gen (Assign name es e) = line $ show (Index name es) 
-                      ++ " = " ++ show e ++ ";"
+                         ++ " = " ++ show e ++ ";"
 
 gen (p1 :>> p2) = gen p1 >> gen p2
 
