@@ -23,7 +23,6 @@ initArray t dim f prog = Alloc t dim $ \partialLoc arrayName ->
                           .>>
                             prog partialLoc arrayName     -- Followed by the rest of the program
 
--- TODO this might be a bit off.
 initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
 initScalar t = initArray t [Num 1] . const
 
@@ -97,32 +96,34 @@ dotProd :: Program a
 dotProd = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
               \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
-                \zipRes -> fold t (head dim) (.+) (Num 0) zipRes $
+                \zipRes -> fold t (head dim) (.+) acc zipRes $
                   \foldRes -> printArray t (Num 1) foldRes
-  where dim = [Num 10]
+  where dim = [Num 1024]
         t = TInt 
-        initf xs = (Num 3 .+) $ foldr1 (.*) xs
+        acc = Num 0
+        --initf xs = (Num 3 .+) $ foldr1 (.*) xs
+        initf xs = foldr1 (.+) xs
 
 zipWithTest :: Program a
 zipWithTest = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
               \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
-                \zipRes -> Skip
+                \zipRes -> printArray t (head dim) zipRes
   where dim = [Num 10]
         t = TInt 
         initf xs = (Num 3 .+) $ foldr1 (.*) xs
 
 exampleFold :: Gen ()
-exampleFold = setupHeadings >> gen foldTest >> setupEnd
+exampleFold = setupHeadings >> setupOCL >> gen foldTest >> setupEnd
 
 exampleMap :: Gen ()
-exampleMap = setupHeadings >> gen mapTest >> setupEnd
+exampleMap = setupHeadings >> setupOCL >> gen mapTest >> setupEnd
 
 exampleScan :: Gen ()
-exampleScan = setupHeadings >> gen scanTest >> setupEnd
+exampleScan = setupHeadings >> setupOCL >> gen scanTest >> setupEnd
 
 exampleDotProd :: Gen ()
-exampleDotProd = setupHeadings >> gen dotProd >> setupEnd
+exampleDotProd = setupHeadings >> setupOCL >> gen dotProd >> setupEnd
 
 exampleZipWith :: Gen ()
 exampleZipWith = setupHeadings >> setupOCL >> gen zipWithTest >> setupEnd

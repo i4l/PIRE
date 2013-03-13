@@ -43,15 +43,16 @@ gen (Par start end f) = do let tid = "tid"
                                parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
                            kerName <- fmap ((++) "k" . show) incVar
                            lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
-                           lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id()" ++ ";"
+                           lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
                            lineK $ "if( tid < " ++ show end ++ " ) {"
                            kdata <- genK $ f (var tid)
                            line $ "// Run parallel loop from host"
 
                            runOCL kerName
                            setupOCLMemory paramTriples 0 end
-                           launchKernel 64 2
-                           readOCL "mem4" (TPointer TInt) (Num 10)
+                           launchKernel 2048 64
+                           let (n,dim,t) = head paramTriples
+                           readOCL n (TPointer t) end
                            lineK "}"
                            lineK "}"
                            --mapM_ line $ map ((++) "// " . show) (paramTriples)
