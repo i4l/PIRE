@@ -14,6 +14,7 @@ data Expr where
   (:-:)  :: Expr -> Expr -> Expr
   (:*:)  :: Expr -> Expr -> Expr
   (:/:)  :: Expr -> Expr -> Expr
+  (:%:)  :: Expr -> Expr -> Expr
   (:<=:) :: Expr -> Expr -> Expr
 
 instance Eq Expr where
@@ -43,6 +44,7 @@ instance Show (Expr) where
   show (a :-: b)    = "(" ++ show a ++ "-" ++ show b ++ ")"
   show (a :/: b)    = "(" ++ show a ++ "/" ++ show b ++ ")"
   show (a :*: b)    = "(" ++ show a ++ "*" ++ show b ++ ")"
+  show (a :%: b)    = "(" ++ show a ++ "%" ++ show b ++ ")"
   show (a :<=: b)   = "(" ++ show a ++ " <= " ++ show b ++ ")"
 
 -- | Reduce a list of Expr to a single Expr as a string.
@@ -52,7 +54,7 @@ showMulExpr = show . foldr1 (.*)
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for expressions
 
-(.+), (.-), (.<=), (./), (.*) :: Expr -> Expr -> Expr
+(.+), (.-), (.<=), (./), (.%), (.*) :: Expr -> Expr -> Expr
 Num 0 .+ b     = b
 a     .+ Num 0 = a
 Num a .+ Num b = Num (a+b)
@@ -66,6 +68,10 @@ Num a ./ Num b = Num (a `div` b)
 Num 0 ./ b     = Num 0
 a     ./ Num 1 = a
 a     ./ b     = a :/: b
+
+Num a .% Num b = Num (a `mod` b)
+a     .% Num 1 = Num 0
+a     .% b     = a :%: b
 
 Num a .* Num b = Num (a*b)
 a     .* Num 0 = Num 0

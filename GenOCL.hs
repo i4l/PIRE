@@ -118,6 +118,7 @@ getKDataExpr (Index a is) = KData [(a,is, typeNest TInt is)]
 getKDataExpr (a :+: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :-: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :/: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
+getKDataExpr (a :%: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :*: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr (a :<=: b)   = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
 getKDataExpr _            = KData []
