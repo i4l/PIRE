@@ -47,10 +47,9 @@ gen (Par start end f) = do let tid = "tid"
                            lineK $ "if( tid < " ++ show end ++ " ) {"
                            kdata <- genK $ f (var tid)
                            line $ "// Run parallel loop from host"
-                           line $ "cl_kernel kernel = clCreateKernel(program, \"" ++ kerName ++ "\", NULL);" 
 
-                           setupOCLMemory paramTriples 0 end
                            runOCL kerName
+                           setupOCLMemory paramTriples 0 end
                            launchKernel 64 2
                            readOCL "mem4" (TPointer TInt) (Num 10)
                            lineK "}"
@@ -127,7 +126,7 @@ runOCL kname = do --create kernel & build program
             line $ "cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
                    "(const size_t *)&source_size, NULL);"
             line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
-            --line $ "cl_kernel kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
+            line $ "cl_kernel kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
 
 launchKernel :: Int -> Int -> Gen ()
 launchKernel global local = do 
