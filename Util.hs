@@ -61,6 +61,12 @@ nestPar dim loc f vars | null vars && length dim == 1 = par (Num 0) (head dim) (
                        | null vars = par (Num 0) (head dim) (\loopvar -> nestFor (tail dim) loc f (loopvar:vars))
                        | otherwise = error $ "nestPar: vars was: " ++ show vars ++ ". Expected empty list."
 
+
+
+seqIf :: Size -> Expr -> (Expr -> Size) -> Program a
+seqIf (Num 0) i f = Skip
+seqIf n i f       = (iff (f i) (Skip) (Skip)) .>> seqIf (n .- Num 1) i f
+
 ------------------------------------------------------------
 -- Kernels
 
