@@ -52,7 +52,9 @@ fold t s f acc arr prog = initScalar t acc $ \loc res ->
 -- | Experimental foldl.
 fold' :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 fold' t s f acc arr prog = initScalar t acc $ \loc res -> 
-                            for (Num 0) s (\e -> loc [Num 0] (f (res [Num 0]) (arr [e])))
+                            for (Num 0) (s ./ Num 2) (\_ -> for (Num 0) s 
+                              (\i -> iff (i .% Num 2) (loc [i] (f (arr [i]) (arr [i .+ Num 1])))
+                                      Skip))
                         .>> prog res
 --TODO only works for 1D
 zipWithP :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
@@ -89,7 +91,7 @@ scanTest = initArray t dim initf $
 
 foldTest :: Program a
 foldTest = initArray t dim initf $
-              \_ arrName -> fold t (head dim) apply acc arrName $
+              \_ arrName -> fold' t (head dim) apply acc arrName $
                 \foldedName -> printArray t (Num 1) foldedName
   where dim = [Num 10]
         acc = Num 0
