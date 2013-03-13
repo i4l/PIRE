@@ -34,7 +34,7 @@ toInt (a :*: b)  = toInt a * toInt b
 toInt _          = undefined
 
 instance Ord (Expr) where
-  e1 <= e2 = toInt e1<= toInt e2
+  e1 <= e2 = toInt e1 <= toInt e2
 
 instance Show (Expr) where
   show (Num n)      = show n

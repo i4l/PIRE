@@ -25,9 +25,7 @@ data Program a where
   If       :: Expr -> Program a -> Program a -> Program a
   For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par      :: Expr -> Expr -> (Expr -> Program a) -> Program a
-
-  -- We need the 'IndexedArray' to access the initialized memory
-  Alloc   :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
+  Alloc    :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
 
 
 
