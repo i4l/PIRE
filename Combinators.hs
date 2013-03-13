@@ -33,7 +33,7 @@ printArray t s arr = for (Num 0) s $ \e -> Print t $ arr [e]
 -- | Experimental map (to have something to play around with).
 mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 mapP t dim f arr prog = initArray t dim f $ \loc res->
-                          nestFor dim loc (\xs -> f [arr $ reverse xs]) []
+                          nestPar dim loc (\xs -> f [arr $ reverse xs]) []
                       .>> prog res
 
 -- | sequential scanl on 1D array using f.

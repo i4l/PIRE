@@ -58,6 +58,7 @@ nestForAlloc dim lhs t = do line $ show (typeNest t dim) ++ " " ++ lhs ++ " = ("
 
 nestPar :: Dim -> PartialLoc Expr a -> ([Index] -> Expr) -> [Expr] -> Program a
 nestPar dim p f vars | null vars = par (Num 0) (head dim) (\loopvar -> nestFor (tail dim) p f (loopvar:vars))
+                     | otherwise = error $ "nestPar: vars was: " ++ show vars ++ ". Expected empty list."
 --                     | not (null vars) = nestFor dim p f vars
 
 --nestPar []  _     _ _    = Skip
