@@ -55,15 +55,11 @@ nestForAlloc dim lhs t = do line $ show (typeNest t dim) ++ " " ++ lhs ++ " = ("
       line "}"
 
 
-
+-- | A Parloop of parloops is transformed to a parloop of forloops.
 nestPar :: Dim -> PartialLoc Expr a -> ([Index] -> Expr) -> [Expr] -> Program a
-nestPar dim p f vars | null vars = par (Num 0) (head dim) (\loopvar -> nestFor (tail dim) p f (loopvar:vars))
-                     | otherwise = error $ "nestPar: vars was: " ++ show vars ++ ". Expected empty list."
---                     | not (null vars) = nestFor dim p f vars
-
---nestPar []  _     _ _    = Skip
---nestPar [x] inner f vars = for (Num 0) x (\loopvar -> inner (reverse $ loopvar:vars) (f (loopvar:vars)))
---nestPar (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:vars))                                     
+nestPar dim loc f vars | null vars && length dim == 1 = par (Num 0) (head dim) (\loopvar -> loc (reverse $ loopvar:vars) (f (loopvar:vars)))
+                       | null vars = par (Num 0) (head dim) (\loopvar -> nestFor (tail dim) loc f (loopvar:vars))
+                       | otherwise = error $ "nestPar: vars was: " ++ show vars ++ ". Expected empty list."
 
 ------------------------------------------------------------
 -- Kernels
