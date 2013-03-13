@@ -32,9 +32,9 @@ printArray t s arr = for (Num 0) s $ \e -> Print t $ arr [e]
 
 -- | Experimental map (to have something to play around with).
 mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
-mapP t dim arr f prog = initArray t dim f $ \loc iarr ->
+mapP t dim f arr prog = initArray t dim f $ \loc res->
                           nestFor dim loc (\xs -> f [arr $ reverse xs]) []
-                      .>> prog iarr
+                      .>> prog res
 
 -- | sequential scanl on 1D array using f.
 scan :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
@@ -71,7 +71,7 @@ mapTest = initArray t dim initf $
   where dim = [Num 10]
         t = TInt 
         initf xs = (Num 3 .+) $ foldr1 (.*) xs 
-        apply xs = xs !! 0 .+ Num 5
+        apply xs = (xs !! 0) .+ Num 5
 
 scanTest :: Program a
 scanTest = initArray t dim initf $

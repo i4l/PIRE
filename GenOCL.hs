@@ -41,6 +41,10 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
 gen (Par start end f) = do let tid = "tid"
                                paramTriples = params $ grabKernelParams (f $ var tid)
                                parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
+
+                           line "//Param triples"
+                           mapM_ line $ map ((++) "// " . show) (paramTriples)
+
                            kerName <- fmap ((++) "k" . show) incVar
                            lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
                            lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
@@ -55,7 +59,6 @@ gen (Par start end f) = do let tid = "tid"
                            readOCL n (TPointer t) end
                            lineK "}"
                            lineK "}"
-                           --mapM_ line $ map ((++) "// " . show) (paramTriples)
                            return ()
 
 gen (For e1 e2 p) = do i <- fmap fst newLoopVar
@@ -76,6 +79,7 @@ gen (Alloc t dim f) = do d <- incVar
  
 -- Code gen in kernel code   
 genK :: Program a -> Gen ()
+genK Skip            = return ()
 genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
                           argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
@@ -83,7 +87,14 @@ genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
                           --return $ KData $ (argName,dim,t) : params kdata
                           return ()
 genK (Assign name es e) = do lineK (show (Index name es) ++ " = " ++ show e ++ ";")
-genK _ = undefined
+genK (Print t e) = do let printTerm = case t of
+                                      TInt       -> "i"
+                                      TPointer x -> error "ERROR: Attempt to use pointer in in printf."
+                                      x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
+                                                           show x ++ "in printf."
+                      lineK $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
+genK (For start end f) = error "For"
+genK (Par start end f) = error "Par"
 
 
 
@@ -92,7 +103,15 @@ grabKernelParams :: Program a -> KData
 grabKernelParams (Assign name es e) = let lhs = (name,es,typeNest TInt es)
                                           rhs = getKDataExpr e
                                       in (KData $ lhs:(params rhs))
-grabKernelParams _  = error "undefined for grabKernelParams"
+grabKernelParams (a :>> b) = grabKernelParams a +++ grabKernelParams b
+  where a +++ b = KData $ (params a) ++ (params b)
+grabKernelParams (If _ tb fb) = grabKernelParams $ tb :>> fb
+grabKernelParams (For start end f) = error "for"
+grabKernelParams (Par start end f) = error "par"
+grabKernelParams (Alloc t dim p) = error "alloc"
+grabKernelParams (Print t e)     = error "print"
+grabKernelParams _               = KData []
+
 
 getKDataExpr :: Expr -> KData
 getKDataExpr (Index a is) = KData [(a,is, typeNest TInt is)]

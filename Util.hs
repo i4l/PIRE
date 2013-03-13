@@ -54,7 +54,15 @@ nestForAlloc dim lhs t = do line $ show (typeNest t dim) ++ " " ++ lhs ++ " = ("
       unindent 2
       line "}"
 
-                                      
+
+
+nestPar :: Dim -> PartialLoc Expr a -> ([Index] -> Expr) -> [Expr] -> Program a
+nestPar dim p f vars | null vars = par (Num 0) (head dim) (\loopvar -> nestFor (tail dim) p f (loopvar:vars))
+--                     | not (null vars) = nestFor dim p f vars
+
+--nestPar []  _     _ _    = Skip
+--nestPar [x] inner f vars = for (Num 0) x (\loopvar -> inner (reverse $ loopvar:vars) (f (loopvar:vars)))
+--nestPar (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:vars))                                     
 
 ------------------------------------------------------------
 -- Kernels
