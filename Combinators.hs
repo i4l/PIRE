@@ -56,9 +56,9 @@ fold' t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res ->
                               (\i -> seqIf (s ./ Num 2 .- Num 1)         -- No. of if's
                                     (Num 2)                              -- starting value
                                     (flip (.==) (Num 0) . (.%) i)   -- conditional function
-                                    $ \current -> --if current == Num 2 then 
-                                      loc [i] (f (arr [i]) (arr [i .+ (current ./ Num 2)]))
-                                     -- loc [i] (f (res [i]) (res [i] .+ (current ./ Num 2)))
+                                    $ \current -> if current == Num 2 then 
+                                      loc [i] (f (arr [i]) (arr [i .+ (current ./ Num 2)])) else
+                                      loc [i] (f (res [i]) (res [i .+ (current ./ Num 2)]))
                                     ))
                                     --(loc [i] (f 
                                     --            (arr [i]) 

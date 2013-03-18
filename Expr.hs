@@ -17,8 +17,7 @@ data Expr where
   (:%:)  :: Expr -> Expr -> Expr
   (:<=:) :: Expr -> Expr -> Expr
   (:==:) :: Expr -> Expr -> Expr
-
-instance Eq Expr where
+  deriving Eq
 
 type Size  = Expr
 type Index = Expr 
