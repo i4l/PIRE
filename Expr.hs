@@ -87,5 +87,4 @@ a     .<= b | a == b = Num 1
 a     .<= b          = a :<=: b
 
 Num a .== Num b      = Num (if a==b then 1 else 0)
-a     .== b | a == b = Num 1
 a     .== b          = a :==: b

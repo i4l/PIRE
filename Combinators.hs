@@ -53,7 +53,10 @@ fold t s f acc arr prog = initScalar t acc $ \loc res ->
 fold' :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 fold' t s f acc arr prog = initScalar t acc $ \loc res -> 
                             for (Num 0) (s ./ Num 2) (\_ -> for (Num 0) s 
-                              (\i -> seqIf (s ./ Num 2) i (flip (.%) (Num 2))))--iff (i .% Num 2) (loc [i] (f (arr [i]) (arr [i .+ Num 1])))
+                              (\i -> seqIf (s ./ Num 2) ( 
+                                (flip (.==) (Num 0) . flip (.%) (Num 2))))
+                                
+                                --iff (i .% Num 2) (loc [i] (f (arr [i]) (arr [i .+ Num 1])))
                                       --Skip))
                         .>> prog res
 --TODO only works for 1D
