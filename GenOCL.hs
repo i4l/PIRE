@@ -28,7 +28,7 @@ gen (Assign name es e) = line $ show (Index name es)
 
 gen (p1 :>> p2) = gen p1 >> gen p2
 
-gen (If c p1 Skip) = do line $ "if( " ++ show c ++ " ) { "
+gen (If c p1 Skip) = do line $ "if( " ++ show c ++ " )"
                         indent 2
                         gen p1
                         unindent 2
