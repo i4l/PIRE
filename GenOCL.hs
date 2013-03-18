@@ -44,9 +44,9 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                       line "}"
 
 gen (Par start end f) = do let tid = "tid"
-                               paramTriples = params $ grabKernelParams (f $ var tid)
+                               paramTriples = (nubBy (\(n,_,_) (m,_,_) -> n == m) . params) $ grabKernelParams (f $ var tid)
                                -- TODO: Can we nub earlier than this?
-                               parameters = (init . concat . nub) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
+                               parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
 
                            line "//Param triples"
                            mapM_ line $ map ((++) "// " . show) (paramTriples)
