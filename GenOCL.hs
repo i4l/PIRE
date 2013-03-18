@@ -83,22 +83,44 @@ gen (Alloc t dim f) = do d <- incVar
  
 -- Code gen in kernel code   
 genK :: Program a -> Gen ()
-genK Skip            = return ()
-genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
-                          argName <- fmap ((++) "mem" . show) incVar
-                          lineK $ "// Alloc in Kernel"
-                          kdata <- genK $ f (locNest argName) (Index argName)
-                          --return $ KData $ (argName,dim,t) : params kdata
-                          return ()
-genK (Assign name es e) = do lineK (show (Index name es) ++ " = " ++ show e ++ ";")
 genK (Print t e) = do let printTerm = case t of
                                       TInt       -> "i"
                                       TPointer x -> error "ERROR: Attempt to use pointer in in printf."
                                       x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
                                                            show x ++ "in printf."
                       lineK $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
-genK (For start end f) = error "For"
+genK Skip            = return ()
+genK (Assign name es e) = do lineK (show (Index name es) ++ " = " ++ show e ++ ";")
+genK (p1 :>> p2)        = genK p1 >> genK p2
+genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " )"
+                         indent 2
+                         genK p1
+                         unindent 2
+genK (If c p1 p2) = do lineK $ "if( " ++ show c ++ " ) { "
+                       indent 2
+                       genK p1
+                       unindent 2
+                       lineK "else { "
+                       indent 2
+                       genK p2
+                       unindent 2
+                       lineK "}"
+genK (For e1 e2 p) = do i <- fmap fst newLoopVar
+                        lineK $ show TInt ++ " " ++ i ++ ";"
+                        lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
+                            ++ i ++ " < " ++ show e2 ++ "; "
+                            ++ i ++ "++ ) {"
+                        indent 2
+                        genK $ p (var i)
+                        unindent 2
+                        lineK "}"
 genK (Par start end f) = error "Par"
+genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
+                          argName <- fmap ((++) "mem" . show) incVar
+                          lineK $ "// Alloc in Kernel"
+                          kdata <- genK $ f (locNest argName) (Index argName)
+                          --return $ KData $ (argName,dim,t) : params kdata
+                          return ()
 
 
 
@@ -110,7 +132,7 @@ grabKernelParams (Assign name es e) = let lhs = (name,es,typeNest TInt es)
 grabKernelParams (a :>> b) = grabKernelParams a +++ grabKernelParams b
   where a +++ b = KData $ (params a) ++ (params b)
 grabKernelParams (If _ tb fb) = grabKernelParams $ tb :>> fb
-grabKernelParams (For start end f) = error "for"
+grabKernelParams (For start end f) = grabKernelParams $ f (var "tid")--error "for"
 grabKernelParams (Par start end f) = error "par"
 grabKernelParams (Alloc t dim p) = error "alloc"
 grabKernelParams (Print t e)     = error "print"
