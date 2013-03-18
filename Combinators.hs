@@ -53,9 +53,9 @@ fold t s f acc arr prog = initScalar t acc $ \loc res ->
 fold' :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 fold' t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res -> 
                             for (Num 0) (s ./ Num 2) (\_ -> for (Num 0) s 
-                              (\i -> seqIf (s ./ Num 2 .- Num 1)         -- No. of if's
-                                    (Num 2)                              -- starting value
-                                    (flip (.==) (Num 0) . (.%) i)   -- conditional function
+                              (\i -> seqIf (s ./ Num 2)         -- No. of if's
+                                    s                                    -- starting value
+                                    (flip (.==) (Num 0) . (.%) i)        -- conditional function
                                     $ \current -> if current == Num 2 then 
                                       loc [i] (f (arr [i]) (arr [i .+ (current ./ Num 2)])) else
                                       loc [i] (f (res [i]) (res [i .+ (current ./ Num 2)]))
@@ -105,7 +105,7 @@ foldTest :: Program a
 foldTest = initArray t dim initf $
               \_ arrName -> fold' t (head dim) apply acc arrName $
                 \foldedName -> printArray t (Num 1) foldedName
-  where dim = [Num 8]
+  where dim = [Num 32]
         acc = Num 0
         t = TInt 
         initf xs = foldr1 (.*) xs --(Num 3 .+) $ foldr1 (.*) xs
