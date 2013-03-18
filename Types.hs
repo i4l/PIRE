@@ -1,6 +1,7 @@
 module Types where
 
 data Type = TInt | TArray Type | TPointer Type
+  deriving Eq
 
 instance Show Type where
   show TInt = "int"

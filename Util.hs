@@ -70,9 +70,8 @@ seqIf n i condf  prog  = seqIf (n ./ Num 2) (i ./ Num 2) condf prog .>> iff (con
 ------------------------------------------------------------
 -- Kernels
 
-data KData = KData
-                {params :: [(Name, Dim, Type)]
-                }
+--TODO make monoid, functor etc.
+data KData = KData {params :: [(Name, Dim, Type)]}
                    
 getKernelFile :: Gen String
 getKernelFile = gets kernelFile

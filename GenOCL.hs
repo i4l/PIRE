@@ -10,6 +10,7 @@ import Gen
 --import Data.Maybe
 --import Control.Monad.State
 import Control.Monad
+import Data.List
 
 
 gen :: Program a -> Gen ()
@@ -44,7 +45,8 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
 
 gen (Par start end f) = do let tid = "tid"
                                paramTriples = params $ grabKernelParams (f $ var tid)
-                               parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
+                               -- TODO: Can we nub earlier than this?
+                               parameters = (init . concat . nub) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
 
                            line "//Param triples"
                            mapM_ line $ map ((++) "// " . show) (paramTriples)
@@ -128,15 +130,17 @@ genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
 grabKernelParams :: Program a -> KData
 grabKernelParams (Assign name es e) = let lhs = (name,es,typeNest TInt es)
                                           rhs = getKDataExpr e
-                                      in (KData $ lhs:(params rhs))
+                                      in (KData $ lhs:( params rhs))
 grabKernelParams (a :>> b) = grabKernelParams a +++ grabKernelParams b
   where a +++ b = KData $ (params a) ++ (params b)
-grabKernelParams (If _ tb fb) = grabKernelParams $ tb :>> fb
+grabKernelParams (If c tb fb) = let cond   = getKDataExpr c 
+                                    bodies = grabKernelParams $ tb :>> fb
+                                in KData $  params cond ++ params bodies
 grabKernelParams (For start end f) = grabKernelParams $ f (var "tid")--error "for"
 grabKernelParams (Par start end f) = error "par"
-grabKernelParams (Alloc t dim p) = error "alloc"
-grabKernelParams (Print t e)     = error "print"
-grabKernelParams _               = KData []
+grabKernelParams (Alloc t dim p)   = error "alloc"
+grabKernelParams (Print t e)       = error "print"
+grabKernelParams _                 = KData []
 
 
 getKDataExpr :: Expr -> KData
