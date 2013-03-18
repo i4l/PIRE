@@ -47,8 +47,8 @@ gen (Par start end f) = do let tid = "tid"
                                paramTriples = (nubBy (\(n,_,_) (m,_,_) -> n == m) . params) $ grabKernelParams (f $ var tid)
                                parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
 
-                           line "//Param triples"
-                           mapM_ line $ map ((++) "// " . show) (paramTriples)
+                           --line "//Param triples"
+                           --mapM_ line $ map ((++) "// " . show) (paramTriples)
 
                            kerName <- fmap ((++) "k" . show) incVar
                            lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
