@@ -63,9 +63,9 @@ nestPar dim loc f vars | null vars && length dim == 1 = par (Num 0) (head dim) (
 
 
 
-seqIf :: Size -> Expr -> (Expr -> Size) -> Program a
-seqIf (Num 0) _ _ = Skip
-seqIf n i condf   = iff (condf i) (Skip) (Skip) .>> seqIf (n .- Num 1) i condf
+seqIf :: Size -> Expr -> (Expr -> Size) -> (Expr -> Program a) -> Program a
+seqIf (Num 0) _ _ _    = Skip
+seqIf n i condf  prog  = iff (condf i) (prog i) (Skip) .>> seqIf (n .- Num 1) (i .* Num 2) condf prog
 
 ------------------------------------------------------------
 -- Kernels

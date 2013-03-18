@@ -7,11 +7,12 @@ int main () {
   int *res = malloc(8*sizeof(int));
   
   int i;
-  for(i = 0; i < 8; i++) {
+  for(i = 0; i < 8; i++) { //expected when folded: 28
     arr[i] = i;
   } 
 
-  for( i = 8/2; i != 0; i /= 2) {
+  //for( i = 8/2; i != 0; i /= 2) {
+  for( i = 0; i < 4; i++) {
     int j;
     for(j=0; j < 8; j++) {
       if(j % 2 == 0)
