@@ -16,6 +16,7 @@ data Expr where
   (:/:)  :: Expr -> Expr -> Expr
   (:%:)  :: Expr -> Expr -> Expr
   (:<=:) :: Expr -> Expr -> Expr
+  (:==:) :: Expr -> Expr -> Expr
 
 instance Eq Expr where
 
@@ -46,6 +47,7 @@ instance Show (Expr) where
   show (a :*: b)    = "(" ++ show a ++ "*" ++ show b ++ ")"
   show (a :%: b)    = "(" ++ show a ++ "%" ++ show b ++ ")"
   show (a :<=: b)   = "(" ++ show a ++ " <= " ++ show b ++ ")"
+  show (a :==: b)   = "(" ++ show a ++ " == " ++ show b ++ ")"
 
 -- | Reduce a list of Expr to a single Expr as a string.
 showMulExpr :: [Expr] -> String
@@ -83,3 +85,7 @@ a     .* b     = a :*: b
 Num a .<= Num b      = Num (if a<=b then 1 else 0)
 a     .<= b | a == b = Num 1
 a     .<= b          = a :<=: b
+
+Num a .== Num b      = Num (if a==b then 1 else 0)
+a     .== b | a == b = Num 1
+a     .== b          = a :==: b
