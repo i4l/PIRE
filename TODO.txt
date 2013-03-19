@@ -1,5 +1,7 @@
 ==TODO==
 
+* Use local memory in reduce kernels instead of global
+
 * Control group/workitem size
 
 * remove unnecessary initialization of (result) arrays.
