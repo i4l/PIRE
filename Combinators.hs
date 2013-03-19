@@ -53,7 +53,7 @@ fold t s f acc arr prog = initScalar t acc $ \loc res ->
 foldP :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 foldP t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res -> 
                             par (Num 0) s (\_ -> for (Num 0) s 
-                              (\i -> seqIf (s ./ Num 2)         -- No. of if's
+                              (\i -> seqIf (s ./ Num 2)                  -- No. of if's
                                     s                                    -- starting value
                                     (flip (.==) (Num 0) . (.%) i)        -- conditional function
                                     $ \current -> if current == Num 2 then 
