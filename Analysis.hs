@@ -19,10 +19,10 @@ type Parameters = [(Name, Dim, Type)]
 --   Removes duplicates by name only.
 grabKernelParams :: Program a -> Parameters
 grabKernelParams = rmDup . grabKernelParams' 
-  where rmDup = nubBy (\(n,_,_) (m,_,_) -> n == m)
+  where rmDup = nubBy $ \(n1,_,_) (n2,_,_) -> n1 == n2
 
 grabKernelParams' :: Program a -> Parameters
-grabKernelParams' (Assign name es e) = let lhs = (name,es,typeNest TInt es)
+grabKernelParams' (Assign name es e) = let lhs = (name,es,typeNest TInt es) -- TODO: hard-coded to Int.
                                            rhs = exprAsParam e
                                        in (lhs:rhs)
 grabKernelParams' (a :>> b) = grabKernelParams a ++ grabKernelParams b
@@ -48,3 +48,4 @@ exprAsParam (a :==: b)   =  exprAsParam a ++ exprAsParam b
 exprAsParam _            =  []
 
 -----------------------------------------------------------------------------
+

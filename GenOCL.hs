@@ -116,7 +116,7 @@ genK (For e1 e2 p) = do i <- fmap fst newLoopVar
                         genK $ p (var i)
                         unindent 2
                         lineK "}"
-genK (Par start end f) = error "Par"
+genK (Par start end f) = genK (For start end f)
 genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
                           argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
