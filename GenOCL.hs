@@ -46,7 +46,8 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
 gen (Par start end f) = do let tid = "tid"
                                paramTriples = grabKernelParams (f $ var tid)
                                parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
-
+                           
+                           --debugging code. prints the parameter names gathered.
                            --line "//Param triples"
                            --mapM_ line $ map ((++) "// " . show) (paramTriples)
 
@@ -136,7 +137,7 @@ genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
 
 setupOCLMemory :: [(Name,Dim,Type)] -> Int -> Size -> Gen ()
 setupOCLMemory []           i s = return ()
-setupOCLMemory ((n,d,t):xs) i s = do nameUsed <- nameExists n
+setupOCLMemory ((n,d,t):xs) i s = do nameUsed <- nameExists n -- If a name is already declared we can reuse it
                                      let objPostfix = "_obj"
                                          createBuffers = (if not nameUsed then "cl_mem " else "") ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
                                                   "CL_MEM_READ_WRITE" ++ ", " ++ show s ++ "*sizeof(" ++ 
@@ -156,7 +157,7 @@ setupOCLMemory ((n,d,t):xs) i s = do nameUsed <- nameExists n
 
 runOCL :: Name -> Gen ()
 runOCL kname = do --create kernel & build program
-            kcount <- gets kernelCounter
+            kcount <- gets kernelCounter -- we can reuse declared openCL objects
             line $ (if kcount <= 0 then "cl_program " else "") ++ "program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
                    "(const size_t *)&source_size, NULL);"
             line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
