@@ -112,10 +112,10 @@ foldTest = initArray t dim initf $
 dotProd :: Program a
 dotProd = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
-              \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
-                \zipRes -> foldP t (head dim) (.+) acc zipRes $
+              \_ arr2 -> zipWithP t dim (.*) arr1 arr2 $ 
+                \zipRes -> fold t (head dim) (.+) acc zipRes $
                   \foldRes -> printArray t (Num 1) foldRes
-  where dim = [Num 32]
+  where dim = [Num 1024]
         t   = TInt 
         acc = Num 0
         --initf xs = (Num 3 .+) $ foldr1 (.*) xs

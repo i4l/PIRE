@@ -65,7 +65,7 @@ gen (Par start end f) = do let tid = "tid"
 
                            runOCL kerName
                            setupOCLMemory paramTriples 0 end
-                           launchKernel 2048 64
+                           launchKernel 2048 2048
                            modify $ \env -> env {kernelCounter = kernelCounter env + 1}
                            let (n,dim,t) = head paramTriples
                            readOCL n (TPointer t) end
