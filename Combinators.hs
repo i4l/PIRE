@@ -73,6 +73,10 @@ zipWithP' :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArr
 zipWithP' t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
                                 par (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
                             .>> prog res
+
+
+
+
 -----------------------------------------------------------------------------
 -- Example programs
 

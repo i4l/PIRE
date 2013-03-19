@@ -1,0 +1,10 @@
+==TODO==
+
+
+* Resolve problem of combining many kernels in one program (see DotProd example).
+  Currently variables are getting redeclared (program etc.)
+
+* Shallow embedding of different parallel scan types (Brent Kung, Sklansky..)
+
+
+
