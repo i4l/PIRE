@@ -1,42 +1,48 @@
 -----------------------------------------------------------------------------
 -- | Module providing AST anaysis for various tasks
 -----------------------------------------------------------------------------
-module Analysis where
+module Analysis (Parameters, grabKernelParams) where
 
 import Util
 import Expr
 import Program
 import Types
 
+import Data.List
+
 -----------------------------------------------------------------------------
--- Get the arrays to be used as kernel parameters
+-- kernel parameters
 
-data KData = KData {params :: [(Name, Dim, Type)]}
---type Parameters = [(Name, Dim, Type)]
+type Parameters = [(Name, Dim, Type)]
 
-grabKernelParams :: Program a -> KData
-grabKernelParams (Assign name es e) = let lhs = (name,es,typeNest TInt es)
-                                          rhs = getKDataExpr e
-                                      in (KData $ lhs:( params rhs))
-grabKernelParams (a :>> b) = grabKernelParams a +++ grabKernelParams b
-  where a +++ b = KData $ (params a) ++ (params b)
-grabKernelParams (If c tb fb) = let cond   = getKDataExpr c 
-                                    bodies = grabKernelParams $ tb :>> fb
-                                in KData $  params cond ++ params bodies
-grabKernelParams (For start end f) = grabKernelParams $ f (var "tid")
-grabKernelParams (Par start end f) = error "par"
-grabKernelParams (Alloc t dim p)   = error "alloc"
-grabKernelParams (Print t e)       = error "print"
-grabKernelParams _                 = KData []
+-- | grabKernelParams p gets the arrays used in p as a list of parameters that can be used in a kernel.
+--   Removes duplicates by name only.
+grabKernelParams :: Program a -> Parameters
+grabKernelParams = rmDup . grabKernelParams' 
+  where rmDup = nubBy (\(n,_,_) (m,_,_) -> n == m)
 
-getKDataExpr :: Expr -> KData
-getKDataExpr (Index a is) = KData [(a,is, typeNest TInt is)]
-getKDataExpr (a :+: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :-: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :/: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :%: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :*: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :<=: b)   = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr _            = KData []
+grabKernelParams' :: Program a -> Parameters
+grabKernelParams' (Assign name es e) = let lhs = (name,es,typeNest TInt es)
+                                           rhs = exprAsParam e
+                                       in (lhs:rhs)
+grabKernelParams' (a :>> b) = grabKernelParams a ++ grabKernelParams b
+grabKernelParams' (If c tb fb) = let cond   = exprAsParam c 
+                                     bodies = grabKernelParams $ tb :>> fb
+                                 in cond ++ bodies
+grabKernelParams' (For start end f) = grabKernelParams $ f (var "tid")
+grabKernelParams' (Par start end f) = error "par"
+grabKernelParams' (Alloc t dim p)   = error "alloc"
+grabKernelParams' (Print t e)       = error "print"
+grabKernelParams' _                 = []
 
+exprAsParam :: Expr -> Parameters
+exprAsParam (Index a is) =  [(a,is, typeNest TInt is)]
+exprAsParam (a :+: b)    =  exprAsParam a ++ exprAsParam b
+exprAsParam (a :-: b)    =  exprAsParam a ++ exprAsParam b
+exprAsParam (a :/: b)    =  exprAsParam a ++ exprAsParam b
+exprAsParam (a :%: b)    =  exprAsParam a ++ exprAsParam b
+exprAsParam (a :*: b)    =  exprAsParam a ++ exprAsParam b
+exprAsParam (a :<=: b)   =  exprAsParam a ++ exprAsParam b
+exprAsParam _            =  []
 
+-----------------------------------------------------------------------------
