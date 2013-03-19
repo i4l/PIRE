@@ -35,6 +35,7 @@ grabKernelParams' (Alloc t dim p)   = error "alloc"
 grabKernelParams' (Print t e)       = error "print"
 grabKernelParams' _                 = []
 
+-- | Extracts names, types ('bit iffy atm) and type of all Indexing operations.
 exprAsParam :: Expr -> Parameters
 exprAsParam (Index a is) =  [(a,is, typeNest TInt is)]
 exprAsParam (a :+: b)    =  exprAsParam a ++ exprAsParam b
@@ -43,6 +44,7 @@ exprAsParam (a :/: b)    =  exprAsParam a ++ exprAsParam b
 exprAsParam (a :%: b)    =  exprAsParam a ++ exprAsParam b
 exprAsParam (a :*: b)    =  exprAsParam a ++ exprAsParam b
 exprAsParam (a :<=: b)   =  exprAsParam a ++ exprAsParam b
+exprAsParam (a :==: b)   =  exprAsParam a ++ exprAsParam b
 exprAsParam _            =  []
 
 -----------------------------------------------------------------------------
