@@ -5,6 +5,7 @@ import Program
 import Types
 import Expr
 import Gen
+import Analysis
 
 --import qualified Data.Map as Map
 --import Data.Maybe
@@ -42,7 +43,6 @@ gen (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                       gen p2
                       unindent 2
                       line "}"
-
 gen (Par start end f) = do let tid = "tid"
                                paramTriples = (nubBy (\(n,_,_) (m,_,_) -> n == m) . params) $ grabKernelParams (f $ var tid)
                                parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
@@ -82,6 +82,7 @@ gen (Alloc t dim f) = do d <- incVar
                          gen  $ f (locNest m) (Index m)
                          line $ "free(" ++ m ++ ");\n"
  
+
 -- Code gen in kernel code   
 genK :: Program a -> Gen ()
 genK (Print t e) = do let printTerm = case t of
@@ -125,32 +126,6 @@ genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
 
 
 
--- Analysis of AST - Gets the names of arrays used in the AST
-grabKernelParams :: Program a -> KData
-grabKernelParams (Assign name es e) = let lhs = (name,es,typeNest TInt es)
-                                          rhs = getKDataExpr e
-                                      in (KData $ lhs:( params rhs))
-grabKernelParams (a :>> b) = grabKernelParams a +++ grabKernelParams b
-  where a +++ b = KData $ (params a) ++ (params b)
-grabKernelParams (If c tb fb) = let cond   = getKDataExpr c 
-                                    bodies = grabKernelParams $ tb :>> fb
-                                in KData $  params cond ++ params bodies
-grabKernelParams (For start end f) = grabKernelParams $ f (var "tid")--error "for"
-grabKernelParams (Par start end f) = error "par"
-grabKernelParams (Alloc t dim p)   = error "alloc"
-grabKernelParams (Print t e)       = error "print"
-grabKernelParams _                 = KData []
-
-
-getKDataExpr :: Expr -> KData
-getKDataExpr (Index a is) = KData [(a,is, typeNest TInt is)]
-getKDataExpr (a :+: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :-: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :/: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :%: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :*: b)    = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr (a :<=: b)   = KData $ params (getKDataExpr a) ++ params (getKDataExpr b)
-getKDataExpr _            = KData []
 
 
 setupOCLMemory :: [(Name,Dim,Type)] -> Int -> Size -> Gen ()
@@ -168,7 +143,7 @@ setupOCLMemory ((n,d,t):xs) i s = do let objPostfix = "_obj"
                                      let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
                                                          ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
                                      line setArgs
-                                     when (i /= 0)$ line copyBuffers
+                                     when (i /= 0) (line copyBuffers)
                                      setupOCLMemory xs (i+1) s
 
 runOCL :: Name -> Gen ()
