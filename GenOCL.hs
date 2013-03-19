@@ -12,7 +12,7 @@ import Analysis
 --import Control.Monad.State
 import Control.Monad
 import Data.List
-
+import Control.Applicative
 
 gen :: Program a -> Gen ()
 
@@ -119,8 +119,7 @@ genK (For e1 e2 p) = do i <- fmap fst newLoopVar
                         unindent 2
                         lineK "}"
 genK (Par start end f) = genK (For start end f)
-genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
-                          argName <- fmap ((++) "mem" . show) incVar
+genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
                           genK $ f (locNest argName) (Index argName)
                           return ()
