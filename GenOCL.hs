@@ -52,11 +52,15 @@ gen (Par start end f) = do let tid = "tid"
 
                            kerName <- fmap ((++) "k" . show) incVar
                            lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
+                           kindent 2
                            lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
                            lineK $ "if( tid < " ++ show end ++ " ) {"
+                           kindent 2
 
                            let translated = parForUnwind (f $ var tid) tid
+                           kindent 2
                            genK $ translated
+                           kunindent 2
                            line $ "// Run parallel loop from host"
 
                            runOCL kerName
@@ -65,7 +69,9 @@ gen (Par start end f) = do let tid = "tid"
                            let (n,dim,t) = head paramTriples
                            readOCL n (TPointer t) end
                            lineK "}"
+                           kunindent 2
                            lineK "}"
+                           kunindent 2
                            return ()
 
 gen (For e1 e2 p) = do i <- fmap fst newLoopVar
@@ -97,26 +103,26 @@ genK Skip            = return ()
 genK (Assign name es e) = do lineK (show (Index name es) ++ " = " ++ show e ++ ";")
 genK (p1 :>> p2)        = genK p1 >> genK p2
 genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " )"
-                         indent 2
+                         kindent 2
                          genK p1
-                         unindent 2
+                         kunindent 2
 genK (If c p1 p2) = do lineK $ "if( " ++ show c ++ " ) { "
-                       indent 2
+                       kindent 2
                        genK p1
-                       unindent 2
+                       kunindent 2
                        lineK "else { "
-                       indent 2
+                       kindent 2
                        genK p2
-                       unindent 2
+                       kunindent 2
                        lineK "}"
 genK (For e1 e2 p) = do i <- fmap fst newLoopVar
                         lineK $ show TInt ++ " " ++ i ++ ";"
                         lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
                             ++ i ++ " < " ++ show e2 ++ "; "
                             ++ i ++ "++ ) {"
-                        indent 2
+                        kindent 2
                         genK $ p (var i)
-                        unindent 2
+                        kunindent 2
                         lineK "}"
 genK (Par start end f) = genK (For start end f)
 genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar

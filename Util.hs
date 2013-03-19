@@ -76,7 +76,15 @@ getKernelFile = gets kernelFile
 
 
 lineK :: String -> Gen ()
-lineK s = modify $ \env -> env {kernelCode = kernelCode env ++ [s]}
+lineK s = modify $ \env -> env {kernelCode = kernelCode env ++ 
+                                                          lines 
+                                                            (concat (replicate (kiDepth env) " " ) ++ s)}
+
+--line :: String -> Gen ()
+--line s = modify $ \env -> env{code = code env ++ 
+--                                      lines
+--                                        (concat (replicate (iDepth env) " ") ++ s)}
+
 
 extractCodeK :: Gen a -> Env -> [String]
 extractCodeK g e = kernelCode $ execState g e
