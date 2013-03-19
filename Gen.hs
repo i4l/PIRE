@@ -16,6 +16,7 @@ data Env = Env
           , kernelCode   :: [String]        -- Accumulated kernel code
           , kiDepth      :: Int             -- Kernel indent depth
           , kernelCounter :: Int            -- Number of kernels generated "so far"
+          , usedVars     :: [String]
          -- , paramCounter :: Int             -- Kernel parameter counter
          -- , paramMap     :: Map.Map Int Int -- Mapping AllocID -> Kernel params.
          -- , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> AllocID
@@ -62,5 +63,12 @@ newLoopVar = do v <- incVar
                             (group (group ['i' .. 'z' ])) ++
                               [ 'i' : show i | i <- [0..] ]) !! v, v)
 
+nameExists :: Name -> Gen Bool
+nameExists n = fmap (elem n) (gets usedVars)
+
+addUsedVar :: Name -> Gen ()
+addUsedVar n = modify $ \env -> env {usedVars = n : usedVars env}
+
+
 emptyEnv :: Env
-emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 0
+emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 0 []

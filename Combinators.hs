@@ -105,7 +105,7 @@ foldTest = initArray t dim initf $
                 \foldedName -> printArray t (Num 1) foldedName
   where dim = [Num 128]
         acc = Num 0
-        t = TInt 
+        t   = TInt 
         initf xs = foldr1 (.*) xs --(Num 3 .+) $ foldr1 (.*) xs
         apply = (.+)
 
@@ -115,8 +115,8 @@ dotProd = initArray t dim initf $
               \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
                 \zipRes -> foldP t (head dim) (.+) acc zipRes $
                   \foldRes -> printArray t (Num 1) foldRes
-  where dim = [Num 16]
-        t = TInt 
+  where dim = [Num 10]
+        t   = TInt 
         acc = Num 0
         --initf xs = (Num 3 .+) $ foldr1 (.*) xs
         initf xs = foldr1 (.+) xs

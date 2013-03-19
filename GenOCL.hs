@@ -65,6 +65,7 @@ gen (Par start end f) = do let tid = "tid"
                            runOCL kerName
                            setupOCLMemory paramTriples 0 end
                            launchKernel 2048 64
+                           modify $ \env -> env {kernelCounter = kernelCounter env + 1}
                            let (n,dim,t) = head paramTriples
                            readOCL n (TPointer t) end
                            lineK "}"
@@ -135,8 +136,9 @@ genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
 
 setupOCLMemory :: [(Name,Dim,Type)] -> Int -> Size -> Gen ()
 setupOCLMemory []           i s = return ()
-setupOCLMemory ((n,d,t):xs) i s = do let objPostfix = "_obj"
-                                         createBuffers = "cl_mem " ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+setupOCLMemory ((n,d,t):xs) i s = do nameUsed <- nameExists n
+                                     let objPostfix = "_obj"
+                                         createBuffers = (if not nameUsed then "cl_mem " else "") ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
                                                   "CL_MEM_READ_WRITE" ++ ", " ++ show s ++ "*sizeof(" ++ 
                                                   removePointer t ++ "), NULL, NULL);"
                                      line createBuffers
@@ -148,23 +150,23 @@ setupOCLMemory ((n,d,t):xs) i s = do let objPostfix = "_obj"
                                      let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
                                                          ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
                                      line setArgs
-                                     when (i /= 0) (line copyBuffers)
+                                     addUsedVar n
+                                     when (i /= 0) (line copyBuffers) -- We don't copy the result array
                                      setupOCLMemory xs (i+1) s
 
 runOCL :: Name -> Gen ()
 runOCL kname = do --create kernel & build program
             kcount <- gets kernelCounter
-
             line $ (if kcount <= 0 then "cl_program " else "") ++ "program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
                    "(const size_t *)&source_size, NULL);"
             line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
             line $ (if kcount <= 0 then "cl_kernel " else "") ++ "kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
-            modify $ \env -> env {kernelCounter = kernelCounter env + 1}
 
 launchKernel :: Int -> Int -> Gen ()
-launchKernel global local = do 
-  line $ "size_t global_item_size = " ++ show global ++ ";"
-  line $ "size_t local_item_size = "  ++ show local ++ ";"
+launchKernel global local = do
+  kcount <- gets kernelCounter
+  line $ (if kcount <= 0 then "size_t " else "") ++ "global_item_size = " ++ show global ++ ";"
+  line $ (if kcount <= 0 then "size_t " else "") ++ "local_item_size = "  ++ show local ++ ";"
   line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
 
 -- reads argument 0 from kernel
