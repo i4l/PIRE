@@ -115,7 +115,7 @@ dotProd = initArray t dim initf $
               \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
                 \zipRes -> foldP t (head dim) (.+) acc zipRes $
                   \foldRes -> printArray t (Num 1) foldRes
-  where dim = [Num 10]
+  where dim = [Num 32]
         t   = TInt 
         acc = Num 0
         --initf xs = (Num 3 .+) $ foldr1 (.*) xs
