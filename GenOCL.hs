@@ -182,8 +182,8 @@ setupHeadings :: Gen ()
 setupHeadings = do line "#include <stdio.h>"
                    line "#include <stdlib.h>"
                    kcount <- gets kernelCounter
-                   when (kcount > 0) $ line "#include <CL/cl.h>"
-                   --line "#define MAX_SOURCE_SIZE (0x100000)\n\n"
+                   line "#include <CL/cl.h>"
+                   line "#define MAX_SOURCE_SIZE (0x100000)\n\n"
                    line "int main (void) {"
                    indent 2
 
