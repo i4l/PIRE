@@ -54,7 +54,9 @@ gen (Par start end f) = do let tid = "tid"
                            lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
                            lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
                            lineK $ "if( tid < " ++ show end ++ " ) {"
-                           kdata <- genK $ f (var tid)
+
+                           let translated = parForUnwind (f $ var tid) tid
+                           genK $ translated
                            line $ "// Run parallel loop from host"
 
                            runOCL kerName
@@ -120,8 +122,7 @@ genK (Par start end f) = genK (For start end f)
 genK (Alloc t dim f) = do kerName <- fmap ((++) "k" . show) incVar
                           argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
-                          kdata <- genK $ f (locNest argName) (Index argName)
-                          --return $ KData $ (argName,dim,t) : params kdata
+                          genK $ f (locNest argName) (Index argName)
                           return ()
 
 

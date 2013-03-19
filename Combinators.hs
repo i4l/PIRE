@@ -52,7 +52,7 @@ fold t s f acc arr prog = initScalar t acc $ \loc res ->
 -- | Experimental foldl. Works only on n = power of two.
 fold' :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 fold' t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res -> 
-                            par (Num 0) (s ./ Num 2) (\_ -> for (Num 0) s 
+                            par (Num 0) s (\_ -> for (Num 0) s 
                               (\i -> seqIf (s ./ Num 2)         -- No. of if's
                                     s                                    -- starting value
                                     (flip (.==) (Num 0) . (.%) i)        -- conditional function

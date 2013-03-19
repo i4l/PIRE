@@ -1,7 +1,10 @@
 -----------------------------------------------------------------------------
 -- | Module providing AST anaysis for various tasks
 -----------------------------------------------------------------------------
-module Analysis (Parameters, grabKernelParams) where
+module Analysis (  Parameters
+                 , grabKernelParams
+                 , parForUnwind
+                 ) where
 
 import Util
 import Expr
@@ -49,4 +52,23 @@ exprAsParam (a :==: b)   = exprAsParam a ++ exprAsParam b
 exprAsParam _            = []
 
 -----------------------------------------------------------------------------
+-- ParFor unwinding
+
+parForUnwind :: Program a -> Name -> Program a
+parForUnwind (Par start end f) new = parForUnwind (For start end f) new
+parForUnwind (For start end f) new = f $ var new
+parForUnwind p                 new = p
+
+--subst :: Name -> Expr -> Expr
+--subst new (Index old js) = Index new js
+--subst new (a :+:  b)     = subst new a :+: subst new b
+--subst new (a :-:  b)     = subst new a :-: subst new b
+--subst new (a :/:  b)     = subst new a :/: subst new b
+--subst new (a :*:  b)     = subst new a :*: subst new b
+--subst new (a :%:  b)     = subst new a :%: subst new b
+--subst new (a :<=: b)     = subst new a :<=: subst new b
+--subst new (a :==: b)     = subst new a :==: subst new b
+--subst _ e = e
+
+
 
