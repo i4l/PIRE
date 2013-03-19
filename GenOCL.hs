@@ -9,7 +9,7 @@ import Analysis
 
 --import qualified Data.Map as Map
 --import Data.Maybe
---import Control.Monad.State
+import Control.Monad.State
 import Control.Monad
 import Data.List
 import Control.Applicative
@@ -47,8 +47,8 @@ gen (Par start end f) = do let tid = "tid"
                                paramTriples = grabKernelParams (f $ var tid)
                                parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
 
-                           line "//Param triples"
-                           mapM_ line $ map ((++) "// " . show) (paramTriples)
+                           --line "//Param triples"
+                           --mapM_ line $ map ((++) "// " . show) (paramTriples)
 
                            kerName <- fmap ((++) "k" . show) incVar
                            lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
@@ -61,7 +61,6 @@ gen (Par start end f) = do let tid = "tid"
                            kindent 2
                            genK $ translated
                            kunindent 2
-                           line $ "// Run parallel loop from host"
 
                            runOCL kerName
                            setupOCLMemory paramTriples 0 end
@@ -154,10 +153,13 @@ setupOCLMemory ((n,d,t):xs) i s = do let objPostfix = "_obj"
 
 runOCL :: Name -> Gen ()
 runOCL kname = do --create kernel & build program
-            line $ "cl_program program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
+            kcount <- gets kernelCounter
+
+            line $ (if kcount <= 0 then "cl_program " else "") ++ "program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
                    "(const size_t *)&source_size, NULL);"
             line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
-            line $ "cl_kernel kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
+            line $ (if kcount <= 0 then "cl_kernel " else "") ++ "kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
+            modify $ \env -> env {kernelCounter = kernelCounter env + 1}
 
 launchKernel :: Int -> Int -> Gen ()
 launchKernel global local = do 
@@ -179,8 +181,9 @@ readOCL n t s = do
 setupHeadings :: Gen ()
 setupHeadings = do line "#include <stdio.h>"
                    line "#include <stdlib.h>"
-                   line "#include <CL/cl.h>"
-                   line "#define MAX_SOURCE_SIZE (0x100000)\n\n"
+                   kcount <- gets kernelCounter
+                   when (kcount > 0) $ line "#include <CL/cl.h>"
+                   --line "#define MAX_SOURCE_SIZE (0x100000)\n\n"
                    line "int main (void) {"
                    indent 2
 

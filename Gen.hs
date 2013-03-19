@@ -14,7 +14,8 @@ data Env = Env
           , iDepth       :: Int             -- Indent depth
           , kernelFile   :: FilePath        -- Name of the file containing kernels
           , kernelCode   :: [String]        -- Accumulated kernel code
-          , kiDepth      :: Int
+          , kiDepth      :: Int             -- Kernel indent depth
+          , kernelCounter :: Int            -- Number of kernels generated "so far"
          -- , paramCounter :: Int             -- Kernel parameter counter
          -- , paramMap     :: Map.Map Int Int -- Mapping AllocID -> Kernel params.
          -- , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> AllocID
@@ -47,7 +48,6 @@ kunindent :: Int -> Gen ()
 kunindent i = modify $ \env -> env{kiDepth = kiDepth env - i}
 
 
-
 -- | Generate a fresh name and increase the counter.
 incVar :: Gen Int
 incVar = do
@@ -63,4 +63,4 @@ newLoopVar = do v <- incVar
                               [ 'i' : show i | i <- [0..] ]) !! v, v)
 
 emptyEnv :: Env
-emptyEnv = Env 0 [] 0 "kernels.cl" [] 0
+emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 0
