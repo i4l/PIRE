@@ -43,15 +43,15 @@ scan t dim f arr prog = Alloc t [head dim .+ Num 1] $ \partialLoc iarr ->
                               (\e -> partialLoc [e] (f (iarr [e .- Num 1]) (arr [e .- Num 1])))
                       .>> prog iarr
 
--- | sequential foldl on 1D array using f.
+-- | Sequential fold on 1D array using f.
 fold :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 fold t s f acc arr prog = initScalar t acc $ \loc res -> 
                             for (Num 0) s (\e -> loc [Num 0] (f (res [Num 0]) (arr [e])))
                         .>> prog res
 
--- | Experimental foldl. Works only on n = power of two.
-fold' :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
-fold' t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res -> 
+-- | Parallel fold. Works only on n = power of two.
+foldP :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
+foldP t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res -> 
                             par (Num 0) s (\_ -> for (Num 0) s 
                               (\i -> seqIf (s ./ Num 2)         -- No. of if's
                                     s                                    -- starting value
@@ -97,7 +97,7 @@ scanTest = initArray t dim initf $
 
 foldTest :: Program a
 foldTest = initArray t dim initf $
-              \_ arrName -> fold' t (head dim) apply acc arrName $
+              \_ arrName -> foldP t (head dim) apply acc arrName $
                 \foldedName -> printArray t (Num 1) foldedName
   where dim = [Num 128]
         acc = Num 0
@@ -109,7 +109,7 @@ dotProd :: Program a
 dotProd = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
               \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
-                \zipRes -> fold' t (head dim) (.+) acc zipRes $
+                \zipRes -> foldP t (head dim) (.+) acc zipRes $
                   \foldRes -> printArray t (Num 1) foldRes
   where dim = [Num 16]
         t = TInt 
