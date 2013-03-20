@@ -1,10 +1,28 @@
 ==TODO==
 
+
+==GENERAL PIRE ===
+
 * Use local memory in reduce kernels instead of global
 
-* Control group/workitem size
+* Control group/workitem size (Discuss w/ Joel)
 
 * remove unnecessary initialization of (result) arrays.
+
+
+===FELDSPIRE===
+
+* Function calls
+
+* Might require "modules". But we shall try without first - attempt to simply
+  make a connection between PIRE and Block (in Representation.hs).
+
+===OBSPIRE==
+
+* Talk to Joel
+
+
+===LOW PRIO / NOPE===
 
 * Shallow embedding of different parallel scan types (Brent-Kung, Sklansky..)
 
