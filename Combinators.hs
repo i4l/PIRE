@@ -115,7 +115,7 @@ dotProd :: Program a
 dotProd = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
               \_ arr2 -> zipWithP t dim (.*) arr1 arr2 $ 
-                \zipRes -> fold t (head dim) (.+) acc zipRes $
+                \zipRes -> foldP t (head dim) (.+) acc zipRes $
                   \foldRes -> printArray t [Num 1] foldRes
   where dim = [Num 512]
         t   = TInt 
