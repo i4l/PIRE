@@ -6,7 +6,7 @@
 
 * remove unnecessary initialization of (result) arrays.
 
-* Shallow embedding of different parallel scan types (Brent Kung, Sklansky..)
+* Shallow embedding of different parallel scan types (Brent-Kung, Sklansky..)
 
 
 

@@ -21,11 +21,13 @@ typeNest t = (!!) (iterate TPointer t) . length
 -- | Nest 'length xs' number of forloops, where f becomes the innermost program written to p.
 nestFor :: Dim -> PartialLoc Expr a -> ([Index] -> Expr) -> [Expr] -> Program a
 nestFor []  _     _ _    = Skip
-nestFor [x] inner f vars = for (Num 0) x (\loopvar -> inner (reverse $ loopvar:vars) (f (loopvar:vars)))
-nestFor (x:xs) p  f vars = for (Num 0) x (\loopvar -> nestFor xs p f (loopvar:vars))
+nestFor [x]    inner f vars = for (Num 0) x (\loopvar -> inner (reverse $ loopvar:vars) (f (loopvar:vars)))
+nestFor (x:xs) inner f vars = for (Num 0) x (\loopvar -> nestFor xs inner f (loopvar:vars))
 
-
--- | Nests for-loops used for allocating an array of the dimension given by first Dim.
+-- | Nests for-loops with an inner Program that does not write to a location (e.g. Print programs).
+nestFor' :: Dim -> ([Index] -> Program a) -> [Expr] -> Program a
+nestFor' [x]    f vars = for (Num 0) x (\loopvar -> f (loopvar:vars))
+nestFor' (x:xs) f vars = for (Num 0) x (\loopvar -> nestFor' xs f (loopvar:vars))
 --   In case of of a scalar (empty Dim), it allocates a single chunk of type t to lhs.
 nestForAlloc :: Dim -> String -> Type -> Gen ()
 nestForAlloc [] lhs t  = line $ show (TPointer t) ++ " " ++ lhs ++ " = ("
@@ -72,25 +74,6 @@ seqIf n i condf  prog  = seqIf (n ./ Num 2) (i ./ Num 2) condf prog
 -- Kernels
 
                    
-getKernelFile :: Gen String
-getKernelFile = gets kernelFile
-
-
-lineK :: String -> Gen ()
-lineK s = modify $ \env -> env {kernelCode = kernelCode env ++ 
-                                                          lines 
-                                                            (concat (replicate (kiDepth env) " " ) ++ s)}
-
---line :: String -> Gen ()
---line s = modify $ \env -> env{code = code env ++ 
---                                      lines
---                                        (concat (replicate (iDepth env) " ") ++ s)}
-
-
-extractCodeK :: Gen a -> Env -> [String]
-extractCodeK g e = kernelCode $ execState g e
-
--- other
 
 -- remove all pointer wrappings from a Type
 removePointer :: Type -> String

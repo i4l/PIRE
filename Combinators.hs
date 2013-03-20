@@ -27,8 +27,9 @@ initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -
 initScalar t = initArray t [Num 1] . const
 
 -- | Prints an array arr of type t and size s.
-printArray :: Type ->  Size -> IndexedArray -> Program a
-printArray t s arr = for (Num 0) s $ \e -> Print t $ arr [e]
+printArray :: Type ->  Dim -> IndexedArray -> Program a
+printArray t dim arr = nestFor' dim (\is -> Print t $ arr is) []
+--for (Num 0) s $ \e -> Print t $ arr [e]
 
 -- | Experimental map (to have something to play around with).
 mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
@@ -65,7 +66,8 @@ foldP t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res ->
 --TODO only works for 1D
 zipWithP :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 zipWithP t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
-                                for (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
+                                --for (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
+                                nestFor dim loc (\is -> f (x1 is) (x2 is)) []
                             .>> prog res
                                   
                                   
@@ -84,7 +86,7 @@ zipWithP' t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
 mapTest :: Program a
 mapTest = initArray t dim initf $
             \_ arrName -> mapP t dim apply arrName $
-              \mappedArr -> printArray t (head dim) mappedArr
+              \mappedArr -> printArray t dim mappedArr
   where dim = [Num 10]
         t = TInt 
         initf xs = (Num 3 .+) $ foldr1 (.*) xs 
@@ -93,7 +95,7 @@ mapTest = initArray t dim initf $
 scanTest :: Program a
 scanTest = initArray t dim initf $
               \_ arrName -> scan t dim apply arrName $
-                \scannedArr -> printArray t (head dim) scannedArr
+                \scannedArr -> printArray t dim scannedArr
   where dim = [Num 10]
         t = TInt 
         initf xs = (Num 3 .+) $ foldr1 (.*) xs 
@@ -102,7 +104,7 @@ scanTest = initArray t dim initf $
 foldTest :: Program a
 foldTest = initArray t dim initf $
               \_ arrName -> foldP t (head dim) apply acc arrName $
-                \foldedName -> printArray t (Num 1) foldedName
+                \foldedName -> printArray t [Num 1] foldedName
   where dim = [Num 128]
         acc = Num 0
         t   = TInt 
@@ -114,7 +116,7 @@ dotProd = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
               \_ arr2 -> zipWithP t dim (.*) arr1 arr2 $ 
                 \zipRes -> fold t (head dim) (.+) acc zipRes $
-                  \foldRes -> printArray t (Num 1) foldRes
+                  \foldRes -> printArray t [Num 1] foldRes
   where dim = [Num 1024]
         t   = TInt 
         acc = Num 0
@@ -124,11 +126,11 @@ dotProd = initArray t dim initf $
 zipWithTest :: Program a
 zipWithTest = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
-              \_ arr2 -> zipWithP' t dim (.*) arr1 arr2 $ 
-                \zipRes -> printArray t (head dim) zipRes
-  where dim = [Num 10]
+              \_ arr2 -> zipWithP t dim (.*) arr1 arr2 $ 
+                \zipRes -> printArray t dim zipRes
+  where dim = [Num 3,Num 3]
         t = TInt 
-        initf xs = (Num 3 .+) $ foldr1 (.*) xs
+        initf xs = foldr1 (.*) xs
 
 exampleFold :: Gen ()
 exampleFold = setupHeadings >> setupOCL >> gen foldTest >> setupEnd

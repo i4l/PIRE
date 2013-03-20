@@ -70,5 +70,21 @@ addUsedVar :: Name -> Gen ()
 addUsedVar n = modify $ \env -> env {usedVars = n : usedVars env}
 
 
+getKernelFile :: Gen String
+getKernelFile = gets kernelFile
+
+
+lineK :: String -> Gen ()
+lineK s = modify $ \env -> env {kernelCode = kernelCode env ++ 
+                                                          lines 
+                                                            (concat (replicate (kiDepth env) " " ) ++ s)}
+
+
+extractCodeK :: Gen a -> Env -> [String]
+extractCodeK g e = kernelCode $ execState g e
+
+
+
+
 emptyEnv :: Env
 emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 0 []
