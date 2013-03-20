@@ -4,12 +4,14 @@ module Expr where
 
 type Name = String
 
+-- | A Dimension is simply a list of Expressions.
 type Dim = [Size]
 
 -- | Expressions are the RHS in an assignment.
 data Expr where
   Num    :: Int -> Expr
   Index  :: Name -> [Expr] -> Expr
+  Call   :: Name -> [Expr] -> Expr
   (:+:)  :: Expr -> Expr -> Expr
   (:-:)  :: Expr -> Expr -> Expr
   (:*:)  :: Expr -> Expr -> Expr
@@ -38,8 +40,9 @@ instance Ord (Expr) where
   e1 <= e2 = toInt e1 <= toInt e2
 
 instance Show (Expr) where
-  show (Num n)      = show n
-  show (Index a is) = a ++ concat [ "[" ++ show i ++ "]" | i <- is ]
+  show (Num n)       = show n
+  show (Index a is)  = a ++ concat [ "[" ++ show i ++ "]" | i <- is ]
+  show (Call n args) = n ++ "(" ++ (init . concat) [show a ++ "," | a <- args] ++ ")"
   show (a :+: b)    = "(" ++ show a ++ "+" ++ show b ++ ")"
   show (a :-: b)    = "(" ++ show a ++ "-" ++ show b ++ ")"
   show (a :/: b)    = "(" ++ show a ++ "/" ++ show b ++ ")"
