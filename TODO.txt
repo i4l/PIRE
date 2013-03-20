@@ -12,7 +12,7 @@
 
 ===FELDSPIRE===
 
-* Function calls
+* Function calls (Added Ctor in Expr along with Show instance. What else?)
 
 * Might require "modules". But we shall try without first - attempt to simply
   make a connection between PIRE and Block (in Representation.hs).
