@@ -65,7 +65,6 @@ foldP t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res ->
 
 zipWithS :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 zipWithS t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
-                                --for (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
                                 nestFor dim loc (\is -> f (x1 is) (x2 is)) []
                             .>> prog res
                                   
