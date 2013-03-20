@@ -9,14 +9,14 @@ import Expr
 type Gen a = State Env a
 
 data Env = Env 
-          { varCount     :: Int             -- Variable counter
-          , code         :: [String]        -- Accumulated code
-          , iDepth       :: Int             -- Indent depth
-          , kernelFile   :: FilePath        -- Name of the file containing kernels
-          , kernelCode   :: [String]        -- Accumulated kernel code
-          , kiDepth      :: Int             -- Kernel indent depth
+          { varCount      :: Int             -- Variable counter
+          , code          :: [String]        -- Accumulated code
+          , iDepth        :: Int             -- Indent depth
+          , kernelFile    :: FilePath        -- Name of the file containing kernels
+          , kernelCode    :: [String]        -- Accumulated kernel code
+          , kiDepth       :: Int             -- Kernel indent depth
           , kernelCounter :: Int            -- Number of kernels generated "so far"
-          , usedVars     :: [String]
+          , usedVars      :: [String]
          -- , paramCounter :: Int             -- Kernel parameter counter
          -- , paramMap     :: Map.Map Int Int -- Mapping AllocID -> Kernel params.
          -- , hostAllocMap :: Map.Map Int Int -- Mapping Kernel Params -> AllocID
