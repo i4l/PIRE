@@ -50,7 +50,7 @@ fold t s f acc arr prog = initScalar t acc $ \loc res ->
                             for (Num 0) s (\e -> loc [Num 0] (f (res [Num 0]) (arr [e])))
                         .>> prog res
 
--- | Parallel fold. Works only on n = power of two.
+-- | Parallel fold. Works only when length is 2^length.
 foldP :: Type -> Size -> (Expr -> Expr -> Expr) -> Expr -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 foldP t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res -> 
                             par (Num 0) s (\_ -> for (Num 0) s 
@@ -63,17 +63,17 @@ foldP t s f acc arr prog = initArray t [s] (\_ -> acc) $ \loc res ->
                                     ))
                         .>> prog res
 
---TODO only works for 1D
-zipWithP :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
-zipWithP t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
+zipWithS :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
+zipWithS t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
                                 --for (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
                                 nestFor dim loc (\is -> f (x1 is) (x2 is)) []
                             .>> prog res
                                   
                                   
-zipWithP' :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
-zipWithP' t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
-                                par (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
+zipWithP :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
+zipWithP t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
+                                --par (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
+                                nestPar dim loc (\is -> f (x1 is) (x2 is)) []
                             .>> prog res
 
 
