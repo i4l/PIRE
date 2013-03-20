@@ -68,11 +68,12 @@ zipWithS t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
                                 nestFor dim loc (\is -> f (x1 is) (x2 is)) []
                             .>> prog res
                                   
-                                  
+
+-- TODO: nest par-loops
 zipWithP :: Type -> Dim -> (Expr -> Expr -> Expr) -> IndexedArray -> IndexedArray -> (IndexedArray -> Program a) -> Program a
 zipWithP t dim f x1 x2 prog = initArray t dim (const (Num 0)) $ \loc res ->
-                                --par (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
-                                nestPar dim loc (\is -> f (x1 is) (x2 is)) []
+                                par (Num 0) (head dim) (\e -> loc [e] (f (x1 [e]) (x2 [e])))
+                                --nestPar dim loc (\is -> f (x1 is) (x2 is)) []
                             .>> prog res
 
 
@@ -116,7 +117,7 @@ dotProd = initArray t dim initf $
               \_ arr2 -> zipWithP t dim (.*) arr1 arr2 $ 
                 \zipRes -> fold t (head dim) (.+) acc zipRes $
                   \foldRes -> printArray t [Num 1] foldRes
-  where dim = [Num 1024]
+  where dim = [Num 512]
         t   = TInt 
         acc = Num 0
         --initf xs = (Num 3 .+) $ foldr1 (.*) xs
@@ -127,7 +128,7 @@ zipWithTest = initArray t dim initf $
             \_ arr1 -> initArray t dim initf $
               \_ arr2 -> zipWithP t dim (.*) arr1 arr2 $ 
                 \zipRes -> printArray t dim zipRes
-  where dim = [Num 3,Num 3]
+  where dim = [Num 10]
         t = TInt 
         initf xs = foldr1 (.*) xs
 
