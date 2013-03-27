@@ -28,6 +28,8 @@ gen (Print t e) = do let printTerm = case t of
 gen (Assign name es e) = line $ show (Index name es) 
                          ++ " = " ++ show e ++ ";"
 
+gen (Statement e) = line $ show e ++ ";"
+
 gen (p1 :>> p2) = gen p1 >> gen p2
 
 gen (If c p1 Skip) = do line $ "if( " ++ show c ++ " )"

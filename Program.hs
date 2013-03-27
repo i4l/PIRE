@@ -20,14 +20,15 @@ type IndexedArray = [Index] -> Expr
 type PartialLoc e a = [Index] -> Loc e a
 
 data Program a where
-  Print    :: Type -> Expr -> Program a -- printf of an expression
-  Skip     :: Program a
-  Assign   :: Name -> [Expr] -> Expr -> Program a
-  (:>>)    :: Program a -> Program a -> Program a
-  If       :: Expr -> Program a -> Program a -> Program a
-  For      :: Expr -> Expr -> (Expr -> Program a) -> Program a
-  Par      :: Expr -> Expr -> (Expr -> Program a) -> Program a
-  Alloc    :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
+  Print     :: Type -> Expr -> Program a -- printf of an expression
+  Skip      :: Program a
+  Assign    :: Name -> [Expr] -> Expr -> Program a
+  Statement :: Expr -> Program a                    -- We can turn an Expr into a Program
+  (:>>)     :: Program a -> Program a -> Program a
+  If        :: Expr -> Program a -> Program a -> Program a
+  For       :: Expr -> Expr -> (Expr -> Program a) -> Program a
+  Par       :: Expr -> Expr -> (Expr -> Program a) -> Program a
+  Alloc     :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
 
 
 

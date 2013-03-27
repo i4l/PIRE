@@ -11,7 +11,7 @@ type Dim = [Size]
 data Expr where
   Num    :: Int -> Expr
   Index  :: Name -> [Expr] -> Expr
-  Call   :: Name -> [Expr] -> Expr
+  Call   :: Expr -> [Expr] -> Expr
   (:+:)  :: Expr -> Expr -> Expr
   (:-:)  :: Expr -> Expr -> Expr
   (:*:)  :: Expr -> Expr -> Expr
@@ -42,7 +42,8 @@ instance Ord (Expr) where
 instance Show (Expr) where
   show (Num n)       = show n
   show (Index a is)  = a ++ concat [ "[" ++ show i ++ "]" | i <- is ]
-  show (Call n args) = n ++ "(" ++ (init . concat) [show a ++ "," | a <- args] ++ ")"
+  show (Call e args) = show e ++ "(" ++ if null as then ")" else (init . concat) as ++ ")"
+    where as = [show a ++ "," | a <- args]
   show (a :+: b)    = "(" ++ show a ++ "+" ++ show b ++ ")"
   show (a :-: b)    = "(" ++ show a ++ "-" ++ show b ++ ")"
   show (a :/: b)    = "(" ++ show a ++ "/" ++ show b ++ ")"
