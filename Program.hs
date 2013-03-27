@@ -6,7 +6,9 @@ module Program where
 
 import Expr
 import Types
+import Gen
 import Data.Monoid
+
 
 -----------------------------------------------------------------------------
 -- | Program - AST type
