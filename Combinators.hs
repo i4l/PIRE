@@ -12,6 +12,7 @@ import Gen
 import Types
 import Expr
 
+import Data.Monoid
 
 -----------------------------------------------------------------------------
 -- Interface

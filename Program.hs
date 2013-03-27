@@ -6,7 +6,7 @@ module Program where
 
 import Expr
 import Types
-
+import Data.Monoid
 
 -----------------------------------------------------------------------------
 -- | Program - AST type
@@ -33,6 +33,12 @@ instance Show (Program a) where
 instance Eq (Program a) where
   a == b = False
 
+instance Monoid (Program a) where
+  mempty          = Skip
+  mappend Skip b  = b
+  mappend a  Skip = a
+  mappend a b     = a :>> b
+  mconcat ps      = foldl1 (.>>) ps
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for Programs
 
