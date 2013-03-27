@@ -40,6 +40,8 @@ instance Monoid (Program a) where
   mappend Skip b  = b
   mappend a  Skip = a
   mappend a b     = a :>> b
+  mconcat []      = Skip
+  mconcat [p]     = p
   mconcat ps      = foldl1 (.>>) ps
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for Programs
