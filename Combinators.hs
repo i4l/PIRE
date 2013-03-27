@@ -152,6 +152,10 @@ exampleZipWith = setupHeadings >> setupOCL >> gen zipWithTest >> setupEnd
 ------------------------------------------------------------
 -- helpers
 
+
+instance Show (Program a) where
+  show p = unlines $ extractCode (gen p) emptyEnv
+
 showProg :: Gen () -> IO ()
 showProg prog = putStr $ unlines $ extractCode prog emptyEnv ++ ["\n//Kernel code"] ++ extractCodeK prog emptyEnv
 
