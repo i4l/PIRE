@@ -1,8 +1,11 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Program where
+
+import Data.Typeable
 
 import Expr
 import Types
@@ -29,8 +32,8 @@ data Program a where
   For       :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par       :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Alloc     :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
-
-
+  deriving Typeable
+testFor = for (Num 0) (Num 10) (\e -> Assign "arr" [e] e)
 
 instance Eq (Program a) where
   a == b = False
