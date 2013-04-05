@@ -26,13 +26,20 @@ instance GenCode (Proc a) where
 
 genProc :: Proc a -> Gen ()
 genProc (Proc name prg ins out) = do let ins' = (init . concat) $ 
-                                                  [show (snd out) ++ " " ++ fst out ++ ","] ++ 
-                                                  [" " ++ show t ++ " " ++ i ++ "," | (i,t) <- ins]
+                                                  [show (snd out) ++ " " ++ fst out ++ ", " ++ sizeParam (snd out) (fst out)] ++ 
+                                                  [" " ++ show t ++ " " ++ i ++ ", " ++ sizeParam t i | (i,t) <- ins]
                                      line $ "void " ++ name ++ "(" ++ ins' ++ ") {"
                                      indent 2
                                      gen prg
                                      unindent 2
                                      line "}"
+
+-- Create the size parameter that describes the size of a parameter
+sizeParam :: Type -> Name -> String
+sizeParam TInt       _ = ""
+sizeParam (TPointer t) n = show t ++ " " ++ n ++ "c" ++ ","
+sizeParam (TArray t)   n = sizeParam (TPointer t) n -- make array to pointer
+
 
 
 
