@@ -7,8 +7,6 @@ import Expr
 import Gen
 import Analysis
 
---import qualified Data.Map as Map
---import Data.Maybe
 import Control.Monad.State
 
 
