@@ -15,13 +15,16 @@ import Data.Monoid
 data Proc a where
   Nil       :: Proc a
   BasicProc :: Proc a -> Proc a
-  OutParam  :: Type -> (PartialLoc Expr a -> Program a) -> Proc a
-  NewParam  :: Type -> (PartialLoc Expr a -> Program a) -> Proc a
+  ProgProc  :: Program a -> Proc a
+  --OutParam  :: Type -> (PartialLoc Expr a -> Program a) -> Proc a
+  --NewParam  :: Type -> (PartialLoc Expr a -> Program a) -> Proc a
+  OutParam  :: Type -> (Name -> Proc a) -> Proc a
+  NewParam  :: Type -> (Name -> Proc a) -> Proc a
 
 
 emptyProc :: Proc ()
-emptyProc = BasicProc (OutParam TInt $ \out -> 
-              for (Num 0) (Num 10) $ \e -> out [e] e ) 
+emptyProc = BasicProc (OutParam TInt $ \out -> NewParam TInt $ \p1 ->
+              ProgProc $ for (Num 0) (Num 10) $ \e -> Assign out [e] (var p1) ) 
               
 --data Proc a = Proc 
 --            { procName :: String

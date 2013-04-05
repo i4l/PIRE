@@ -8,6 +8,15 @@ import Data.List
 
 import Expr
 
+showProg :: Gen () -> IO ()
+showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern
+  where (_,w) = evalRWS prog () emptyEnv
+        pre'  = pre w
+        post' = post w
+        host  = hostCode w
+        kern  = ["\n//Kernel code"] ++ kernCode w
+
+
 class GenCode a where
   gen :: a -> Gen ()
 
@@ -16,15 +25,17 @@ type Gen = RWS () Writers Env -- Reader is currently unused, hence Unit.
 data Writers = Writers
              { hostCode :: [String]
              , kernCode :: [String]
-             , pre      :: [String]
-             , post     :: [String]
+             , pre      :: [String] -- Procedure head
+             , params   :: [String]
+             , post     :: [String] -- trailing "}" etc.
              }
 
 instance Monoid Writers where
-  mempty      = Writers mempty mempty mempty mempty
+  mempty      = Writers mempty mempty mempty mempty mempty
   mappend a b =  Writers { hostCode = mappend (hostCode a) (hostCode b)
                          , kernCode = mappend (kernCode a) (kernCode b)
                          , pre      = mappend (pre a) (pre b)
+                         , params   = mappend (params a) (params b)
                          , post     = mappend (post a) (post b)
                          }
 
@@ -43,6 +54,9 @@ line :: String -> Gen ()
 line s = do d <- gets iDepth
             let ind = concat $ replicate d " "
             tell $ mempty {hostCode = [ind ++ s]}
+
+tellParam :: String -> Gen ()
+tellParam s = tell $ mempty {params = [s]}
 
 toTemp :: String -> Gen ()
 toTemp s = modify $ \env -> env{tempLine = tempLine env ++ s}

@@ -10,8 +10,9 @@ import Expr
 import Gen
 import Analysis
 
-import Control.Monad.State
+--import Control.Monad.State
 import Control.Monad.RWS
+import Data.List
 
 -----------------------------------------------------------------------------
 -- Show Instances
@@ -31,16 +32,17 @@ genProc Nil              = return ()
 genProc (BasicProc proc) = do i <- incVar
                               let name = "f" ++ show i
                               gen proc
-                              temps <- gets tempLine
-                              clearTemp
-                              let heading = "void " ++ name ++ "(" ++ temps ++ ") {"
+                              ps <- fmap (concat . intersperse "," . params . snd) (listen (return ()))
+                              let heading = "void " ++ name ++ "(" ++ ps ++ ") {"
                               tell $ mempty {pre = [heading]}
                               tell $ mempty {post = ["}"]}
+genProc (ProgProc p)   = gen p
 genProc (OutParam t p) = do i <- incVar
-                            toTemp $ show t ++ " out" ++ show i
-                            gen $ p $ locNest ("out" ++ show i)
-
-
+                            tellParam $ show t ++ " out" ++ show i
+                            gen $ p $ "out" ++ show i-- locNest ("out" ++ show i)
+genProc (NewParam t p) = do i <- incVar
+                            tellParam $ show t ++ " p" ++ show i
+                            gen $ p $ "p" ++ show i --locNest ("out" ++ show i)
 
 --genProc (Proc name ins out prg) = do let ins' = (init . concat) $ 
 --                                                  [show (snd out) ++ " " ++ fst out ++ ", " ++ sizeParam (snd out) (fst out)] ++ 
