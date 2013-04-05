@@ -4,21 +4,17 @@ module Gen where
 import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.RWS
-import qualified Data.Map as Map
+--import qualified Data.Map as Map
 import Data.List 
 
 import Expr
 
-
-
---type Gen a = State Env a
---type Gen a = WriterT Writers (State Env) a
+class GenCode a where
+  gen :: a -> Gen ()
 
 type Gen = RWS () Writers Env
 
 
-class GenCode a where
-  genA :: a -> Gen a
 
 
 data Writers = Writers
@@ -103,7 +99,6 @@ getKernelFile = gets kernelFile
 
 lineK :: String -> Gen ()
 lineK s = tell $ mempty {kernCode = [s]}
-lineK s = undefined
 -- modify $ \env -> env {kernelCode = kernelCode env ++ 
 --                                       lines 
 --                                         (concat (replicate (kiDepth env) " " ) ++ s)}
