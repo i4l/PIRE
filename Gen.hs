@@ -14,7 +14,7 @@ class GenCode a where
 type Gen = RWS () Writers Env -- Reader is currently unused, hence Unit.
 
 data Writers = Writers
-             { hostCode   :: [String]
+             { hostCode :: [String]
              , kernCode :: [String]
              }
 
