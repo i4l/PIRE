@@ -10,9 +10,6 @@ import Analysis
 --import qualified Data.Map as Map
 --import Data.Maybe
 import Control.Monad.State
-import Control.Monad
-import Data.List
-import Control.Applicative
 
 instance GenCode (Program a) where
   gen = genProg
@@ -22,9 +19,9 @@ genProg :: Program a -> Gen ()
 genProg Skip = line ""
 
 genProg (Print t e) = do let printTerm = case t of
-                                      TInt       -> "i"
-                                      TPointer x -> error "ERROR: Attempt to use pointer in in printf."
-                                      x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
+                                TInt       -> "i"
+                                TPointer x -> error "ERROR: Attempt to use pointer in in printf."
+                                x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
                                                            show x ++ "in printf."
                          line $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
 
@@ -50,7 +47,9 @@ genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                           line "}"
 genProg (Par start end f) = do let tid = "tid"
                                    paramTriples = grabKernelParams (f $ var tid)
-                                   parameters = (init . concat) [ " __global " ++ show t ++ " " ++  n ++ "," | (n,dim,t) <- paramTriples]
+                                   parameters = (init . concat) 
+                                      [ " __global " ++ show t ++ " " ++  n ++ "," 
+                                        | (n,dim,t) <- paramTriples]
                            
                                --debugging code. prints the parameter names gathered.
                                --line "//Param triples"
