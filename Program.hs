@@ -33,10 +33,14 @@ data Program a where
   Par       :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Alloc     :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
   deriving Typeable
+
+-- an easy-to-access test program
 testFor = for (Num 0) (Num 10) (\e -> Assign "arr" [e] e)
 
 instance Eq (Program a) where
   a == b = False
+
+
 
 instance Monoid (Program a) where
   mempty          = Skip

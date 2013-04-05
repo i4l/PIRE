@@ -11,6 +11,10 @@ import Analysis
 --import Data.Maybe
 import Control.Monad.State
 
+
+instance Show (Program a) where
+  show p = unlines $ extractCode (gen p) emptyEnv
+
 instance GenCode (Program a) where
   gen = genProg
 
