@@ -25,9 +25,9 @@ instance GenCode (Proc a) where
   gen = genProc
 
 genProc :: Proc a -> Gen ()
-genProc (Proc name prg ins out) = do let ins' = (show . init) $ 
-                                                  [show (snd out) ++ " " ++ fst out] ++ 
-                                                  [show t ++ " " ++ i ++ "," | (i,t) <- ins]
+genProc (Proc name prg ins out) = do let ins' = (init . concat) $ 
+                                                  [show (snd out) ++ " " ++ fst out ++ ","] ++ 
+                                                  [" " ++ show t ++ " " ++ i ++ "," | (i,t) <- ins]
                                      line $ "void " ++ name ++ "(" ++ ins' ++ ") {"
                                      indent 2
                                      gen prg
