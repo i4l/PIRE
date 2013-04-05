@@ -4,7 +4,6 @@ module Gen where
 import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.RWS
---import qualified Data.Map as Map
 import Data.List 
 
 import Expr
@@ -12,10 +11,7 @@ import Expr
 class GenCode a where
   gen :: a -> Gen ()
 
-type Gen = RWS () Writers Env
-
-
-
+type Gen = RWS () Writers Env -- Reader is currently unused, hence Unit.
 
 data Writers = Writers
              { hostCode   :: [String]
@@ -39,10 +35,7 @@ data Env = Env { varCount      :: Int             -- Variable counter
 
 
 line :: String -> Gen ()
-line s = tell $ mempty {hostCode = [s]} --modify $ \env -> env{code = code env ++ 
-                   --                   lines
-                   --                     (concat (replicate (iDepth env) " ") ++ s)}
-
+line s = tell $ mempty {hostCode = [s]} 
 
 extractCode :: Gen a -> Env -> [String]
 extractCode g env = let (_,w) = evalRWS g () env in hostCode w
@@ -92,11 +85,6 @@ getKernelFile = gets kernelFile
 
 lineK :: String -> Gen ()
 lineK s = tell $ mempty {kernCode = [s]}
--- modify $ \env -> env {kernelCode = kernelCode env ++ 
---                                       lines 
---                                         (concat (replicate (kiDepth env) " " ) ++ s)}
-
-
 
 emptyEnv :: Env
 emptyEnv = Env 0 0 "kernels.cl" 0 0 []
