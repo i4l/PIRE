@@ -26,4 +26,4 @@ instance Monoid (Proc a) where
                      , outParam = outParam b
                      }
 emptyProc :: Proc ()
-emptyProc = Proc "test" testFor [] ("out", TInt)
+emptyProc = Proc "test" testFor [("p1", TPointer TInt)] ("out", TInt)
