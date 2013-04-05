@@ -163,7 +163,7 @@ exampleZipWith = setupHeadings >> setupOCL >> gen zipWithTest >> setupEnd
 
 
 showProg :: Gen () -> IO ()
-showProg prog = putStr $ unlines $ pre' ++ host ++  post' ++ kern
+showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern
   where (_,w) = evalRWS prog () emptyEnv
         pre'  = pre w
         post' = post w
