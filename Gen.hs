@@ -1,22 +1,46 @@
+{-# LANGUAGE TypeFamilies #-}
 module Gen where
 
 import Control.Monad.State
+import Control.Monad.Writer
+import Control.Monad.RWS
 import qualified Data.Map as Map
 import Data.List 
 
 import Expr
 
 
-type Gen a = State Env a
+
+--type Gen a = State Env a
+--type Gen a = WriterT Writers (State Env) a
+
+type Gen = RWS () Writers Env
+
+
+class GenCode a where
+  genA :: a -> Gen a
+
+
+data Writers = Writers
+             { hostCode   :: [String]
+             ,   kernCode :: [String]
+             }
+
+instance Monoid Writers where
+  mempty      = Writers mempty mempty
+  mappend a b =  Writers { hostCode = mappend (hostCode a) (hostCode b)
+                         , kernCode = mappend (kernCode a) (kernCode b)
+                         }
+
 
 data Env = Env 
           { varCount      :: Int             -- Variable counter
-          , code          :: [String]        -- Accumulated code
+          --, code          :: [String]        -- Accumulated code
           , iDepth        :: Int             -- Indent depth
           , kernelFile    :: FilePath        -- Name of the file containing kernels
-          , kernelCode    :: [String]        -- Accumulated kernel code
+          --, kernelCode    :: [String]        -- Accumulated kernel code
           , kiDepth       :: Int             -- Kernel indent depth
-          , kernelCounter :: Int            -- Number of kernels generated "so far"
+          , kernelCounter :: Int             -- Number of kernels generated "so far"
           , usedVars      :: [String]
          -- , paramCounter :: Int             -- Kernel parameter counter
          -- , paramMap     :: Map.Map Int Int -- Mapping AllocID -> Kernel params.
@@ -24,17 +48,19 @@ data Env = Env
          -- , inits        :: Map.Map Int (Index -> Expr) -- AllocID -> ixf 
           }
 
+
 line :: String -> Gen ()
-line s = modify $ \env -> env{code = code env ++ 
-                                      lines
-                                        (concat (replicate (iDepth env) " ") ++ s)}
+line s = tell $ mempty {hostCode = [s]} --modify $ \env -> env{code = code env ++ 
+                   --                   lines
+                   --                     (concat (replicate (iDepth env) " ") ++ s)}
 
 
 extractCode :: Gen a -> Env -> [String]
-extractCode g e = code $ execState g e
+extractCode g env = let (_,w) = evalRWS g () env in hostCode w
 
-extractKernelCode :: Gen a -> Env -> [String]
-extractKernelCode g e = kernelCode $ execState g e
+extractCodeK :: Gen a -> Env -> [String]
+extractCodeK g env = let (_,_,w) = runRWS g () env
+                     in kernCode w
 
 indent :: Int -> Gen ()
 indent i = modify $ \env -> env{iDepth = iDepth env + i}
@@ -76,16 +102,16 @@ getKernelFile = gets kernelFile
 
 
 lineK :: String -> Gen ()
-lineK s = modify $ \env -> env {kernelCode = kernelCode env ++ 
-                                                          lines 
-                                                            (concat (replicate (kiDepth env) " " ) ++ s)}
+lineK s = tell $ mempty {kernCode = [s]}
+lineK s = undefined-- modify $ \env -> env {kernelCode = kernelCode env ++ 
+                   --                                       lines 
+                   --                                         (concat (replicate (kiDepth env) " " ) ++ s)}
 
 
-extractCodeK :: Gen a -> Env -> [String]
-extractCodeK g e = kernelCode $ execState g e
 
+--kernCode $ evalState (execWriterT g) env
 
 
 
 emptyEnv :: Env
-emptyEnv = Env 0 [] 0 "kernels.cl" [] 0 0 []
+emptyEnv = Env 0 0 "kernels.cl" 0 0 []
