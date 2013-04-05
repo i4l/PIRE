@@ -23,7 +23,7 @@ class GenCode a where
 
 data Writers = Writers
              { hostCode   :: [String]
-             ,   kernCode :: [String]
+             , kernCode :: [String]
              }
 
 instance Monoid Writers where
@@ -103,13 +103,10 @@ getKernelFile = gets kernelFile
 
 lineK :: String -> Gen ()
 lineK s = tell $ mempty {kernCode = [s]}
-lineK s = undefined-- modify $ \env -> env {kernelCode = kernelCode env ++ 
-                   --                                       lines 
-                   --                                         (concat (replicate (kiDepth env) " " ) ++ s)}
-
-
-
---kernCode $ evalState (execWriterT g) env
+lineK s = undefined
+-- modify $ \env -> env {kernelCode = kernelCode env ++ 
+--                                       lines 
+--                                         (concat (replicate (kiDepth env) " " ) ++ s)}
 
 
 
