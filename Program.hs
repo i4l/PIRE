@@ -86,8 +86,8 @@ locNest v is = \x -> Assign v is x
 --nil :: Loc a
 --nil = \_ -> Skip
 
---loc :: Name -> Loc Expr
---loc v = \x -> Assign v [] x
+loc :: Name -> Loc Expr a
+loc v = \x -> Assign v [] x
 --
 --(&) :: Loc a -> Loc b -> Loc (a,b)
 --loc1 & loc2 = \(x,y) -> loc1 x .>> loc2 y

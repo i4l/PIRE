@@ -18,27 +18,47 @@ import Control.Monad.State
 instance Show (Program a) where
   show p = unlines $ extractCode (gen p) emptyEnv
 
-deriving instance Show (Proc a)
+--deriving instance Show (Proc a)
 
 -----------------------------------------------------------------------------
 instance GenCode (Proc a) where
   gen = genProc
 
 genProc :: Proc a -> Gen ()
-genProc (Proc name prg ins out) = do let ins' = (init . concat) $ 
-                                                  [show (snd out) ++ " " ++ fst out ++ ", " ++ sizeParam (snd out) (fst out)] ++ 
-                                                  [" " ++ show t ++ " " ++ i ++ ", " ++ sizeParam t i | (i,t) <- ins]
-                                     line $ "void " ++ name ++ "(" ++ ins' ++ ") {"
-                                     indent 2
-                                     gen prg
-                                     unindent 2
-                                     line "}"
+genProc Nil           = return ()
+genProc (BasicProc proc) = do i <- incVar
+                              let name = "f" ++ show i
+                              params <- genParam proc
+                              line $ "void " ++ name ++ "(" ++ params ++ ") {"
+                              gen proc
+                              line "}"
+genProc (OutParam t p) = do i <- incVar
+                            gen $ p $ locNest ("out" ++ show i) --p ("out" ++ show i)
 
--- Create the size parameter that describes the size of a parameter
-sizeParam :: Type -> Name -> String
-sizeParam TInt       _ = ""
-sizeParam (TPointer t) n = show t ++ " " ++ n ++ "c" ++ ","
-sizeParam (TArray t)   n = sizeParam (TPointer t) n -- make array to pointer
+genParam :: Proc a -> Gen String
+genParam Nil{}          = return ""
+genParam BasicProc{}    = return ""
+genParam (OutParam t p) = do i <- incVar
+                             return $ show t ++ " " ++ "out" ++ show i
+                             --j <- incVar
+                            -- gen $ p (var $ show j)
+                             --return ""
+
+
+--genProc (Proc name ins out prg) = do let ins' = (init . concat) $ 
+--                                                  [show (snd out) ++ " " ++ fst out ++ ", " ++ sizeParam (snd out) (fst out)] ++ 
+--                                                  [" " ++ show t ++ " " ++ i ++ ", " ++ sizeParam t i | (i,t) <- ins]
+--                                     line $ "void " ++ name ++ "(" ++ ins' ++ ") {"
+--                                     indent 2
+--                                     gen prg
+--                                     unindent 2
+--                                     line "}"
+--
+---- Create the size parameter that describes the size of a parameter
+--sizeParam :: Type -> Name -> String
+--sizeParam TInt       _ = ""
+--sizeParam (TPointer t) n = show t ++ " " ++ n ++ "c" ++ ","
+--sizeParam (TArray t)   n = sizeParam (TPointer t) n -- make array to pointer
 -----------------------------------------------------------------------------
 
 instance GenCode (Program a) where

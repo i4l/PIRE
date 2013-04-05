@@ -29,12 +29,6 @@ initScalar :: Type -> Expr -> (PartialLoc Expr a -> IndexedArray -> Program a) -
 initScalar t = initArray t [Num 1] . const
 
 
--- Adds an input array to the procedure parameters
-newInput :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
-newInput t d f = undefined
-
-
-
 -- | Prints an array arr of type t and size s.
 printArray :: Type -> Dim -> IndexedArray -> Program a
 printArray t dim arr = nestFor' dim (\is -> Print t $ arr is) []
@@ -47,7 +41,7 @@ printArray t dim arr = nestFor' dim (\is -> Print t $ arr is) []
 
 -- | Experimental map (to have something to play around with).
 mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
-mapP t dim f arr prog = initArray t dim f $ \loc res->
+mapP t dim f arr prog = initArray t dim f $ \loc res ->
                           nestPar dim loc (\xs -> f [arr $ reverse xs]) []
                       .>> prog res
 
