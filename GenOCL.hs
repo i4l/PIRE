@@ -19,8 +19,8 @@ instance Show (Program a) where
   show p = unlines $ extractCode (gen p) emptyEnv
 
 deriving instance Show (Proc a)
------------------------------------------------------------------------------
 
+-----------------------------------------------------------------------------
 instance GenCode (Proc a) where
   gen = genProc
 
@@ -39,9 +39,7 @@ sizeParam :: Type -> Name -> String
 sizeParam TInt       _ = ""
 sizeParam (TPointer t) n = show t ++ " " ++ n ++ "c" ++ ","
 sizeParam (TArray t)   n = sizeParam (TPointer t) n -- make array to pointer
-
-
-
+-----------------------------------------------------------------------------
 
 instance GenCode (Program a) where
   gen = genProg
