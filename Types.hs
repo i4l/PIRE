@@ -8,3 +8,4 @@ instance Show Type where
   show (TArray t) = show t ++ "[]"
   show (TPointer t) = show t ++ "*"
 
+

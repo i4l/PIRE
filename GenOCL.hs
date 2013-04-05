@@ -1,7 +1,10 @@
+{-# LANGUAGE StandaloneDeriving #-}
+
 module GenOCL where
 
 import Util
 import Program
+import Procedure
 import Types
 import Expr
 import Gen
@@ -9,9 +12,29 @@ import Analysis
 
 import Control.Monad.State
 
+-----------------------------------------------------------------------------
+-- Show Instances
 
 instance Show (Program a) where
   show p = unlines $ extractCode (gen p) emptyEnv
+
+deriving instance Show (Proc a)
+-----------------------------------------------------------------------------
+
+instance GenCode (Proc a) where
+  gen = genProc
+
+genProc :: Proc a -> Gen ()
+genProc (Proc name prg ins out) = do let ins' = (show . init) $ 
+                                                  [show (snd out) ++ " " ++ fst out] ++ 
+                                                  [show t ++ " " ++ i ++ "," | (i,t) <- ins]
+                                     line $ "void " ++ name ++ "(" ++ ins' ++ ") {"
+                                     indent 2
+                                     gen prg
+                                     unindent 2
+                                     line "}"
+
+
 
 instance GenCode (Program a) where
   gen = genProg
@@ -139,7 +162,8 @@ genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
 
 
 
-
+-----------------------------------------------------------------------------
+-- Other things that may need revising.
 
 setupOCLMemory :: [(Name,Dim,Type)] -> Int -> Size -> Gen ()
 setupOCLMemory []           i s = return ()

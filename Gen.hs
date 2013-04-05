@@ -35,7 +35,9 @@ data Env = Env { varCount      :: Int             -- Variable counter
 
 
 line :: String -> Gen ()
-line s = tell $ mempty {hostCode = [s]} 
+line s = do d <- gets iDepth
+            let ind = concat $ replicate d " "
+            tell $ mempty {hostCode = [ind ++ s]} 
 
 extractCode :: Gen a -> Env -> [String]
 extractCode g env = let (_,w) = evalRWS g () env in hostCode w
@@ -84,7 +86,10 @@ getKernelFile = gets kernelFile
 
 
 lineK :: String -> Gen ()
-lineK s = tell $ mempty {kernCode = [s]}
+lineK s = do d <- gets kiDepth
+             let ind = concat $ replicate d " "
+             tell $ mempty {kernCode = [ind ++ s]}
+
 
 emptyEnv :: Env
 emptyEnv = Env 0 0 "kernels.cl" 0 0 []

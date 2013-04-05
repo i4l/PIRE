@@ -5,6 +5,7 @@ module Combinators where
 -- A combinator library
 
 import Program
+import Procedure
 import GenOCL
 import Util
 import Gen
