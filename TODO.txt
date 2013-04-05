@@ -7,24 +7,10 @@
 
 * Control group/workitem size (Discuss w/ Joel)
 
-* remove unnecessary initialization of (result) arrays.
+* Remove unnecessary initialization of (result) arrays.
 
+* Add Procedure for wrapping programs with in and out parameters.
 
-===FELDSPIRE===
-
-* Function calls (Added Ctor in Expr along with Show instance. What else?)
-
-* Might require "modules". But we shall try without first - attempt to simply
-  make a connection between PIRE and Block (in Representation.hs).
-
-===OBSPIRE==
-
-* Talk to Joel
-
-
-===LOW PRIO / NOPE===
-
-* Shallow embedding of different parallel scan types (Brent-Kung, Sklansky..)
 
 
 
