@@ -162,7 +162,7 @@ showProg prog = putStr $ unlines $ extractCode prog emptyEnv ++ ["\n//Kernel cod
 
 toFile :: Gen () -> FilePath -> IO ()
 toFile prog path = writeFile path (unlines $ extractCode prog emptyEnv) >>
-                   writeFile (kernelFile emptyEnv) (unlines $ extractKernelCode prog emptyEnv)
+                   writeFile (kernelFile emptyEnv) (unlines $ extractCodeK prog emptyEnv)
 
 
 
