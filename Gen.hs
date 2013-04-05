@@ -16,12 +16,16 @@ type Gen = RWS () Writers Env -- Reader is currently unused, hence Unit.
 data Writers = Writers
              { hostCode :: [String]
              , kernCode :: [String]
+             , pre      :: [String]
+             , post     :: [String]
              }
 
 instance Monoid Writers where
-  mempty      = Writers mempty mempty
+  mempty      = Writers mempty mempty mempty mempty
   mappend a b =  Writers { hostCode = mappend (hostCode a) (hostCode b)
                          , kernCode = mappend (kernCode a) (kernCode b)
+                         , pre      = mappend (pre a) (pre b)
+                         , post     = mappend (post a) (post b)
                          }
 
 
@@ -46,15 +50,8 @@ toTemp s = modify $ \env -> env{tempLine = tempLine env ++ s}
 saveTemp :: Gen ()
 saveTemp = do temp <- gets tempLine
               line temp
-
-
-  
-
-extractCode :: Gen a -> Env -> [String]
-extractCode g env = let (_,w) = evalRWS g () env in hostCode w
-
-extractCodeK :: Gen a -> Env -> [String]
-extractCodeK g env = let (_,_,w) = runRWS g () env in kernCode w
+clearTemp :: Gen ()
+clearTemp = modify $ \env -> env{tempLine = ""}
 
 indent :: Int -> Gen ()
 indent i = modify $ \env -> env{iDepth = iDepth env + i}

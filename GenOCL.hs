@@ -11,12 +11,14 @@ import Gen
 import Analysis
 
 import Control.Monad.State
+import Control.Monad.RWS
 
 -----------------------------------------------------------------------------
 -- Show Instances
 
 instance Show (Program a) where
-  show p = unlines $ extractCode (gen p) emptyEnv
+  show p = unlines $ hostCode w
+    where (_,w) = evalRWS (gen p) () emptyEnv
 
 --deriving instance Show (Proc a)
 
@@ -25,17 +27,18 @@ instance GenCode (Proc a) where
   gen = genProc
 
 genProc :: Proc a -> Gen ()
-genProc Nil           = return ()
+genProc Nil              = return ()
 genProc (BasicProc proc) = do i <- incVar
                               let name = "f" ++ show i
                               gen proc
                               temps <- gets tempLine
-                              line $ "void " ++ name ++ "(" ++ temps ++ ") {"
-                              modify $ \env -> env{tempLine = ""}
-                              line "}"
+                              clearTemp
+                              let heading = "void " ++ name ++ "(" ++ temps ++ ") {"
+                              tell $ mempty {pre = [heading]}
+                              tell $ mempty {post = ["}"]}
 genProc (OutParam t p) = do i <- incVar
                             toTemp $ show t ++ " out" ++ show i
-                            gen $ p $ locNest ("out" ++ show i) --p ("out" ++ show i)
+                            gen $ p $ locNest ("out" ++ show i)
 
 
 
