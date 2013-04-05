@@ -31,20 +31,30 @@ data Env = Env { varCount      :: Int             -- Variable counter
                , kiDepth       :: Int             -- Kernel indent depth
                , kernelCounter :: Int             -- Number of kernels generated "so far"
                , usedVars      :: [String]
+               , tempLine      :: String
                }
 
 
 line :: String -> Gen ()
 line s = do d <- gets iDepth
             let ind = concat $ replicate d " "
-            tell $ mempty {hostCode = [ind ++ s]} 
+            tell $ mempty {hostCode = [ind ++ s]}
+
+toTemp :: String -> Gen ()
+toTemp s = modify $ \env -> env{tempLine = tempLine env ++ s}
+
+saveTemp :: Gen ()
+saveTemp = do temp <- gets tempLine
+              line temp
+
+
+  
 
 extractCode :: Gen a -> Env -> [String]
 extractCode g env = let (_,w) = evalRWS g () env in hostCode w
 
 extractCodeK :: Gen a -> Env -> [String]
-extractCodeK g env = let (_,_,w) = runRWS g () env
-                     in kernCode w
+extractCodeK g env = let (_,_,w) = runRWS g () env in kernCode w
 
 indent :: Int -> Gen ()
 indent i = modify $ \env -> env{iDepth = iDepth env + i}
@@ -92,4 +102,4 @@ lineK s = do d <- gets kiDepth
 
 
 emptyEnv :: Env
-emptyEnv = Env 0 0 "kernels.cl" 0 0 []
+emptyEnv = Env 0 0 "kernels.cl" 0 0 [] ""
