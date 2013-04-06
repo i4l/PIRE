@@ -39,11 +39,11 @@ instance Monoid Writers where
 
 
 data Env = Env { varCount      :: Int             -- Variable counter
-               , iDepth        :: Int             -- Indent depth
+               , iDepth        :: Int             -- Host code indent depth
                , kernelFile    :: FilePath        -- Name of the file containing kernels
                , kiDepth       :: Int             -- Kernel indent depth
                , kernelCounter :: Int             -- Number of kernels generated "so far"
-               , usedVars      :: [String]
+               , usedVars      :: [String]        -- Which "memory" objects have already been declared (to avoid redecl)
                , params        :: [String]        -- Parameters for the Procedure head
                }
 
