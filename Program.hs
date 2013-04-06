@@ -8,7 +8,6 @@ import Data.Typeable
 
 import Expr
 import Types
-import Gen
 import Data.Monoid
 
 
