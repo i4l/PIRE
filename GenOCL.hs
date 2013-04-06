@@ -31,7 +31,7 @@ genProc :: Proc a -> Gen ()
 genProc Nil              = return ()
 genProc (BasicProc proc) = do i <- incVar
                               gen proc
-                              ps <- fmap (intercalate ", ") (gets params)
+                              ps <- fmap (intercalate ", " . filter (/= "")) (gets params)
                               tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
                               tell $ mempty {post = ["}"]}
 genProc (ProgProc p)   = gen p
@@ -44,6 +44,7 @@ genProc (NewParam t p) = do i <- incVar
                             addParam $ sizeParam t $ "argC" ++ show i
                             gen $ p ("arg" ++ show i) ("argC" ++ show i)
 
+-- | adds a size parameter for a an input or output parameter.
 sizeParam :: Type -> Name -> String
 sizeParam TInt         _ = ""
 sizeParam (TPointer t) n = show t ++ " " ++ n
