@@ -31,7 +31,7 @@ genProc :: Proc a -> Gen ()
 genProc Nil              = return ()
 genProc (BasicProc proc) = do i <- incVar
                               gen proc
-                              ps <- fmap (intercalate ", " . filter (/= "")) (gets params)
+                              ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
                               tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
                               tell $ mempty {post = ["}"]}
 genProc (ProgProc p)   = gen p
