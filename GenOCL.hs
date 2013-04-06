@@ -118,7 +118,7 @@ genProg (Par start end f) = do let tid = "tid"
                                kunindent 2
                                return ()
 
-genProg (For e1 e2 p) = do i <- fmap fst newLoopVar
+genProg (For e1 e2 p) = do i <- newLoopVar
                            line $ show TInt ++ " " ++ i ++ ";"
                            line $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
                                ++ i ++ " < " ++ show e2 ++ "; "
@@ -159,7 +159,7 @@ genK (If c p1 p2) = do lineK $ "if( " ++ show c ++ " ) { "
                        genK p2
                        kunindent 2
                        lineK "}"
-genK (For e1 e2 p) = do i <- fmap fst newLoopVar
+genK (For e1 e2 p) = do i <- newLoopVar
                         lineK $ show TInt ++ " " ++ i ++ ";"
                         lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
                             ++ i ++ " < " ++ show e2 ++ "; "
@@ -273,7 +273,7 @@ setupOCL = do let fp     = "fp"
 
 -- TODO FIXME I'm broken and outdated. 
 setupPrint :: String -> Int -> Gen ()
-setupPrint alloc len = do loopVar <- fmap fst newLoopVar
+setupPrint alloc len = do loopVar <- newLoopVar
                           line $ "int " ++ loopVar ++ ";"
                           line $ "for (" ++ loopVar ++ " = 0; " 
                               ++ loopVar ++ " < " ++ show len ++ "; "

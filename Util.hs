@@ -41,7 +41,7 @@ nestForAlloc dim lhs t = do line $ show (typeNest t dim) ++ " " ++ lhs ++ " = ("
     nest [] _ _ _ _  = return ()
     nest [_] _ _ _ _ = return () -- Case needed in order to avoid the last "extra" for-loop.
     nest (x:xs) lhs t loopVars acc = do
-      l <- fmap fst newLoopVar
+      l <- newLoopVar
       line $ "int " ++ l ++ ";"
       line $ "for( " ++ l ++ " = 0; " ++ l ++ " < " ++ show x ++ "; " ++ l ++ "++ ) {"
       indent 2

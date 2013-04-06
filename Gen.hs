@@ -88,11 +88,11 @@ incVar = do
   return d
 
 -- | Generate a new loop variable (based on the variable counter from incVar).
-newLoopVar :: Gen (String,Int)
+newLoopVar :: Gen String
 newLoopVar = do v <- incVar
-                return ((map concat 
-                            (group (group ['i' .. 'z' ])) ++
-                              [ 'i' : show i | i <- [0..] ]) !! v, v)
+                return $ (map concat 
+                           (group (group ['i' .. 'z' ])) ++
+                             [ 'i' : show i | i <- [0..] ]) !! v
 
 nameExists :: Name -> Gen Bool
 nameExists n = fmap (elem n) (gets usedVars)

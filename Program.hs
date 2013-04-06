@@ -22,10 +22,10 @@ type IndexedArray = [Index] -> Expr
 type PartialLoc e a = [Index] -> Loc e a
 
 data Program a where
-  Print     :: Type -> Expr -> Program a -- printf of an expression
+  Print     :: Type -> Expr -> Program a -- printf of an expression (TODO this is debug)
   Skip      :: Program a
   Assign    :: Name -> [Expr] -> Expr -> Program a
-  Statement :: Expr -> Program a                    -- We can turn an Expr into a Program
+  Statement :: Expr -> Program a
   (:>>)     :: Program a -> Program a -> Program a
   If        :: Expr -> Program a -> Program a -> Program a
   For       :: Expr -> Expr -> (Expr -> Program a) -> Program a
