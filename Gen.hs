@@ -44,8 +44,7 @@ data Env = Env { varCount      :: Int             -- Variable counter
                , kiDepth       :: Int             -- Kernel indent depth
                , kernelCounter :: Int             -- Number of kernels generated "so far"
                , usedVars      :: [String]
-               , tempLine      :: String
-               , params        :: [String]
+               , params        :: [String]        -- Parameters for the Procedure head
                }
 
 
@@ -56,15 +55,6 @@ line s = do d <- gets iDepth
 
 addParam :: String -> Gen ()
 addParam s = modify $ \env -> env{params = params env ++ [s]}
-
-toTemp :: String -> Gen ()
-toTemp s = modify $ \env -> env{tempLine = tempLine env ++ s}
-
-saveTemp :: Gen ()
-saveTemp = do temp <- gets tempLine
-              line temp
-clearTemp :: Gen ()
-clearTemp = modify $ \env -> env{tempLine = ""}
 
 indent :: Int -> Gen ()
 indent i = modify $ \env -> env{iDepth = iDepth env + i}
@@ -112,4 +102,4 @@ lineK s = do d <- gets kiDepth
 
 
 emptyEnv :: Env
-emptyEnv = Env 0 0 "kernels.cl" 0 0 [] "" []
+emptyEnv = Env 0 0 "kernels.cl" 0 0 [] []
