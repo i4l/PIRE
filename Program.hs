@@ -40,7 +40,7 @@ instance Monoid (Program a) where
   mempty          = Skip
   mappend Skip b  = b
   mappend a  Skip = a
-  mappend a b     = a :>> b
+  mappend a b     = a .>> b
   mconcat []      = Skip
   mconcat [p]     = p
   mconcat ps      = foldl1 (.>>) ps
