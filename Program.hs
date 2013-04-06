@@ -34,7 +34,7 @@ data Program a where
   deriving Typeable
 
 instance Eq (Program a) where
-  a == b = False
+  a == b = False -- Dummy
 
 instance Monoid (Program a) where
   mempty          = Skip
