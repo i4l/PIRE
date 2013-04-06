@@ -30,34 +30,24 @@ instance GenCode (Proc a) where
 genProc :: Proc a -> Gen ()
 genProc Nil              = return ()
 genProc (BasicProc proc) = do i <- incVar
-                              let name = "f" ++ show i
                               gen proc
-                              ps <- fmap (concat . intersperse ",") (gets params)
-                              let heading = "void " ++ name ++ "(" ++ ps ++ ") {"
-                              tell $ mempty {pre = [heading]}
+                              ps <- fmap (intercalate ", ") (gets params)
+                              tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
                               tell $ mempty {post = ["}"]}
 genProc (ProgProc p)   = gen p
 genProc (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
-                            gen $ p $ "out" ++ show i-- locNest ("out" ++ show i)
+                            addParam $ sizeParam t $ "outc" ++ show i
+                            gen $ p $ "out" ++ show i -- Note it's just a String (Name)
 genProc (NewParam t p) = do i <- incVar
                             addParam $ show t ++ " p" ++ show i
-                            gen $ p $ "p" ++ show i --locNest ("out" ++ show i)
+                            addParam $ sizeParam t $ "pc" ++ show i
+                            gen $ p $ "p" ++ show i
 
---genProc (Proc name ins out prg) = do let ins' = (init . concat) $ 
---                                                  [show (snd out) ++ " " ++ fst out ++ ", " ++ sizeParam (snd out) (fst out)] ++ 
---                                                  [" " ++ show t ++ " " ++ i ++ ", " ++ sizeParam t i | (i,t) <- ins]
---                                     line $ "void " ++ name ++ "(" ++ ins' ++ ") {"
---                                     indent 2
---                                     gen prg
---                                     unindent 2
---                                     line "}"
---
----- Create the size parameter that describes the size of a parameter
---sizeParam :: Type -> Name -> String
---sizeParam TInt       _ = ""
---sizeParam (TPointer t) n = show t ++ " " ++ n ++ "c" ++ ","
---sizeParam (TArray t)   n = sizeParam (TPointer t) n -- make array to pointer
+sizeParam :: Type -> Name -> String
+sizeParam TInt n         = ""
+sizeParam (TPointer t) n = show t ++ " " ++ n
+
 -----------------------------------------------------------------------------
 
 instance GenCode (Program a) where

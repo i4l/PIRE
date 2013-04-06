@@ -23,7 +23,7 @@ data Proc a where
 
 
 emptyProc :: Proc ()
-emptyProc = BasicProc (OutParam TInt $ \out -> NewParam TInt $ \p1 ->
+emptyProc = BasicProc (OutParam (TPointer TInt) $ \out -> NewParam (TPointer TInt) $ \p1 ->
               ProgProc $ for (Num 0) (Num 10) $ \e -> Assign out [e] (var p1) ) 
               
 --data Proc a = Proc 
