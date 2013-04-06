@@ -23,5 +23,5 @@ data Proc a where
 
 
 emptyProc :: Proc ()
-emptyProc = BasicProc (OutParam (TPointer TInt) $ \out outc -> NewParam (TPointer TInt) $ \p1 p1c ->
+emptyProc = BasicProc (OutParam (TPointer TInt) $ \out _ -> NewParam (TPointer TInt) $ \p1 p1c ->
               ProgProc $ for (Num 0) (var p1c) $ \e -> Assign out [e] (Index p1 [e]) ) 

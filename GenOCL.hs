@@ -45,8 +45,9 @@ genProc (NewParam t p) = do i <- incVar
                             gen $ p ("arg" ++ show i) ("argC" ++ show i)
 
 sizeParam :: Type -> Name -> String
-sizeParam TInt n         = ""
+sizeParam TInt         _ = ""
 sizeParam (TPointer t) n = show t ++ " " ++ n
+sizeParam (TArray   t) n = sizeParam (TPointer t) n
 
 -----------------------------------------------------------------------------
 
