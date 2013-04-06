@@ -18,13 +18,13 @@ data Proc a where
   ProgProc  :: Program a -> Proc a
   -- Give just a name since we don't know whether we want to just write or just read 
   -- to it beforehand (and thus can't make it a Loc or an Expr).
-  OutParam  :: Type -> (Name -> Proc a) -> Proc a
-  NewParam  :: Type -> (Name -> Proc a) -> Proc a
+  OutParam  :: Type -> (Name -> Name -> Proc a) -> Proc a
+  NewParam  :: Type -> (Name -> Name -> Proc a) -> Proc a
 
 
 emptyProc :: Proc ()
-emptyProc = BasicProc (OutParam (TPointer TInt) $ \out -> NewParam (TPointer TInt) $ \p1 ->
-              ProgProc $ for (Num 0) (Num 10) $ \e -> Assign out [e] (var p1) ) 
+emptyProc = BasicProc (OutParam (TPointer TInt) $ \out outc -> NewParam (TPointer TInt) $ \p1 p1c ->
+              ProgProc $ for (Num 0) (var p1c) $ \e -> Assign out [e] (Index p1 [e]) ) 
               
 --data Proc a = Proc 
 --            { procName :: String

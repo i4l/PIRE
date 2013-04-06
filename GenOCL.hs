@@ -37,12 +37,12 @@ genProc (BasicProc proc) = do i <- incVar
 genProc (ProgProc p)   = gen p
 genProc (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
-                            addParam $ sizeParam t $ "outc" ++ show i
-                            gen $ p $ "out" ++ show i -- Note it's just a String (Name)
+                            addParam $ sizeParam t $ "outC" ++ show i
+                            gen $ p ("out" ++ show i) ("outC" ++ show i)
 genProc (NewParam t p) = do i <- incVar
-                            addParam $ show t ++ " p" ++ show i
-                            addParam $ sizeParam t $ "pc" ++ show i
-                            gen $ p $ "p" ++ show i
+                            addParam $ show t ++ " arg" ++ show i
+                            addParam $ sizeParam t $ "argC" ++ show i
+                            gen $ p ("arg" ++ show i) ("argC" ++ show i)
 
 sizeParam :: Type -> Name -> String
 sizeParam TInt n         = ""
