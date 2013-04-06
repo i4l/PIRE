@@ -26,16 +26,14 @@ data Writers = Writers
              { hostCode :: [String]
              , kernCode :: [String]
              , pre      :: [String] -- Procedure head
-             , params   :: [String]
              , post     :: [String] -- trailing "}" etc.
              }
 
 instance Monoid Writers where
-  mempty      = Writers mempty mempty mempty mempty mempty
+  mempty      = Writers mempty mempty mempty mempty
   mappend a b =  Writers { hostCode = mappend (hostCode a) (hostCode b)
                          , kernCode = mappend (kernCode a) (kernCode b)
                          , pre      = mappend (pre a) (pre b)
-                         , params   = mappend (params a) (params b)
                          , post     = mappend (post a) (post b)
                          }
 
@@ -47,6 +45,7 @@ data Env = Env { varCount      :: Int             -- Variable counter
                , kernelCounter :: Int             -- Number of kernels generated "so far"
                , usedVars      :: [String]
                , tempLine      :: String
+               , params        :: [String]
                }
 
 
@@ -55,8 +54,8 @@ line s = do d <- gets iDepth
             let ind = concat $ replicate d " "
             tell $ mempty {hostCode = [ind ++ s]}
 
-tellParam :: String -> Gen ()
-tellParam s = tell $ mempty {params = [s]}
+addParam :: String -> Gen ()
+addParam s = modify $ \env -> env{params = params env ++ [s]}
 
 toTemp :: String -> Gen ()
 toTemp s = modify $ \env -> env{tempLine = tempLine env ++ s}
@@ -113,4 +112,4 @@ lineK s = do d <- gets kiDepth
 
 
 emptyEnv :: Env
-emptyEnv = Env 0 0 "kernels.cl" 0 0 [] ""
+emptyEnv = Env 0 0 "kernels.cl" 0 0 [] "" []

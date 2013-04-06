@@ -32,16 +32,16 @@ genProc Nil              = return ()
 genProc (BasicProc proc) = do i <- incVar
                               let name = "f" ++ show i
                               gen proc
-                              ps <- fmap (concat . intersperse "," . params . snd) (listen (return ()))
+                              ps <- fmap (concat . intersperse ",") (gets params)
                               let heading = "void " ++ name ++ "(" ++ ps ++ ") {"
                               tell $ mempty {pre = [heading]}
                               tell $ mempty {post = ["}"]}
 genProc (ProgProc p)   = gen p
 genProc (OutParam t p) = do i <- incVar
-                            tellParam $ show t ++ " out" ++ show i
+                            addParam $ show t ++ " out" ++ show i
                             gen $ p $ "out" ++ show i-- locNest ("out" ++ show i)
 genProc (NewParam t p) = do i <- incVar
-                            tellParam $ show t ++ " p" ++ show i
+                            addParam $ show t ++ " p" ++ show i
                             gen $ p $ "p" ++ show i --locNest ("out" ++ show i)
 
 --genProc (Proc name ins out prg) = do let ins' = (init . concat) $ 

@@ -16,8 +16,8 @@ data Proc a where
   Nil       :: Proc a
   BasicProc :: Proc a -> Proc a
   ProgProc  :: Program a -> Proc a
-  --OutParam  :: Type -> (PartialLoc Expr a -> Program a) -> Proc a
-  --NewParam  :: Type -> (PartialLoc Expr a -> Program a) -> Proc a
+  -- Give just a name since we don't know whether we want to just write or just read 
+  -- to it beforehand (and thus can't make it a Loc or an Expr).
   OutParam  :: Type -> (Name -> Proc a) -> Proc a
   NewParam  :: Type -> (Name -> Proc a) -> Proc a
 
