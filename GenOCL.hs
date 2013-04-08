@@ -34,14 +34,14 @@ genProc (BasicProc proc) = do i <- incVar
                               ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
                               tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
                               tell $ mempty {post = ["}"]}
-genProc (ProgProc p)   = gen p
+genProc (ProcBody p)   = gen p
 genProc (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
-                            addParam $ sizeParam t $ "outC" ++ show i
+                            --addParam $ sizeParam t $ "outC" ++ show i
                             gen $ p ("out" ++ show i) ("outC" ++ show i)
 genProc (NewParam t p) = do i <- incVar
                             addParam $ show t ++ " arg" ++ show i
-                            addParam $ sizeParam t $ "argC" ++ show i
+                            --addParam $ sizeParam t $ "argC" ++ show i
                             gen $ p ("arg" ++ show i) ("argC" ++ show i)
 
 -- | adds a size parameter for a an input or output parameter.
