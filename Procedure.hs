@@ -30,7 +30,7 @@ chainP :: Proc a -> Proc a -> Proc a
 chainP Nil              b = b
 chainP (BasicProc p) (BasicProc q) = BasicProc (mappend p q)
 chainP (BasicProc p) b             = BasicProc (mappend p b)
-chainP a (BasicProc b)             = BasicProc (mappend a b)
+chainP a (BasicProc p)             = BasicProc (mappend a p)
 chainP (ProcBody p) (ProcBody q) = ProcBody (p .>> q)
 chainP a@(ProcBody prg) b = mappend b a
 chainP (OutParam t   k) b = OutParam t (\n1 n2 -> mappend (k n1 n2) b)
