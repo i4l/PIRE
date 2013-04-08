@@ -18,7 +18,7 @@ data Proc a where
   ProcBody  :: Program a -> Proc a
   -- Give just a name since we don't know whether we want to just write or just read 
   -- to it beforehand (and thus can't make it a Loc or an Expr).
-  OutParam  :: Type -> (Name -> Name -> Proc a) -> Proc a
+  OutParam  :: Type -> (Name -> Name -> Proc a) -> Proc a -- TODO remove the extra Name (was argc equivalent)
   NewParam  :: Type -> (Name -> Name -> Proc a) -> Proc a
   deriving (Typeable)
 
@@ -30,6 +30,7 @@ chainP :: Proc a -> Proc a -> Proc a
 chainP Nil              b = b
 chainP (BasicProc p) (BasicProc q) = BasicProc (mappend p q)
 chainP (BasicProc p) b             = BasicProc (mappend p b)
+chainP a (BasicProc b)             = BasicProc (mappend a b)
 chainP (ProcBody p) (ProcBody q) = ProcBody (p .>> q)
 chainP a@(ProcBody prg) b = mappend b a
 chainP (OutParam t   k) b = OutParam t (\n1 n2 -> mappend (k n1 n2) b)
