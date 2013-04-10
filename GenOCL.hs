@@ -28,7 +28,7 @@ instance GenCode (Proc a) where
   gen = genProc
 
 genProc :: Proc a -> Gen ()
-genProc Nil              = return ()
+genProc NilProc          = return ()
 genProc (BasicProc proc) = do i <- incVar
                               gen proc
                               ps <- fmap (intercalate ", " . filter (not . null)) (gets params)

@@ -15,7 +15,7 @@ import Data.Monoid
 -- Note that a procedure has return type unit (e.g. void).
 
 data Proc a where
-  Nil       :: Proc a
+  NilProc   :: Proc a
   BasicProc :: Proc a -> Proc a
   ProcBody  :: Program a -> Proc a
   -- Give just a name since we don't know whether we want to just write or just read 
@@ -25,11 +25,11 @@ data Proc a where
   deriving (Typeable)
 
 instance Monoid (Proc a) where
-  mempty      = BasicProc Nil
+  mempty      = BasicProc NilProc
   mappend     = chainP
 
 chainP :: Proc a -> Proc a -> Proc a
-chainP Nil              b = b
+chainP NilProc              b = b
 chainP (BasicProc p) (BasicProc q) = BasicProc (mappend p q)
 chainP (BasicProc p) b             = BasicProc (mappend p b)
 chainP a (BasicProc p)             = BasicProc (mappend a p)
