@@ -24,25 +24,25 @@ instance Show (Program a) where
 --deriving instance Show (Proc a)
 
 -----------------------------------------------------------------------------
-instance GenCode (Proc a) where
-  gen = genProc
-
-genProc :: Proc a -> Gen ()
-genProc NilProc          = return ()
-genProc (BasicProc proc) = do i <- incVar
-                              gen proc
-                              ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
-                              tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
-                              tell $ mempty {post = ["}"]}
-genProc (ProcBody p)   = gen p
-genProc (OutParam t p) = do i <- incVar
-                            addParam $ show t ++ " out" ++ show i
-                            --addParam $ sizeParam t $ "outC" ++ show i
-                            gen $ p ("out" ++ show i)
-genProc (NewParam t p) = do i <- incVar
-                            addParam $ show t ++ " arg" ++ show i
-                            --addParam $ sizeParam t $ "argC" ++ show i
-                            gen $ p ("arg" ++ show i)
+--instance GenCode (Proc a) where
+--  gen = genProc
+--
+--genProc :: Proc a -> Gen ()
+--genProc NilProc          = return ()
+--genProc (BasicProc proc) = do i <- incVar
+--                              gen proc
+--                              ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
+--                              tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
+--                              tell $ mempty {post = ["}"]}
+--genProc (ProcBody p)   = gen p
+--genProc (OutParam t p) = do i <- incVar
+--                            addParam $ show t ++ " out" ++ show i
+--                            --addParam $ sizeParam t $ "outC" ++ show i
+--                            gen $ p ("out" ++ show i)
+--genProc (NewParam t p) = do i <- incVar
+--                            addParam $ show t ++ " arg" ++ show i
+--                            --addParam $ sizeParam t $ "argC" ++ show i
+--                            gen $ p ("arg" ++ show i)
 
 -- | adds a size parameter for a an input or output parameter.
 sizeParam :: Type -> Name -> String
@@ -56,6 +56,23 @@ instance GenCode (Program a) where
   gen = genProg
 
 genProg :: Program a -> Gen ()
+
+--genProg NilProc          = return ()
+genProg (BasicProc proc) = do i <- incVar
+                              gen proc
+                              ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
+                              tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
+                              tell $ mempty {post = ["}"]}
+--genProg (ProcBody p)   = gen p
+genProg (OutParam t p) = do i <- incVar
+                            addParam $ show t ++ " out" ++ show i
+                            --addParam $ sizeParam t $ "outC" ++ show i
+                            gen $ p ("out" ++ show i)
+genProg (NewParam t p) = do i <- incVar
+                            addParam $ show t ++ " arg" ++ show i
+                            --addParam $ sizeParam t $ "argC" ++ show i
+                            gen $ p ("arg" ++ show i)
+
 
 genProg Skip = line ""
 
@@ -133,9 +150,10 @@ genProg (For e1 e2 p) = do i <- newLoopVar
 genProg (Alloc t dim f) = do d <- incVar
                              let m = "mem" ++ show d
                              nestForAlloc dim m t
-                             gen  $ f (locNest m) (Index m)
+                             --gen  $ f (locNest m) (Index m)
+                             gen $ f m
                              line $ "free(" ++ m ++ ");\n"
-     
+
 
 -- Code gen in kernel code   
 genK :: Program a -> Gen ()
@@ -173,7 +191,8 @@ genK (For e1 e2 p) = do i <- newLoopVar
 genK (Par start end f) = genK (For start end f)
 genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
-                          genK $ f (locNest argName) (Index argName)
+                          --genK $ f (locNest argName) (Index argName)
+                          genK $ f argName
                           return ()
 
 

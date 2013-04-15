@@ -29,7 +29,13 @@ data Program a where
   If        :: Expr -> Program a -> Program a -> Program a
   For       :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par       :: Expr -> Expr -> (Expr -> Program a) -> Program a
-  Alloc     :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
+ -- Alloc     :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
+  Alloc :: Type -> Dim -> (Name -> Program a) -> Program a
+
+  BasicProc :: Program a -> Program a
+--  ProgramBody  :: Program a -> Program a
+  OutParam  :: Type -> (Name -> Program a) -> Program a 
+  NewParam  :: Type -> (Name -> Program a) -> Program a
   deriving Typeable
 
 instance Eq (Program a) where
@@ -47,6 +53,12 @@ instance Monoid (Program a) where
 
 -- an easy-to-access test program
 testFor = for (Num 0) (Num 10) (\e -> Assign "arr" [e] e)
+
+emptyProc :: Program ()
+emptyProc = BasicProc (OutParam (TPointer TInt) $ \out -> NewParam (TPointer TInt) $ \p1 ->
+              for (Num 0) (Num 10) $ \e -> Assign out [e] (Index p1 [e]) ) 
+--
+--
 
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for Programs

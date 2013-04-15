@@ -12,13 +12,13 @@ data Expr where
   Num    :: Int -> Expr
   Index  :: Name -> [Expr] -> Expr
   Call   :: Expr -> [Expr] -> Expr
-  (:+:)  :: Expr -> Expr -> Expr
-  (:-:)  :: Expr -> Expr -> Expr
-  (:*:)  :: Expr -> Expr -> Expr
-  (:/:)  :: Expr -> Expr -> Expr
-  (:%:)  :: Expr -> Expr -> Expr
-  (:<=:) :: Expr -> Expr -> Expr
-  (:==:) :: Expr -> Expr -> Expr
+  (:+:)  :: Expr -> Expr -> Expr --  TODO: These are superfluous
+  (:-:)  :: Expr -> Expr -> Expr --
+  (:*:)  :: Expr -> Expr -> Expr --
+  (:/:)  :: Expr -> Expr -> Expr --
+  (:%:)  :: Expr -> Expr -> Expr --
+  (:<=:) :: Expr -> Expr -> Expr --
+  (:==:) :: Expr -> Expr -> Expr --
   deriving Eq
 
 type Size  = Expr
@@ -35,6 +35,10 @@ toInt (a :-: b)  = toInt a - toInt b
 toInt (a :/: b)  = toInt a `div` toInt b
 toInt (a :*: b)  = toInt a * toInt b
 toInt _          = undefined
+
+nameFromVar :: Expr -> Name
+nameFromVar (Index v _) = v
+nameFromVar x           = error "expected Index but got " ++ show x
 
 instance Ord (Expr) where
   e1 <= e2 = toInt e1 <= toInt e2
