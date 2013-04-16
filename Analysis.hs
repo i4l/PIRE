@@ -41,7 +41,8 @@ grabKernelParams' _                 = []
 
 -- | Extracts names, types (a bit iffy atm) and type of all array Indexing operations.
 exprAsParam :: Expr -> Parameters
-exprAsParam (Index a is) = if length is > 0 then [(a,is, typeNest TInt is)] else []
+exprAsParam (Index a is) = if length is > 0 then [(a, is, typeNest TInt is)] else []
+exprAsParam (Call a is)  = exprAsParam a ++ map (head . exprAsParam) is
 exprAsParam (a :+: b)    = exprAsParam a ++ exprAsParam b
 exprAsParam (a :-: b)    = exprAsParam a ++ exprAsParam b
 exprAsParam (a :/: b)    = exprAsParam a ++ exprAsParam b
