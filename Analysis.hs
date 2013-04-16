@@ -63,16 +63,31 @@ parForUnwind (Par start end f) new = parForUnwind (For start end f) new
 parForUnwind (For start end f) new = f $ var new
 parForUnwind p                 new = p
 
---subst :: Name -> Expr -> Expr
---subst new (Index old js) = Index new js
---subst new (a :+:  b)     = subst new a :+: subst new b
---subst new (a :-:  b)     = subst new a :-: subst new b
---subst new (a :/:  b)     = subst new a :/: subst new b
---subst new (a :*:  b)     = subst new a :*: subst new b
---subst new (a :%:  b)     = subst new a :%: subst new b
---subst new (a :<=: b)     = subst new a :<=: subst new b
---subst new (a :==: b)     = subst new a :==: subst new b
---subst _ e = e
+-----------------------------------------------------------------------------
+-- Are we compiling for OpenCL or regular C (so we know if we should add the OpenCL boilerplate block)
 
+isParallel :: Program a -> Bool
+isParallel Par{}          = True
+isParallel (a :>> b)      = isParallel a && isParallel b
+isParallel (If _ t f)     = isParallel t && isParallel f
+isParallel (For _ _ f)    = isParallel $ f (var "x")
+isParallel (Alloc _ _ f)  = isParallel $ f "x"
+isParallel (BasicProc p)  = isParallel p
+isParallel (OutParam t f) = isParallel $ f "out"
+isParallel (InParam t f)  = isParallel $ f "arg"
+isParallel _              = False
 
+-----------------------------------------------------------------------------
+-- Remove duplicate BasicProc
+
+removeDupBasicProg :: Program a -> Program a
+removeDupBasicProg (a :>> b)      = removeDupBasicProg a :>> removeDupBasicProg b
+removeDupBasicProg (If c t f)     = iff c (removeDupBasicProg t) (removeDupBasicProg f)
+removeDupBasicProg (BasicProc p)  = p
+removeDupBasicProg (For a b f)    = for a b $ \e -> removeDupBasicProg $ f e
+removeDupBasicProg (Par a b f)    = Par a b $ \e -> removeDupBasicProg $ f e
+removeDupBasicProg (Alloc t dim f)= Alloc t dim $ \name -> removeDupBasicProg $  f name
+removeDupBasicProg (OutParam t f) = OutParam t $ \name -> removeDupBasicProg $ f name
+removeDupBasicProg (InParam t f)  = InParam t $ \name -> removeDupBasicProg $ f name
+removeDupBasicProg p              = p
 

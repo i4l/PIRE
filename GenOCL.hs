@@ -57,13 +57,11 @@ instance GenCode (Program a) where
 
 genProg :: Program a -> Gen ()
 
---genProg NilProc          = return ()
 genProg (BasicProc proc) = do i <- incVar
                               gen proc
                               ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
                               tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
                               tell $ mempty {post = ["}"]}
---genProg (ProcBody p)   = gen p
 genProg (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
                             --addParam $ sizeParam t $ "outC" ++ show i

@@ -29,11 +29,9 @@ data Program a where
   If        :: Expr -> Program a -> Program a -> Program a
   For       :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par       :: Expr -> Expr -> (Expr -> Program a) -> Program a
- -- Alloc     :: Type -> Dim -> (PartialLoc Expr a -> IndexedArray -> Program a) -> Program a
   Alloc :: Type -> Dim -> (Name -> Program a) -> Program a
 
   BasicProc :: Program a -> Program a
---  ProgramBody  :: Program a -> Program a
   OutParam  :: Type -> (Name -> Program a) -> Program a 
   InParam  :: Type -> (Name -> Program a) -> Program a
   deriving Typeable
