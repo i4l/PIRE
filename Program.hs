@@ -35,7 +35,7 @@ data Program a where
   BasicProc :: Program a -> Program a
 --  ProgramBody  :: Program a -> Program a
   OutParam  :: Type -> (Name -> Program a) -> Program a 
-  NewParam  :: Type -> (Name -> Program a) -> Program a
+  InParam  :: Type -> (Name -> Program a) -> Program a
   deriving Typeable
 
 instance Eq (Program a) where
@@ -55,7 +55,7 @@ instance Monoid (Program a) where
 testFor = for (Num 0) (Num 10) (\e -> Assign "arr" [e] e)
 
 emptyProc :: Program ()
-emptyProc = BasicProc (OutParam (TPointer TInt) $ \out -> NewParam (TPointer TInt) $ \p1 ->
+emptyProc = BasicProc (OutParam (TPointer TInt) $ \out -> InParam (TPointer TInt) $ \p1 ->
               for (Num 0) (Num 10) $ \e -> Assign out [e] (Index p1 [e]) ) 
 --
 --

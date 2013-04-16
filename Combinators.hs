@@ -41,6 +41,9 @@ import Control.Monad.RWS
 --
 ---- | Experimental map (to have something to play around with).
 --mapP :: Type -> Dim -> ([Index] -> Expr) -> IndexedArray -> (IndexedArray -> Program a) -> Program a
+--mapP :: (Expr -> Expr) -> Size -> ((Name -> Program a) -> Program a) -> Program a
+--mapP f sz k = k $ \name -> for (Num 0) sz $ \e -> locArray name e (f e)
+
 --mapP t dim f arr prog = initArray t dim f $ \loc res ->
 --                          nestPar dim loc (\xs -> f [arr $ reverse xs]) []
 --                      .>> prog res
@@ -91,7 +94,16 @@ import Control.Monad.RWS
 ---- Example programs
 --
 ---- | With initialize and mapP helper functions.
---mapTest :: Program a
+mapTest :: Program a
+mapTest = BasicProc $ 
+            InParam (TPointer TInt)  $ \arr1 -> 
+            OutParam (TPointer TInt) $ \out ->
+              for (Num 0) sz $ \e -> locArray out e (f $ Index arr1 [e])
+          where
+            f = (.*) (Num 2)
+            sz = Num 10
+              -- mapP (.* (Num 2)) (Num 10) $ loc
+                      
 --mapTest = initArray t dim initf $
 --            \_ arrName -> mapP t dim apply arrName $
 --              \mappedArr -> printArray t dim mappedArr

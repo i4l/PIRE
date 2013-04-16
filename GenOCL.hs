@@ -68,10 +68,10 @@ genProg (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
                             --addParam $ sizeParam t $ "outC" ++ show i
                             gen $ p ("out" ++ show i)
-genProg (NewParam t p) = do i <- incVar
-                            addParam $ show t ++ " arg" ++ show i
-                            --addParam $ sizeParam t $ "argC" ++ show i
-                            gen $ p ("arg" ++ show i)
+genProg (InParam t p) = do i <- incVar
+                           addParam $ show t ++ " arg" ++ show i
+                           --addParam $ sizeParam t $ "argC" ++ show i
+                           gen $ p ("arg" ++ show i)
 
 
 genProg Skip = line ""
