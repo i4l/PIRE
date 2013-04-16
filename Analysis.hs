@@ -30,9 +30,9 @@ grabKernelParams' (Assign name es e) = let lhs = (name,es,typeNest TInt es) -- T
                                            rhs = exprAsParam e
                                        in (lhs:rhs)
 grabKernelParams' (a :>> b) = grabKernelParams a ++ grabKernelParams b
-grabKernelParams' (If c tb fb) = let cond   = exprAsParam c 
-                                     bodies = grabKernelParams $ tb :>> fb
-                                 in cond ++ bodies
+grabKernelParams' (If c t f) = let cond   = exprAsParam c 
+                                   bodies = grabKernelParams $ t :>> f
+                               in cond ++ bodies
 grabKernelParams' (For start end f) = grabKernelParams $ f (var "tid")
 grabKernelParams' (Par start end f) = error "par"
 grabKernelParams' (Alloc t dim p)   = error "alloc"
