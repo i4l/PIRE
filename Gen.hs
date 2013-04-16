@@ -17,6 +17,22 @@ showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern
         kern  = ["\n//Kernel code"] ++ kernCode w
 
 
+
+toFile :: FilePath -> Gen () -> IO ()
+toFile path prog = do writeFile path $ unlines $ pre' ++ host ++ post'
+                      writeFile kernPath (unlines kern)
+  where (_,s,w) = runRWS prog () emptyEnv
+        pre'  = pre w
+        post' = post w
+        host  = hostCode w
+        kernPath = kernelFile s
+        kern  = kernCode w
+
+--writeFile path (unlines $ extractCode prog emptyEnv) >>
+--                   writeFile (kernelFile emptyEnv) (unlines $ extractCodeK prog emptyEnv)
+
+
+
 class GenCode a where
   gen :: a -> Gen ()
 
