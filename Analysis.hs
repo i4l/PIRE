@@ -34,6 +34,9 @@ grabKernelParams' (If c t f) = let cond   = exprAsParam c
                                    bodies = grabKernelParams $ t :>> f
                                in cond ++ bodies
 grabKernelParams' (For start end f) = grabKernelParams $ f (var "tid")
+grabKernelParams' (BasicProc p)     = grabKernelParams p
+grabKernelParams' OutParam{}        = error "OutParam in grabKernelParams'"
+grabKernelParams' InParam{}         = error "InParam in grabKernelParams'"
 grabKernelParams' (Par start end f) = error "par"
 grabKernelParams' (Alloc t dim p)   = error "alloc"
 grabKernelParams' (Print t e)       = error "print"

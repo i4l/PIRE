@@ -98,7 +98,9 @@ mapTest :: Program a
 mapTest = BasicProc $ 
             InParam (TPointer TInt)  $ \arr1 -> 
             OutParam (TPointer TInt) $ \out ->
-              for (Num 0) sz $ \e -> locArray out e (f $ Index arr1 [e])
+              Alloc TInt [Num 10] $ \allocName -> 
+                (par (Num 0) sz $ \e -> locArray allocName e (f $ Index arr1 [e]))
+                .>> loc out (var allocName)
           where
             f = (.*) (Num 2)
             sz = Num 10
