@@ -57,11 +57,13 @@ instance GenCode (Program a) where
 
 genProg :: Program a -> Gen ()
 
-genProg (BasicProc proc) = do i <- incVar
-                              gen proc
-                              ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
-                              tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
-                              tell $ mempty {post = ["}"]}
+genProg (BasicProc p) = do 
+                           when (isParallel p) $ setupHeadings >> setupOCL
+                           i <- incVar
+                           gen $ removeDupBasicProg p
+                           ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
+                           tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
+                           tell $ mempty {post = ["}"]}
 genProg (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
                             --addParam $ sizeParam t $ "outC" ++ show i
@@ -245,13 +247,12 @@ readOCL n t s =
 -- Extras
 
 setupHeadings :: Gen ()
-setupHeadings = do line "#include <stdio.h>"
-                   line "#include <stdlib.h>"
-                   kcount <- gets kernelCounter
-                   line "#include <CL/cl.h>"
-                   line "#define MAX_SOURCE_SIZE (0x100000)\n\n"
-                   line "int main (void) {"
-                   indent 2
+setupHeadings = do tell $ mempty {pre = ["#include <stdio.h>"]}
+                   tell $ mempty {pre = ["#include <stdlib.h>"]}
+                   tell $ mempty {pre = ["#include <CL/cl.h>"]}
+                   tell $ mempty {pre = ["#define MAX_SOURCE_SIZE (0x100000)\n\n"]}
+                   --line "int main (void) {"
+                   --indent 2
 
 setupEnd :: Gen ()
 setupEnd = line "return 0;" >> unindent 2 >> line "}"

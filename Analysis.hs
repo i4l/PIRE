@@ -4,6 +4,8 @@
 module Analysis (  Parameters
                  , grabKernelParams
                  , parForUnwind
+                 , isParallel
+                 , removeDupBasicProg
                  ) where
 
 import Util
@@ -67,10 +69,10 @@ parForUnwind p                 new = p
 -- Are we compiling for OpenCL or regular C (so we know if we should add the OpenCL boilerplate block)
 
 isParallel :: Program a -> Bool
-isParallel Par{}          = True
-isParallel (a :>> b)      = isParallel a && isParallel b
-isParallel (If _ t f)     = isParallel t && isParallel f
+isParallel (a :>> b)      = isParallel a || isParallel b
+isParallel (If _ t f)     = isParallel t || isParallel f
 isParallel (For _ _ f)    = isParallel $ f (var "x")
+isParallel (Par _ _ _)    = True
 isParallel (Alloc _ _ f)  = isParallel $ f "x"
 isParallel (BasicProc p)  = isParallel p
 isParallel (OutParam t f) = isParallel $ f "out"
@@ -85,7 +87,7 @@ removeDupBasicProg (a :>> b)      = removeDupBasicProg a :>> removeDupBasicProg 
 removeDupBasicProg (If c t f)     = iff c (removeDupBasicProg t) (removeDupBasicProg f)
 removeDupBasicProg (BasicProc p)  = p
 removeDupBasicProg (For a b f)    = for a b $ \e -> removeDupBasicProg $ f e
-removeDupBasicProg (Par a b f)    = Par a b $ \e -> removeDupBasicProg $ f e
+removeDupBasicProg (Par a b f)    = par a b $ \e -> removeDupBasicProg $ f e
 removeDupBasicProg (Alloc t dim f)= Alloc t dim $ \name -> removeDupBasicProg $  f name
 removeDupBasicProg (OutParam t f) = OutParam t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg (InParam t f)  = InParam t $ \name -> removeDupBasicProg $ f name
