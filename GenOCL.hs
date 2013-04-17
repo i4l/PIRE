@@ -239,7 +239,7 @@ launchKernel global local = do
 readOCL :: Name -> Type -> Size -> Gen () 
 readOCL n t s =
   line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
-          show s ++ "* sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
+          show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
 
 
 
