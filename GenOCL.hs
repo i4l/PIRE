@@ -45,10 +45,10 @@ instance Show (Program a) where
 --                            gen $ p ("arg" ++ show i)
 
 -- | adds a size parameter for a an input or output parameter.
-sizeParam :: Type -> Name -> String
-sizeParam TInt         _ = ""
-sizeParam (TPointer t) n = show t ++ " " ++ n
-sizeParam (TArray   t) n = sizeParam (TPointer t) n
+--sizeParam :: Type -> Name -> String
+--sizeParam TInt         _ = ""
+--sizeParam (TPointer t) n = show t ++ " " ++ n
+--sizeParam (TArray   t) n = sizeParam (TPointer t) n
 
 -----------------------------------------------------------------------------
 
@@ -66,11 +66,11 @@ genProg (BasicProc p) = do
                            tell $ mempty {post = ["}"]}
 genProg (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
-                            --addParam $ sizeParam t $ "outC" ++ show i
+                            addParam $ show TInt ++ " out" ++ show i ++ "c"
                             gen $ p ("out" ++ show i)
 genProg (InParam t p) = do i <- incVar
                            addParam $ show t ++ " arg" ++ show i
-                           --addParam $ sizeParam t $ "argC" ++ show i
+                           addParam $ show TInt ++ " arg" ++ show i ++ "c"
                            gen $ p ("arg" ++ show i)
 
 
@@ -250,6 +250,8 @@ setupHeadings :: Gen ()
 setupHeadings = do tell $ mempty {pre = ["#include <stdio.h>"]}
                    tell $ mempty {pre = ["#include <stdlib.h>"]}
                    tell $ mempty {pre = ["#include <CL/cl.h>"]}
+                   tell $ mempty {pre = ["#include \"feldspar_c99.h\""]}
+
                    tell $ mempty {pre = ["#define MAX_SOURCE_SIZE (0x100000)\n\n"]}
                    --line "int main (void) {"
                    --indent 2
