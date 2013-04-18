@@ -8,6 +8,7 @@ module Analysis (  Parameters
                  , removeDupBasicProg
                  ) where
 
+import Prelude hiding (GT, LT, EQ)
 import Util
 import Expr
 import Program
@@ -48,15 +49,36 @@ grabKernelParams' _                 = []
 exprAsParam :: Expr -> Parameters
 exprAsParam (Index a is) | a == "tid" = []
                          | otherwise  = [(a, is, typeNest TInt is)]
-exprAsParam (Call a is)  = exprAsParam a ++ (concat $ map exprAsParam is)
-exprAsParam (a :+: b)    = exprAsParam a ++ exprAsParam b
-exprAsParam (a :-: b)    = exprAsParam a ++ exprAsParam b
-exprAsParam (a :/: b)    = exprAsParam a ++ exprAsParam b
-exprAsParam (a :%: b)    = exprAsParam a ++ exprAsParam b
-exprAsParam (a :*: b)    = exprAsParam a ++ exprAsParam b
-exprAsParam (a :<=: b)   = exprAsParam a ++ exprAsParam b
-exprAsParam (a :==: b)   = exprAsParam a ++ exprAsParam b
+exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam js ++ concatMap exprAsParam is
+exprAsParam (Call a is)  = exprAsParam a ++ concatMap exprAsParam is
+exprAsParam (BinOp op)   = binOpParam op
+exprAsParam (UnOp  op)   = unOpParam op
+exprAsParam (Cond c t f) = exprAsParam c ++ exprAsParam t ++ exprAsParam f
 exprAsParam _            = []
+
+unOpParam :: UOp -> Parameters
+unOpParam (BWNeg a) = exprAsParam a
+
+binOpParam :: BOp -> Parameters
+binOpParam (Add a b) = exprAsParam a ++ exprAsParam b
+binOpParam (Sub a b) = exprAsParam a ++ exprAsParam b
+binOpParam (Mul a b) = exprAsParam a ++ exprAsParam b
+binOpParam (Div a b) = exprAsParam a ++ exprAsParam b
+binOpParam (Mod a b) = exprAsParam a ++ exprAsParam b
+binOpParam (LT  a b) = exprAsParam a ++ exprAsParam b
+binOpParam (LTE a b) = exprAsParam a ++ exprAsParam b
+binOpParam (GT  a b) = exprAsParam a ++ exprAsParam b
+binOpParam (GTE a b) = exprAsParam a ++ exprAsParam b
+binOpParam (EQ  a b) = exprAsParam a ++ exprAsParam b
+binOpParam (NEQ a b) = exprAsParam a ++ exprAsParam b
+binOpParam (And a b) = exprAsParam a ++ exprAsParam b
+binOpParam (Or  a b) = exprAsParam a ++ exprAsParam b
+binOpParam (BWAnd a b) = exprAsParam a ++ exprAsParam b
+binOpParam (BWOr a b) = exprAsParam a ++ exprAsParam b
+binOpParam (ShiftL a b) = exprAsParam a ++ exprAsParam b
+binOpParam (ShiftR a b) = exprAsParam a ++ exprAsParam b
+
+
 
 -----------------------------------------------------------------------------
 -- Translate nested parallel loops to for loops

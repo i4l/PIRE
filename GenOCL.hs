@@ -107,7 +107,7 @@ genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                           unindent 2
                           line "}"
 genProg (Par start end f) = do let tid = "tid"
-                                   f' = iff (var tid :<=: (end .- Num 1)) (parForUnwind (f $ var tid) tid) Skip
+                                   f' = iff (BinOp $ Expr.LT (var tid) end) (parForUnwind (f $ var tid) tid) Skip
 
                                    paramTriples = grabKernelParams f'
                                    parameters = (init . concat) 
