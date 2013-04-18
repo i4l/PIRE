@@ -9,18 +9,19 @@ import Data.List
 import Expr
 
 showProg :: Gen () -> IO ()
-showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern
+showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern'
   where (_,w) = evalRWS prog () emptyEnv
         pre'  = pre w
         post' = post w
         host  = hostCode w
-        kern  = ["\n//Kernel code"] ++ kernCode w
+        kern  = kernCode w
+        kern' = if null kern then [] else ["\n//Kernel code"] ++ kern
 
 
 
 toFile :: FilePath -> Gen () -> IO ()
 toFile path prog = do writeFile path $ unlines $ pre' ++ host ++ post'
-                      writeFile kernPath (unlines kern)
+                      unless (null kern) $ writeFile kernPath (unlines kern)
   where (_,s,w) = runRWS prog () emptyEnv
         pre'  = pre w
         post' = post w
