@@ -58,9 +58,11 @@ instance GenCode (Program a) where
 genProg :: Program a -> Gen ()
 
 genProg (BasicProc p) = do 
-                           when (isParallel p) $ setupHeadings >> setupOCL
                            i <- incVar
+                           indent 2
+                           when (isParallel p) $ setupHeadings >> setupOCL
                            gen $ removeDupBasicProg p
+                           unindent 2
                            ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
                            tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
                            tell $ mempty {post = ["}"]}
@@ -115,20 +117,20 @@ genProg (Par start end f) = do let tid = "tid"
                                kerName <- fmap ((++) "k" . show) incVar
                                lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
                                kindent 2
+
                                lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
 
-                               genK $ f'
+                               genK f'
 
                                runOCL kerName
                                setupOCLMemory paramTriples 0 end
                                launchKernel 2048 1024
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
                                let (n,dim,t) = head paramTriples
-                               readOCL n (TPointer t) end -- assumption: param0 is out parameter
-                               lineK "}"
+                               readOCL n (TPointer t) end --TODO: (Wrong) assumption: param0 is out parameter
+
                                kunindent 2
                                lineK "}"
-                               kunindent 2
 
 genProg (For e1 e2 p) = do i <- newLoopVar
                            line $ show TInt ++ " " ++ i ++ ";"
@@ -162,8 +164,8 @@ genK (p1 :>> p2)        = genK p1 >> genK p2
 genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " ) {"
                          kindent 2
                          genK p1
-                         line "}"
                          kunindent 2
+                         lineK "}"
 genK (If c p1 p2) = do lineK $ "if( " ++ show c ++ " ) { "
                        kindent 2
                        genK p1
