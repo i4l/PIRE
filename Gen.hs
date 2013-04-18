@@ -21,7 +21,7 @@ showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern'
 
 toFile :: FilePath -> Gen () -> IO ()
 toFile path prog = do writeFile path $ pre' ++ host ++ post'
-                      unless (null kern) $ writeFile kernPath (kern)
+                      unless (null kern) $ writeFile kernPath kern
   where (_,s,w) = runRWS prog () emptyEnv
         pre'  = unlines $ pre w
         post' = unlines $ post w
