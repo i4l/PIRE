@@ -12,14 +12,23 @@ data Expr where
   Num    :: Int -> Expr
   Index  :: Name -> [Expr] -> Expr
   Call   :: Expr -> [Expr] -> Expr
-  (:+:)  :: Expr -> Expr -> Expr --  TODO: These are superfluous
-  (:-:)  :: Expr -> Expr -> Expr --
-  (:*:)  :: Expr -> Expr -> Expr --
-  (:/:)  :: Expr -> Expr -> Expr --
-  (:%:)  :: Expr -> Expr -> Expr --
-  (:<=:) :: Expr -> Expr -> Expr --
-  (:==:) :: Expr -> Expr -> Expr --
+  BinOp  :: Op  -> (Expr, Expr) -> Expr
+  UnOp   :: Op  -> Expr -> Expr
+  Cond   :: Expr -> Expr -> Expr -> Expr
+  (:+:)  :: Expr -> Expr -> Expr
+  (:-:)  :: Expr -> Expr -> Expr
+  (:*:)  :: Expr -> Expr -> Expr
+  (:/:)  :: Expr -> Expr -> Expr
+  (:%:)  :: Expr -> Expr -> Expr
+  (:<=:) :: Expr -> Expr -> Expr
+  (:==:) :: Expr -> Expr -> Expr
   deriving Eq
+
+
+data Op = Op
+  deriving Eq
+
+
 
 type Size  = Expr
 type Index = Expr 
