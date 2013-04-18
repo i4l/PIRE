@@ -90,10 +90,11 @@ genProg (Statement e) = line $ show e ++ ";"
 
 genProg (p1 :>> p2) = gen p1 >> gen p2
 
-genProg (If c p1 Skip) = do line $ "if( " ++ show c ++ " )"
+genProg (If c p1 Skip) = do line $ "if( " ++ show c ++ " ) {"
                             indent 2
                             gen p1
                             unindent 2
+                            line "}"
 genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                           indent 2
                           gen p1
@@ -104,25 +105,21 @@ genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                           unindent 2
                           line "}"
 genProg (Par start end f) = do let tid = "tid"
-                                   paramTriples = grabKernelParams (f $ var tid)
+                                   f' = iff (var tid :<=: (end .- Num 1)) (parForUnwind (f $ var tid) tid) Skip
+
+                                   paramTriples = grabKernelParams f'
                                    parameters = (init . concat) 
                                       [ " __global " ++ show t ++ " " ++  n ++ "," 
                                         | (n,dim,t) <- paramTriples]
-                           
-                               --debugging code. prints the parameter names gathered.
-                               --line "//Param triples"
-                               --mapM_ line $ map ((++) "// " . show) (paramTriples)
 
                                kerName <- fmap ((++) "k" . show) incVar
                                lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
                                kindent 2
                                lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
-                               --lineK $ "if( tid < " ++ show end ++ " ) {"
                                kindent 2
 
-                               let translated = parForUnwind (f $ var tid) tid
                                kindent 2
-                               genK $ iff (var tid :<=: (end .- Num 1)) translated Skip
+                               genK $ f' --iff (var tid :<=: (end .- Num 1)) translated Skip
                                kunindent 2
 
                                runOCL kerName
@@ -130,12 +127,11 @@ genProg (Par start end f) = do let tid = "tid"
                                launchKernel 2048 1024
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
                                let (n,dim,t) = head paramTriples
-                               readOCL n (TPointer t) end
+                               readOCL n (TPointer t) end -- assumption: param0 is out parameter
                                lineK "}"
                                kunindent 2
                                lineK "}"
                                kunindent 2
-                               return ()
 
 genProg (For e1 e2 p) = do i <- newLoopVar
                            line $ show TInt ++ " " ++ i ++ ";"
@@ -166,10 +162,11 @@ genK (Print t e) = do let printTerm = case t of
 genK Skip            = return ()
 genK (Assign name es e) = lineK (show (Index name es) ++ " = " ++ show e ++ ";")
 genK (p1 :>> p2)        = genK p1 >> genK p2
-genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " )"
+genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " ) {"
                          kindent 2
                          genK p1
                          kunindent 2
+                         line "}"
 genK (If c p1 p2) = do lineK $ "if( " ++ show c ++ " ) { "
                        kindent 2
                        genK p1

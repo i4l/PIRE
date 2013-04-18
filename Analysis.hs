@@ -46,7 +46,8 @@ grabKernelParams' _                 = []
 
 -- | Extracts names and types array Indexing operations.
 exprAsParam :: Expr -> Parameters
-exprAsParam (Index a is) = [(a, is, typeNest TInt is)]
+exprAsParam (Index a is) | a == "tid" = []
+                         | otherwise  = [(a, is, typeNest TInt is)]
 exprAsParam (Call a is)  = exprAsParam a ++ (concat $ map exprAsParam is)
 exprAsParam (a :+: b)    = exprAsParam a ++ exprAsParam b
 exprAsParam (a :-: b)    = exprAsParam a ++ exprAsParam b
@@ -58,11 +59,11 @@ exprAsParam (a :==: b)   = exprAsParam a ++ exprAsParam b
 exprAsParam _            = []
 
 -----------------------------------------------------------------------------
--- ParFor unwinding
+-- Translate nested parallel loops to for loops
 
 parForUnwind :: Program a -> Name -> Program a
-parForUnwind (Par start end f) new = parForUnwind (For start end f) new
-parForUnwind (For start end f) new = f $ var new
+parForUnwind (Par start end f) new = For start end $ \e -> parForUnwind (f e) new
+parForUnwind (For start end f) new = For start end $ \e -> parForUnwind (f e) new
 parForUnwind p                 new = p
 
 -----------------------------------------------------------------------------
