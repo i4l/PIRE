@@ -117,7 +117,7 @@ genProg (Par start end f) = do let tid = "tid"
                                kindent 2
                                lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
 
-                               genK $ f' --iff (var tid :<=: (end .- Num 1)) translated Skip
+                               genK $ f'
 
                                runOCL kerName
                                setupOCLMemory paramTriples 0 end
