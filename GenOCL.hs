@@ -117,12 +117,12 @@ genProg (Par start end f) = do let tid = "tid"
                                lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
                                kindent 2
                                lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
-                               lineK $ "if( tid < " ++ show end ++ " ) {"
+                               --lineK $ "if( tid < " ++ show end ++ " ) {"
                                kindent 2
 
                                let translated = parForUnwind (f $ var tid) tid
                                kindent 2
-                               genK $ translated
+                               genK $ iff (var tid :<=: (end .- Num 1)) translated Skip
                                kunindent 2
 
                                runOCL kerName
