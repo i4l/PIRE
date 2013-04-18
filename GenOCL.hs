@@ -116,11 +116,8 @@ genProg (Par start end f) = do let tid = "tid"
                                lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
                                kindent 2
                                lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
-                               kindent 2
 
-                               kindent 2
                                genK $ f' --iff (var tid :<=: (end .- Num 1)) translated Skip
-                               kunindent 2
 
                                runOCL kerName
                                setupOCLMemory paramTriples 0 end
@@ -165,8 +162,8 @@ genK (p1 :>> p2)        = genK p1 >> genK p2
 genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " ) {"
                          kindent 2
                          genK p1
-                         kunindent 2
                          line "}"
+                         kunindent 2
 genK (If c p1 p2) = do lineK $ "if( " ++ show c ++ " ) { "
                        kindent 2
                        genK p1

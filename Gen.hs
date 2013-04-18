@@ -20,14 +20,14 @@ showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern'
 
 
 toFile :: FilePath -> Gen () -> IO ()
-toFile path prog = do writeFile path $ unlines $ pre' ++ host ++ post'
-                      unless (null kern) $ writeFile kernPath (unlines kern)
+toFile path prog = do writeFile path $ host --pre' ++ host ++ post'
+                      unless (null kern) $ writeFile kernPath (kern)
   where (_,s,w) = runRWS prog () emptyEnv
-        pre'  = pre w
-        post' = post w
-        host  = hostCode w
+        pre'  = unlines $ pre w
+        post' = unlines $ post w
+        host  = unlines $ hostCode w
         kernPath = kernelFile s
-        kern  = kernCode w
+        kern  = unlines $ kernCode w
 
 --writeFile path (unlines $ extractCode prog emptyEnv) >>
 --                   writeFile (kernelFile emptyEnv) (unlines $ extractCodeK prog emptyEnv)
