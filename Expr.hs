@@ -20,13 +20,6 @@ data Expr where
   BinOp  :: BOp -> Expr
   UnOp   :: UOp -> Expr
   Cond   :: Expr -> Expr -> Expr -> Expr
---  (:+:)  :: Expr -> Expr -> Expr
---  (:-:)  :: Expr -> Expr -> Expr
---  (:*:)  :: Expr -> Expr -> Expr
---  (:/:)  :: Expr -> Expr -> Expr
---  (:%:)  :: Expr -> Expr -> Expr
---  (:<=:) :: Expr -> Expr -> Expr
---  (:==:) :: Expr -> Expr -> Expr
   deriving Eq
 
 
@@ -37,22 +30,22 @@ data UOp where
 
 -- | Binary operators
 data BOp where
-  Add :: Expr -> Expr -> BOp 
-  Sub :: Expr -> Expr -> BOp 
-  Mul :: Expr -> Expr -> BOp 
-  Div :: Expr -> Expr -> BOp 
-  Mod :: Expr -> Expr -> BOp 
-  LT  :: Expr -> Expr -> BOp 
-  LTE :: Expr -> Expr -> BOp
-  GT  :: Expr -> Expr -> BOp 
-  GTE :: Expr -> Expr -> BOp
-  EQ  :: Expr -> Expr -> BOp
-  NEQ :: Expr -> Expr -> BOp
-  And :: Expr -> Expr -> BOp
-  Or  :: Expr -> Expr -> BOp
-  BWAnd :: Expr -> Expr -> BOp
-  BWOr  :: Expr -> Expr -> BOp
-  BWXOr  :: Expr -> Expr -> BOp
+  Add     :: Expr -> Expr -> BOp 
+  Sub     :: Expr -> Expr -> BOp 
+  Mul     :: Expr -> Expr -> BOp 
+  Div     :: Expr -> Expr -> BOp 
+  Mod     :: Expr -> Expr -> BOp 
+  LT      :: Expr -> Expr -> BOp 
+  LTE     :: Expr -> Expr -> BOp
+  GT      :: Expr -> Expr -> BOp 
+  GTE     :: Expr -> Expr -> BOp
+  EQ      :: Expr -> Expr -> BOp
+  NEQ     :: Expr -> Expr -> BOp
+  And     :: Expr -> Expr -> BOp
+  Or      :: Expr -> Expr -> BOp
+  BWAnd   :: Expr -> Expr -> BOp
+  BWOr    :: Expr -> Expr -> BOp
+  BWXOr   :: Expr -> Expr -> BOp
   ShiftL  :: Expr -> Expr -> BOp
   ShiftR  :: Expr -> Expr -> BOp
   deriving Eq 
@@ -67,7 +60,7 @@ instance Show BOp where
   show (Mod a b) = "(" ++ show a ++ " % " ++ show b ++ ")" 
   show (LT  a b) = "(" ++ show a ++ " < " ++ show b ++ ")" 
   show (LTE a b) = "(" ++ show a ++ " <= " ++ show b ++ ")" 
-  show (GT a b) = "(" ++ show a ++ " > " ++ show b ++ ")" 
+  show (GT  a b) = "(" ++ show a ++ " > " ++ show b ++ ")" 
   show (GTE a b) = "(" ++ show a ++ " >= " ++ show b ++ ")" 
   show (EQ  a b) = "(" ++ show a ++ " == " ++ show b ++ ")" 
   show (NEQ a b) = "(" ++ show a ++ " != " ++ show b ++ ")" 
