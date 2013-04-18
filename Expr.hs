@@ -26,7 +26,7 @@ data Expr where
 
 
 data Op = Op
-  deriving Eq
+  deriving Eq 
 
 
 
