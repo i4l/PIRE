@@ -97,13 +97,6 @@ instance Show Expr where
   show (BinOp op) = show op
   show (UnOp  op) = show op
   show (Cond c a b) = show c ++ " ? " ++ show a ++ " : " ++ show b
---  show (a :+: b)    = "(" ++ show a ++ "+" ++ show b ++ ")"
---  show (a :-: b)    = "(" ++ show a ++ "-" ++ show b ++ ")"
---  show (a :/: b)    = "(" ++ show a ++ "/" ++ show b ++ ")"
---  show (a :*: b)    = "(" ++ show a ++ "*" ++ show b ++ ")"
---  show (a :%: b)    = "(" ++ show a ++ "%" ++ show b ++ ")"
---  show (a :<=: b)   = "(" ++ show a ++ " <= " ++ show b ++ ")"
---  show (a :==: b)   = "(" ++ show a ++ " == " ++ show b ++ ")"
 
 -- | Reduce a list of Expr to a single Expr as a string.
 showMulExpr :: [Expr] -> String
@@ -112,8 +105,7 @@ showMulExpr = show . foldr1 (.*)
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for expressions
 
---(.+), (.-), (.<=), (./), (.%), 
-(.*) :: Expr -> Expr -> Expr
+--(.+), (.-), (.<=), (./), (.%), (.*) :: Expr -> Expr -> Expr
 Num 0 .+ b     = b
 a     .+ Num 0 = a
 Num a .+ Num b = Num (a+b)
