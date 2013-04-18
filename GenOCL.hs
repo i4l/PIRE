@@ -202,23 +202,26 @@ genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
 
 setupOCLMemory :: [(Name,Dim,Type)] -> Int -> Size -> Gen ()
 setupOCLMemory []           i s = return ()
-setupOCLMemory ((n,d,t):xs) i s = do nameUsed <- nameExists n -- If a name is already declared we can reuse it
-                                     let objPostfix = "_obj"
-                                         createBuffers = (if not nameUsed then "cl_mem " else "") ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
-                                                  "CL_MEM_READ_WRITE" ++ ", " ++ show s ++ "*sizeof(" ++ 
-                                                  removePointer t ++ "), NULL, NULL);"
-                                     line createBuffers
-                                     let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
-                                                             objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
-                                                             removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
+setupOCLMemory ((n,d,t):xs) i sz = let s = case sz of
+                                            Index a _ -> Index a [Num 0]
+                                            a         -> a
+                                  in do nameUsed <- nameExists n -- If a name is already declared we can reuse it
+                                        let objPostfix = "_obj"
+                                            createBuffers = (if not nameUsed then "cl_mem " else "") ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+                                                     "CL_MEM_READ_WRITE" ++ ", " ++ show s ++ "*sizeof(" ++ 
+                                                     removePointer t ++ "), NULL, NULL);"
+                                        line createBuffers
+                                        let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
+                                                                objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
+                                                                removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
 
-                                     -- set arguments to kernel
-                                     let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
-                                                         ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
-                                     line setArgs
-                                     addUsedVar n
-                                     when (i /= 0) (line copyBuffers) -- We don't copy the result array
-                                     setupOCLMemory xs (i+1) s
+                                        -- set arguments to kernel
+                                        let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
+                                                            ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
+                                        line setArgs
+                                        addUsedVar n
+                                        when (i /= 0) (line copyBuffers) -- We don't copy the result array
+                                        setupOCLMemory xs (i+1) s
 
 runOCL :: Name -> Gen ()
 runOCL kname = do --create kernel & build program
@@ -237,9 +240,11 @@ launchKernel global local = do
 
 -- reads argument 0 from kernel
 readOCL :: Name -> Type -> Size -> Gen () 
-readOCL n t s =
-  line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
-          show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
+readOCL n t sz = let s = case sz of
+                          Index a _ -> Index a [Num 0]
+                          a         -> a
+                 in line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
+           show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
 
 
 

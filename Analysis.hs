@@ -44,10 +44,10 @@ grabKernelParams' (Alloc t dim p)   = error "alloc"
 grabKernelParams' (Print t e)       = error "print"
 grabKernelParams' _                 = []
 
--- | Extracts names, types (a bit iffy atm) and type of all array Indexing operations.
+-- | Extracts names and types array Indexing operations.
 exprAsParam :: Expr -> Parameters
-exprAsParam (Index a is) = if length is > 0 then [(a, is, typeNest TInt is)] else []
-exprAsParam (Call a is)  = exprAsParam a ++ map (head . exprAsParam) is
+exprAsParam (Index a is) = [(a, is, typeNest TInt is)]
+exprAsParam (Call a is)  = exprAsParam a ++ (concat $ map exprAsParam is)
 exprAsParam (a :+: b)    = exprAsParam a ++ exprAsParam b
 exprAsParam (a :-: b)    = exprAsParam a ++ exprAsParam b
 exprAsParam (a :/: b)    = exprAsParam a ++ exprAsParam b

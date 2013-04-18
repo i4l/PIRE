@@ -97,6 +97,9 @@ locNest v is = \x -> Assign v is x
 
 loc :: Name -> Loc Expr a
 loc v = \x -> Assign v [] x
+
+zeroLoc :: Name -> Loc Expr a
+zeroLoc v = \x -> Assign v [Num 0] x
 --
 --(&) :: Loc a -> Loc b -> Loc (a,b)
 --loc1 & loc2 = \(x,y) -> loc1 x .>> loc2 y
