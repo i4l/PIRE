@@ -6,6 +6,7 @@ module Analysis (  Parameters
                  , parForUnwind
                  , isParallel
                  , removeDupBasicProg
+                 , grabKernelReadBacks
                  ) where
 
 import Prelude hiding (GT, LT, EQ)
@@ -20,16 +21,16 @@ import Control.Monad
 -----------------------------------------------------------------------------
 -- kernel parameters
 
-type Parameters = [(Name, Dim, Type)]
+type Parameters = [(Name, Type)]
 
 -- | grabKernelParams p gets the arrays used in p as a list of parameters that can be used in a kernel.
 --   Removes duplicates by name only.
 grabKernelParams :: Program a -> Parameters
 grabKernelParams = rmDup . grabKernelParams' 
-  where rmDup      = nubBy $ \(n1,_,_) (n2,_,_) -> n1 == n2
+  where rmDup      = nubBy $ \(n1,_) (n2,_) -> n1 == n2
 
 grabKernelParams' :: Program a -> Parameters
-grabKernelParams' (Assign name es e) = let lhs = (name,es,typeNest TInt es) -- TODO: hard-coded to Int.
+grabKernelParams' (Assign name es e) = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
                                            rhs = exprAsParam e
                                        in (lhs:rhs)
 grabKernelParams' (a :>> b) = grabKernelParams a ++ grabKernelParams b
@@ -48,7 +49,7 @@ grabKernelParams' _                 = []
 -- | Extracts names and types array Indexing operations.
 exprAsParam :: Expr -> Parameters
 exprAsParam (Index a is) | a == "tid" = []
-                         | otherwise  = [(a, is, typeNest TInt is)]
+                         | otherwise  = [(a, typeNest TInt is)]
 exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam js ++ concatMap exprAsParam is
 exprAsParam (Call a is)  = exprAsParam a ++ concatMap exprAsParam is
 exprAsParam (BinOp op)   = binOpParam op
@@ -103,7 +104,7 @@ isParallel (InParam t f)  = isParallel $ f "arg"
 isParallel _              = False
 
 -----------------------------------------------------------------------------
--- Remove duplicate BasicProc
+-- Remove duplicates of BasicProc in an AST
 
 removeDupBasicProg :: Program a -> Program a
 removeDupBasicProg (a :>> b)      = removeDupBasicProg a :>> removeDupBasicProg b
@@ -116,3 +117,15 @@ removeDupBasicProg (OutParam t f) = OutParam t $ \name -> removeDupBasicProg $ f
 removeDupBasicProg (InParam t f)  = InParam t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg p              = p
 
+
+-----------------------------------------------------------------------------
+-- Find out which parameters to read back after a parallel loop
+
+grabKernelReadBacks :: Program a -> Parameters
+grabKernelReadBacks (Assign name es e) = [(name, typeNest TInt es)]
+grabKernelReadBacks (a :>> b)          = grabKernelReadBacks a ++ grabKernelReadBacks b
+grabKernelReadBacks (If c t f)         = grabKernelReadBacks t ++ grabKernelReadBacks f
+grabKernelReadBacks (For _ _ f)        = grabKernelReadBacks $ f (var "tid")
+grabKernelReadBacks (Alloc _ _ f)      = grabKernelReadBacks $ f "tid"
+grabKernelReadBacks (BasicProc p)      = grabKernelReadBacks p
+grabKernelReadBacks _                  = []

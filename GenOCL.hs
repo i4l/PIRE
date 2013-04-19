@@ -112,7 +112,7 @@ genProg (Par start end f) = do let tid = "tid"
                                    paramTriples = grabKernelParams f'
                                    parameters = (init . concat) 
                                       [ " __global " ++ show t ++ " " ++  n ++ "," 
-                                        | (n,dim,t) <- paramTriples]
+                                        | (n,t) <- paramTriples]
 
                                kerName <- fmap ((++) "k" . show) incVar
                                lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
@@ -126,8 +126,9 @@ genProg (Par start end f) = do let tid = "tid"
                                setupOCLMemory paramTriples 0 end
                                launchKernel 2048 1024
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
-                               let (n,dim,t) = head paramTriples
-                               readOCL n (TPointer t) end --TODO: (Wrong) assumption: param0 is out parameter
+                               --let (n,dim,t) = head paramTriples
+                               --readOCL n (TPointer t) end --TODO: (Wrong) assumption: param0 is out parameter
+                               readOCL (grabKernelReadBacks f') 0 end
 
                                kunindent 2
                                lineK "}"
@@ -196,9 +197,9 @@ genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
 -----------------------------------------------------------------------------
 -- Other things that may need revising.
 
-setupOCLMemory :: [(Name,Dim,Type)] -> Int -> Size -> Gen ()
+setupOCLMemory :: Parameters -> Int -> Size -> Gen ()
 setupOCLMemory []           i s = return ()
-setupOCLMemory ((n,d,t):xs) i sz = let s = case sz of
+setupOCLMemory ((n,t):xs) i sz = let s = case sz of
                                             Index a _ -> Index a [Num 0]
                                             a         -> a
                                   in do nameUsed <- nameExists n -- If a name is already declared we can reuse it
@@ -234,13 +235,18 @@ launchKernel global local = do
   line $ (if kcount <= 0 then "size_t " else "") ++ "local_item_size = "  ++ show local ++ ";"
   line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
 
--- reads argument 0 from kernel
-readOCL :: Name -> Type -> Size -> Gen () 
-readOCL n t sz = let s = case sz of
-                          Index a _ -> Index a [Num 0]
-                          a         -> a
-                 in line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
-           show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
+--readOCL :: Name -> Type -> Size -> Gen () 
+readOCL :: Parameters -> Int -> Size -> Gen () 
+readOCL ((n,t):xs) i sz = let s = case sz of
+                                 Index a _ -> Index a [Num 0]
+                                 a         -> a
+                            in do line $ "read back: " ++ show n ++ " " ++ show t
+                                
+--let s = case sz of
+--                          Index a _ -> Index a [Num 0]
+--                          a         -> a
+--                 in line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
+--           show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
 
 
 
