@@ -126,8 +126,6 @@ genProg (Par start end f) = do let tid = "tid"
                                setupOCLMemory paramTriples 0 end
                                launchKernel 2048 1024
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
-                               --let (n,dim,t) = head paramTriples
-                               --readOCL n (TPointer t) end --TODO: (Wrong) assumption: param0 is out parameter
                                readOCL (grabKernelReadBacks f') 0 end
 
                                kunindent 2
@@ -146,7 +144,6 @@ genProg (For e1 e2 p) = do i <- newLoopVar
 genProg (Alloc t dim f) = do d <- incVar
                              let m = "mem" ++ show d
                              nestForAlloc dim m t
-                             --gen  $ f (locNest m) (Index m)
                              gen $ f m
                              line $ "free(" ++ m ++ ");\n"
 
@@ -188,7 +185,6 @@ genK (For e1 e2 p) = do i <- newLoopVar
 genK (Par start end f) = genK (For start end f)
 genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
-                          --genK $ f (locNest argName) (Index argName)
                           genK $ f argName
                           return ()
 
