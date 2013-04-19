@@ -147,6 +147,9 @@ genProg (Alloc t dim f) = do d <- incVar
                              gen $ f m
                              line $ "free(" ++ m ++ ");\n"
 
+genProg (Decl t f)     = do d <- incVar
+                            let m = "mem" ++ show d
+                            gen $ f m
 
 -- Code gen in kernel code   
 genK :: Program a -> Gen ()
