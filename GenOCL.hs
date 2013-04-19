@@ -149,6 +149,7 @@ genProg (Alloc t dim f) = do d <- incVar
 
 genProg (Decl t f)     = do d <- incVar
                             let m = "mem" ++ show d
+                            line $ show t ++ " " ++ m ++ ";"
                             gen $ f m
 
 -- Code gen in kernel code   
