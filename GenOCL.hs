@@ -126,7 +126,7 @@ genProg (Par start end f) = do let tid = "tid"
                                setupOCLMemory paramTriples 0 end
                                launchKernel 2048 1024
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
-                               readOCL (grabKernelReadBacks f') 0 end
+                               readOCL (grabKernelReadBacks f') end
 
                                kunindent 2
                                lineK "}"
@@ -232,11 +232,14 @@ launchKernel global local = do
   line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
 
 --readOCL :: Name -> Type -> Size -> Gen () 
-readOCL :: Parameters -> Int -> Size -> Gen () 
-readOCL ((n,t):xs) i sz = let s = case sz of
-                                 Index a _ -> Index a [Num 0]
-                                 a         -> a
-                            in do line $ "read back: " ++ show n ++ " " ++ show t
+readOCL :: Parameters -> Size -> Gen () 
+readOCL []            _  = return ()
+readOCL ((n,t):xs) sz = let s = case sz of
+                             Index a _ -> Index a [Num 0]
+                             a         -> a
+                        in do line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
+                                show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
+                              readOCL xs sz
                                 
 --let s = case sz of
 --                          Index a _ -> Index a [Num 0]
