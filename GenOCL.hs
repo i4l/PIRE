@@ -60,7 +60,8 @@ genProg :: Program a -> Gen ()
 genProg (BasicProc p) = do 
                            i <- incVar
                            indent 2
-                           when (isParallel p) $ setupHeadings >> setupOCL
+                           setupHeadings
+                           when (isParallel p) setupOCL
                            gen $ removeDupBasicProg p
                            unindent 2
                            ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
@@ -68,7 +69,7 @@ genProg (BasicProc p) = do
                            tell $ mempty {post = ["}"]}
 genProg (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
-                            addParam $ show TInt ++ " out" ++ show i ++ "c"
+                            --addParam $ show TInt ++ " out" ++ show i ++ "c"
                             gen $ p ("out" ++ show i)
 genProg (InParam t p) = do i <- incVar
                            addParam $ show t ++ " arg" ++ show i
@@ -190,7 +191,6 @@ genK (Par start end f) = genK (For start end f)
 genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
                           genK $ f argName
-                          return ()
 
 
 
@@ -199,25 +199,26 @@ genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
 
 setupOCLMemory :: Parameters -> Int -> Size -> Gen ()
 setupOCLMemory []           i s = return ()
-setupOCLMemory ((n,t):xs) i sz = let s = case sz of
-                                            Index a _ -> Index a [Num 0]
-                                            a         -> a
+setupOCLMemory ((n,t):xs) i sz = let s = sz
                                   in do nameUsed <- nameExists n -- If a name is already declared we can reuse it
                                         let objPostfix = "_obj"
-                                            createBuffers = (if not nameUsed then "cl_mem " else "") ++ n ++ objPostfix ++ " = clCreateBuffer(context, " ++ 
+                                            createBuffers = 
+                                                     (if not nameUsed then "cl_mem " else "") ++ n ++ 
+                                                     objPostfix ++ " = clCreateBuffer(context, " ++ 
                                                      "CL_MEM_READ_WRITE" ++ ", " ++ show s ++ "*sizeof(" ++ 
                                                      removePointer t ++ "), NULL, NULL);"
                                         line createBuffers
                                         let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
-                                                                objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
-                                                                removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
+                                                          objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
+                                                          removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
 
                                         -- set arguments to kernel
                                         let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
-                                                            ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
+                                                      ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
                                         line setArgs
                                         addUsedVar n
-                                        when (i /= 0) (line copyBuffers) -- We don't copy the result array
+                                        --when (i /= 0) (line copyBuffers) -- We don't copy the result array
+                                        line copyBuffers
                                         setupOCLMemory xs (i+1) s
 
 runOCL :: Name -> Gen ()
@@ -238,9 +239,7 @@ launchKernel global local = do
 --readOCL :: Name -> Type -> Size -> Gen () 
 readOCL :: Parameters -> Size -> Gen () 
 readOCL []            _  = return ()
-readOCL ((n,t):xs) sz = let s = case sz of
-                             Index a _ -> Index a [Num 0]
-                             a         -> a
+readOCL ((n,t):xs) sz = let s = sz
                         in do line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
                                 show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
                               readOCL xs sz
