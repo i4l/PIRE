@@ -87,7 +87,8 @@ genProg (Print t e) = do let printTerm = case t of
                          line $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
 
 genProg (Assign name es e) = line $ show name --(Index name es) 
-                         ++ " = " ++ show e ++ ";"
+                          ++ concat [ "[" ++ show i ++ "]" | i <- es ]
+                          ++ " = " ++ show e ++ ";"
 
 genProg (Statement e) = line $ show e ++ ";"
 
@@ -162,7 +163,9 @@ genK (Print t e) = do let printTerm = case t of
                                                            show x ++ "in printf."
                       lineK $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
 genK Skip            = return ()
-genK (Assign name es e) = lineK  $ (show name) ++ " = " ++ show e ++ ";"
+genK (Assign name es e) = lineK $ (show name)
+                       ++ concat [ "[" ++ show i ++ "]" | i <- es ]
+                       ++ " = " ++ show e ++ ";"
 genK (p1 :>> p2)        = genK p1 >> genK p2
 genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " ) {"
                          kindent 2
