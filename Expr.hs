@@ -26,6 +26,7 @@ data Expr where
 -- | Unary operators
 data UOp where
   BWNeg  :: Expr -> UOp
+  Deref  :: Expr -> UOp
   deriving Eq
 
 -- | Binary operators
@@ -52,7 +53,8 @@ data BOp where
 
 
 instance Show UOp where
-  show a = "UOp NYI"
+  show (Deref a) = "(*" ++ show a ++ ")"
+
 instance Show BOp where
   show (Add a b) = "(" ++ show a ++ " + " ++ show b ++ ")" 
   show (Sub a b) = "(" ++ show a ++ " - " ++ show b ++ ")" 
@@ -73,6 +75,9 @@ instance Show BOp where
 -- | create a 'scalar' variable
 var :: Name -> Expr
 var v = Index v []
+
+deref :: Expr -> Expr
+deref a = UnOp (Deref a)
 
 -- | Converts an Expr to an Int, albeit in a limited fashion. 
 toInt :: Expr -> Int

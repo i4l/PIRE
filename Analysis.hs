@@ -30,9 +30,9 @@ grabKernelParams = rmDup . grabKernelParams'
   where rmDup      = nubBy $ \(n1,_) (n2,_) -> n1 == n2
 
 grabKernelParams' :: Program a -> Parameters
-grabKernelParams' (Assign name es e) = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
-                                           rhs = exprAsParam e
-                                       in (lhs:rhs)
+grabKernelParams' (Assign (Index name _) es e) = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
+                                                     rhs = exprAsParam e
+                                                 in (lhs:rhs)
 grabKernelParams' (a :>> b) = grabKernelParams a ++ grabKernelParams b
 grabKernelParams' (If c t f) = let cond   = exprAsParam c 
                                    bodies = grabKernelParams $ t :>> f
@@ -122,7 +122,7 @@ removeDupBasicProg p              = p
 -- Find out which parameters to read back after a parallel loop
 
 grabKernelReadBacks :: Program a -> Parameters
-grabKernelReadBacks (Assign name es e) = [(name, typeNest TInt es)]
+grabKernelReadBacks (Assign (Index name _) es e) = [(name, typeNest TInt es)]
 grabKernelReadBacks (a :>> b)          = grabKernelReadBacks a ++ grabKernelReadBacks b
 grabKernelReadBacks (If c t f)         = grabKernelReadBacks t ++ grabKernelReadBacks f
 grabKernelReadBacks (For _ _ f)        = grabKernelReadBacks $ f (var "tid")
