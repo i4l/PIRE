@@ -145,10 +145,12 @@ genProg (For e1 e2 p) = do i <- newLoopVar
 
 genProg (Alloc t dim f) = do d <- incVar
                              let m = "mem" ++ show d
+                                 c = m ++ "c"
+                                 t' = case t of TPointer a -> a; a -> a;
                              nestForAlloc dim m t
-                             unless (null dim) $ line $ m ++ "c = " ++ show dim
-                             gen $ f m
-                             line $ "free(" ++ m ++ ");\n"
+                             line $ show t' ++ " " ++ c ++ ";"
+                             gen $ f m c 
+                             --line $ "free(" ++ m ++ ");\n"
 
 genProg (Decl t f)     = do d <- incVar
                             let m = "mem" ++ show d
@@ -194,7 +196,7 @@ genK (For e1 e2 p) = do i <- newLoopVar
 genK (Par start end f) = genK (For start end f)
 genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
                           lineK $ "// Alloc in Kernel"
-                          genK $ f argName
+                          genK $ f argName (argName ++ "c")
 
 
 
