@@ -146,6 +146,7 @@ genProg (For e1 e2 p) = do i <- newLoopVar
 genProg (Alloc t dim f) = do d <- incVar
                              let m = "mem" ++ show d
                              nestForAlloc dim m t
+                             unless (null dim) $ line $ m ++ "c = " ++ show dim
                              gen $ f m
                              line $ "free(" ++ m ++ ");\n"
 
