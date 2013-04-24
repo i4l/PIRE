@@ -148,7 +148,7 @@ genProg (Alloc t dim f) = do d <- incVar
                                  c = m ++ "c"
                                  t' = case t of TPointer a -> a; a -> a;
                              nestForAlloc dim m t
-                             line $ show t' ++ " " ++ c ++ ";"
+                             line $ show t' ++ " " ++ c ++ ";" -- print size variable
                              gen $ f m c 
                              --line $ "free(" ++ m ++ ");\n"
 
@@ -218,7 +218,7 @@ setupOCLMemory ((n,t):xs) i sz = let s = sz
                                                           objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
                                                           removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
 
-                                        -- set arguments to kernel
+                                        -- set kernel arguments
                                         let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
                                                       ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
                                         line setArgs
