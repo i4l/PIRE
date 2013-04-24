@@ -169,7 +169,7 @@ genK Skip            = return ()
 genK (Assign name es e) = lineK $ (show name)
                        ++ concat [ "[" ++ show i ++ "]" | i <- es ]
                        ++ " = " ++ show e ++ ";"
-genK (p1 :>> p2)        = genK p1 >> genK p2
+genK (p1 :>> p2)    = genK p1 >> genK p2
 genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " ) {"
                          kindent 2
                          genK p1
@@ -194,9 +194,10 @@ genK (For e1 e2 p) = do i <- newLoopVar
                         kunindent 2
                         lineK "}"
 genK (Par start end f) = genK (For start end f)
-genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
-                          lineK $ "// Alloc in Kernel"
-                          genK $ f argName (argName ++ "c")
+genK (Alloc t dim f) = error "Alloc in Kernel code - does this make sense?"
+                       -- do argName <- fmap ((++) "mem" . show) incVar
+                       --   lineK $ "// Alloc in Kernel"
+                       --   genK $ f argName (argName ++ "c")
 
 
 
