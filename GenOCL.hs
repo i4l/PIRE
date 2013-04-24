@@ -152,7 +152,7 @@ genProg (Alloc t f) = do d <- incVar
                                           ++ show t ++ ") " ++ "malloc(sizeof(" 
                                           ++ case t of
                                                TPointer t -> show t ++ ") * " ++ c ++ ")"
-                                               t          -> show t ++ ")"
+                                               t          -> show t ++ "))"
                          line $ show t' ++ " " ++ c ++ ";"
                          gen $ f m c k
                          
