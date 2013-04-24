@@ -113,7 +113,7 @@ genProg (Par start end f) = do let tid = "tid"
 
                                    paramTriples = grabKernelParams f'
                                    parameters = (init . concat) 
-                                      [ " __global " ++ show t ++ " " ++  n ++ "," 
+                                      [ " __global " ++ show (case t of TPointer _ -> t; a -> TPointer a) ++ " " ++  n ++ "," 
                                         | (n,t) <- paramTriples]
 
                                kerName <- fmap ((++) "k" . show) incVar
