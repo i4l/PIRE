@@ -143,13 +143,26 @@ genProg (For e1 e2 p) = do i <- newLoopVar
                            unindent 2
                            line "}"
 
-genProg (Alloc t dim f) = do d <- incVar
-                             let m = "mem" ++ show d
-                                 c = m ++ "c"
-                                 t' = case t of TPointer a -> a; a -> a;
-                             nestForAlloc dim m t
-                             line $ show t' ++ " " ++ c ++ ";" -- print size variable
-                             gen $ f m c 
+genProg (Alloc t f) = do d <- incVar
+                         let m = "mem" ++ show d
+                             c = m ++ "c"
+                             t' = case t of TPointer a -> a; a -> a
+                             k = \dim -> Assign (var c) [] (head dim) .>>
+                                          Statement $ var $ show t ++ " " ++ m ++ " = ("
+                                          ++ show t ++ ") " ++ "malloc(sizeof(" 
+                                          ++ case t of
+                                               TPointer t -> show t ++ ") * " ++ c ++ ")"
+                                               t          -> show t ++ ")"
+                         gen $ f m c k
+                         
+
+--genProg (Alloc t dim f) = do d <- incVar
+--                             let m = "mem" ++ show d
+--                                 c = m ++ "c"
+--                                 t' = case t of TPointer a -> a; a -> a;
+--                             nestForAlloc dim m t
+--                             line $ show t' ++ " " ++ c ++ ";" -- print size variable
+--                             gen $ f m c 
                              --line $ "free(" ++ m ++ ");\n"
 
 genProg (Decl t f)     = do d <- incVar
@@ -194,11 +207,11 @@ genK (For e1 e2 p) = do i <- newLoopVar
                         kunindent 2
                         lineK "}"
 genK (Par start end f) = genK (For start end f)
-genK (Alloc t dim f) = error "Alloc in Kernel code - does this make sense?"
-                       -- do argName <- fmap ((++) "mem" . show) incVar
-                       --   lineK $ "// Alloc in Kernel"
-                       --   genK $ f argName (argName ++ "c")
-
+--genK (Alloc t dim f) = error "Alloc in Kernel code - does this make sense?"
+--                       -- do argName <- fmap ((++) "mem" . show) incVar
+--                       --   lineK $ "// Alloc in Kernel"
+--                       --   genK $ f argName (argName ++ "c")
+--
 
 
 -----------------------------------------------------------------------------
