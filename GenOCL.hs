@@ -217,7 +217,9 @@ setupOCLMemory ((n,t):xs) i sz = let s = sz
                                         line createBuffers
                                         let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
                                                           objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
-                                                          removePointers t ++"), " ++ n ++ ", 0, NULL, NULL);"
+                                                          removePointers t ++"), " ++ 
+                                                          (if isScalar then "&" else "") ++ n 
+                                                          ++ ", 0, NULL, NULL);"
 
                                         -- set kernel arguments
                                         let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
