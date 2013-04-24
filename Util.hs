@@ -79,9 +79,9 @@ seqIf n i condf  prog  = seqIf (n ./ Num 2) (i ./ Num 2) condf prog
                    
 
 -- remove all pointer wrappings from a Type
-removePointer :: Type -> String
-removePointer TInt         = "int"
-removePointer (TArray t)   = show (TArray t)
---removePointer TChar        = "char"
---removePointer TFloat       = "float"
-removePointer (TPointer t) = removePointer t
+removePointers :: Type -> String
+removePointers TInt         = "int"
+removePointers (TArray t)   = show (TArray t)
+--removePointers TChar        = "char"
+--removePointers TFloat       = "float"
+removePointers (TPointer t) = removePointers t

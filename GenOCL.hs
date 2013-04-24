@@ -206,17 +206,18 @@ genK (Alloc t dim f) = do argName <- fmap ((++) "mem" . show) incVar
 setupOCLMemory :: Parameters -> Int -> Size -> Gen ()
 setupOCLMemory []           i s = return ()
 setupOCLMemory ((n,t):xs) i sz = let s = sz
+                                     isScalar = case t of TPointer _ -> False; _ -> True
                                   in do nameUsed <- nameExists n -- If a name is already declared we can reuse it
                                         let objPostfix = "_obj"
                                             createBuffers = 
                                                      (if not nameUsed then "cl_mem " else "") ++ n ++ 
                                                      objPostfix ++ " = clCreateBuffer(context, " ++ 
                                                      "CL_MEM_READ_WRITE" ++ ", " ++ show s ++ "*sizeof(" ++ 
-                                                     removePointer t ++ "), NULL, NULL);"
+                                                     removePointers t ++ "), NULL, NULL);"
                                         line createBuffers
                                         let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
                                                           objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
-                                                          removePointer t ++"), " ++ n ++ ", 0, NULL, NULL);"
+                                                          removePointers t ++"), " ++ n ++ ", 0, NULL, NULL);"
 
                                         -- set kernel arguments
                                         let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
@@ -247,14 +248,14 @@ readOCL :: Parameters -> Size -> Gen ()
 readOCL []            _  = return ()
 readOCL ((n,t):xs) sz = let s = sz
                         in do line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
-                                show s ++ "*sizeof(" ++ removePointer t ++ "), " ++ n ++ ", 0, NULL, NULL);\n\n"
+                                show s ++ "*sizeof(" ++ removePointers t ++ "), " ++ n ++ ", 0, NULL, NULL);\n\n"
                               readOCL xs sz
                                 
 --let s = case sz of
 --                          Index a _ -> Index a [Num 0]
 --                          a         -> a
 --                 in line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
---           show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
+--           show s ++ "*sizeof(" ++ removePointers t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
 
 
 
