@@ -4,6 +4,8 @@ module Util where
  - Utility functions for generating code.
 -}
  
+import Prelude hiding (GT,LT,EQ)
+
 import Control.Monad.State
 import qualified Data.Map as Map
 
@@ -87,5 +89,25 @@ removePointers (TPointer t) = removePointers t
 
 -- Adds a dereferncing operator (*) to a name iff it is not indexed (i.e. is a scalar).
 derefScalar :: Expr -> Expr
+derefScalar a@(Index "tid" _) = a
 derefScalar (Index v []) = deref (Index v [])
+derefScalar (Call i@(Index _ _) is)  = Call i (map derefScalar is)
+derefScalar (Call i is)  = Call (derefScalar i) (map derefScalar is)
+derefScalar (Cond c t f) = Cond (derefScalar c) (derefScalar t) (derefScalar f)
+derefScalar (BinOp op)   = BinOp (derefBinOp op)
+derefScalar (UnOp op)    = error "derefScalar: UnOp)"
 derefScalar a            = a
+
+derefBinOp ::  BOp -> BOp
+derefBinOp (Add a b) = Add (derefScalar a) (derefScalar b)
+derefBinOp (Sub a b) = Sub (derefScalar a) (derefScalar b)  
+derefBinOp (Mul a b) = Mul (derefScalar a) (derefScalar b)  
+derefBinOp (Mod a b) = Mod (derefScalar a) (derefScalar b)  
+derefBinOp (LT  a b) = LT  (derefScalar a) (derefScalar b)  
+derefBinOp (LTE a b) = LTE (derefScalar a) (derefScalar b)  
+derefBinOp (GT  a b) = GT  (derefScalar a) (derefScalar b)  
+derefBinOp (GTE a b) = GTE (derefScalar a) (derefScalar b)  
+derefBinOp (EQ  a b) = EQ  (derefScalar a) (derefScalar b)  
+derefBinOp (NEQ a b) = NEQ (derefScalar a) (derefScalar b)  
+derefBinOp (And a b) = And (derefScalar a) (derefScalar b)  
+derefBinOp (Or  a b) = Or  (derefScalar a) (derefScalar b)  

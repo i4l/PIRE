@@ -153,6 +153,7 @@ genProg (Alloc t f) = do d <- incVar
                                           ++ case t of
                                                TPointer t -> show t ++ ") * " ++ c ++ ")"
                                                t          -> show t ++ ")"
+                         line $ show t' ++ " " ++ c ++ ";"
                          gen $ f m c k
                          
 
@@ -183,12 +184,12 @@ genK (Assign name es e) = lineK $ (show name)
                        ++ concat [ "[" ++ show i ++ "]" | i <- es ]
                        ++ " = " ++ show (derefScalar e) ++ ";"
 genK (p1 :>> p2)    = genK p1 >> genK p2
-genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " ) {"
+genK (If c p1 Skip) = do lineK $ "if( " ++ show (derefScalar c) ++ " ) {"
                          kindent 2
                          genK p1
                          kunindent 2
                          lineK "}"
-genK (If c p1 p2) = do lineK $ "if( " ++ show c ++ " ) { "
+genK (If c p1 p2) = do lineK $ "if( " ++ show (derefScalar c) ++ " ) { "
                        kindent 2
                        genK p1
                        kunindent 2
@@ -199,8 +200,8 @@ genK (If c p1 p2) = do lineK $ "if( " ++ show c ++ " ) { "
                        lineK "}"
 genK (For e1 e2 p) = do i <- newLoopVar
                         lineK $ show TInt ++ " " ++ i ++ ";"
-                        lineK $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
-                            ++ i ++ " < " ++ show e2 ++ "; "
+                        lineK $ "for( " ++ i ++ " = " ++ show (derefScalar e1) ++ "; " 
+                            ++ i ++ " < " ++ show (derefScalar e2) ++ "; "
                             ++ i ++ "++ ) {"
                         kindent 2
                         genK $ p (var i)
