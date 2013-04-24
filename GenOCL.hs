@@ -247,7 +247,7 @@ readOCL :: Parameters -> Size -> Gen ()
 readOCL []            _  = return ()
 readOCL ((n,t):xs) sz = let s = sz
                         in do line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
-                                show s ++ "*sizeof(" ++ removePointer t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
+                                show s ++ "*sizeof(" ++ removePointer t ++ "), " ++ n ++ ", 0, NULL, NULL);\n\n"
                               readOCL xs sz
                                 
 --let s = case sz of
