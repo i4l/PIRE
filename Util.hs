@@ -76,8 +76,6 @@ seqIf n i condf  prog  = seqIf (n ./ Num 2) (i ./ Num 2) condf prog
 ------------------------------------------------------------
 -- Kernels
 
-                   
-
 -- remove all pointer wrappings from a Type
 removePointers :: Type -> String
 removePointers TInt         = "int"
@@ -85,3 +83,9 @@ removePointers (TArray t)   = show (TArray t)
 --removePointers TChar        = "char"
 --removePointers TFloat       = "float"
 removePointers (TPointer t) = removePointers t
+
+
+-- Adds a dereferncing operator (*) to a name iff it is not indexed (i.e. is a scalar).
+derefScalar :: Expr -> Expr
+derefScalar (Index v []) = deref (Index v [])
+derefScalar a            = a

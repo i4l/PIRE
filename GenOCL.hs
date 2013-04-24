@@ -168,7 +168,7 @@ genK (Print t e) = do let printTerm = case t of
 genK Skip            = return ()
 genK (Assign name es e) = lineK $ (show name)
                        ++ concat [ "[" ++ show i ++ "]" | i <- es ]
-                       ++ " = " ++ show e ++ ";"
+                       ++ " = " ++ show (derefScalar e) ++ ";"
 genK (p1 :>> p2)    = genK p1 >> genK p2
 genK (If c p1 Skip) = do lineK $ "if( " ++ show c ++ " ) {"
                          kindent 2
