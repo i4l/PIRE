@@ -73,7 +73,7 @@ genProg (OutParam t p) = do i <- incVar
                             gen $ p ("out" ++ show i)
 genProg (InParam t p) = do i <- incVar
                            addParam $ show t ++ " arg" ++ show i
-                           addParam $ show TInt ++ " arg" ++ show i ++ "c"
+                           unless (t == TInt ) $ addParam $ show TInt ++ " arg" ++ show i ++ "c"
                            gen $ p ("arg" ++ show i)
 
 
