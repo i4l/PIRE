@@ -40,8 +40,6 @@ data Program a where
   InParam   :: Type -> (Name -> Program a) -> Program a
   deriving Typeable
 
---alloc :: Type -> Dim -> (Name -> Program a) -> Program a
---alloc t dim f = Alloc t dim $ \name _ -> f name
 
 instance Eq (Program a) where
   a == b = False -- Dummy

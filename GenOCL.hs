@@ -143,19 +143,27 @@ genProg (For e1 e2 p) = do i <- newLoopVar
                            unindent 2
                            line "}"
 
-genProg (Alloc t f) = do d <- incVar
-                         let m = "mem" ++ show d
-                             c = m ++ "c"
-                             t' = case t of TPointer a -> a; a -> a
-                             k = \dim -> Assign (var c) [] (head dim) .>>
-                                          Statement $ var $ show t ++ " " ++ m ++ " = ("
-                                          ++ show t ++ ") " ++ "malloc(sizeof(" 
-                                          ++ case t of
-                                               TPointer t -> show t ++ ") * " ++ c ++ ")"
-                                               t          -> show t ++ "))"
-                         line $ show t' ++ " " ++ c ++ ";"
-                         gen $ f m c k
-                         
+genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t ++ ". Try Decl?"
+                   -- do d <- incVar
+                   --    let m = "mem" ++ show d
+                   --        c = m ++ "c"
+                   --        tc = TInt
+                   --        k = \dim -> Assign (var c) [] (head dim) .>>
+                   --                     Statement $ var $ show (TPointer t) ++ " " ++ m ++ " = ("
+                   --                     ++ show (TPointer t) ++ ") " ++ "malloc(sizeof(" ++ show (TPointer t) ++ "))"
+                   --    line $ show tc ++ " " ++ c ++ ";"
+                   --    gen $ f m c k
+                    | otherwise = 
+                    do d <- incVar
+                       let m = "mem" ++ show d
+                           c = m ++ "c"
+                           tc = case t of TPointer a -> a; a -> a
+                           k = \dim -> Assign (var c) [] (head dim) .>>
+                                        Statement $ var $ show t ++ " " ++ m ++ " = ("
+                                        ++ show t ++ ") " ++ "malloc(sizeof(" ++ show t ++ ") * " ++ c ++ ")"
+                       line $ show tc ++ " " ++ c ++ ";"
+                       gen $ f m c k
+                        
 
 --genProg (Alloc t dim f) = do d <- incVar
 --                             let m = "mem" ++ show d

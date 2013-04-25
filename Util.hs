@@ -110,4 +110,6 @@ derefBinOp (GTE a b) = GTE (derefScalar a) (derefScalar b)
 derefBinOp (EQ  a b) = EQ  (derefScalar a) (derefScalar b)  
 derefBinOp (NEQ a b) = NEQ (derefScalar a) (derefScalar b)  
 derefBinOp (And a b) = And (derefScalar a) (derefScalar b)  
-derefBinOp (Or  a b) = Or  (derefScalar a) (derefScalar b)  
+derefBinOp (Or  a b) = Or  (derefScalar a) (derefScalar b)
+
+
