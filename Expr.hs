@@ -53,6 +53,7 @@ data BOp where
 
 
 instance Show UOp where
+  show (BWNeg a) = "(~" ++ show a ++ ")"
   show (Deref a) = "(*" ++ show a ++ ")"
 
 instance Show BOp where
@@ -67,7 +68,12 @@ instance Show BOp where
   show (EQ  a b) = "(" ++ show a ++ " == " ++ show b ++ ")" 
   show (NEQ a b) = "(" ++ show a ++ " != " ++ show b ++ ")" 
   show (And a b) = "(" ++ show a ++ " && " ++ show b ++ ")" 
-  show (Or  a b) = "(" ++ show a ++ " || " ++ show b ++ ")" 
+  show (Or  a b) = "(" ++ show a ++ " || " ++ show b ++ ")"
+  show (BWAnd  a b) = "(" ++ show a ++ " & " ++ show b ++ ")"
+  show (BWOr   a b) = "(" ++ show a ++ " | " ++ show b ++ ")"
+  show (BWXOr   a b) = "(" ++ show a ++ " ^ " ++ show b ++ ")"
+  show (ShiftL  a b) = "(" ++ show a ++ " << " ++ show b ++ ")"
+  show (ShiftR  a b) = "(" ++ show a ++ " >> " ++ show b ++ ")"
 
 
 
