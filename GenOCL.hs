@@ -216,11 +216,16 @@ genK (For e1 e2 p) = do i <- newLoopVar
                         kunindent 2
                         lineK "}"
 genK (Par start end f) = genK (For start end f)
---genK (Alloc t dim f) = error "Alloc in Kernel code - does this make sense?"
---                       -- do argName <- fmap ((++) "mem" . show) incVar
---                       --   lineK $ "// Alloc in Kernel"
---                       --   genK $ f argName (argName ++ "c")
---
+genK (Decl t f)        = do d <- incVar
+                            let m = "mem" ++ show d
+                            lineK $ show t ++ " " ++ m ++ ";"
+                            genK $ f m
+
+genK (Alloc t f) = error "Alloc in Kernel code - does this make sense?"
+                       -- do argName <- fmap ((++) "mem" . show) incVar
+                       --   lineK $ "// Alloc in Kernel"
+                       --   genK $ f argName (argName ++ "c")
+
 
 
 -----------------------------------------------------------------------------
