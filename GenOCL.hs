@@ -115,7 +115,7 @@ genProg (Par start end f) = do let tid        = "tid"
                                    f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
 
                                    paramTriples = grabKernelParams f' 
-                                   parameters = ( concat) 
+                                   parameters = (init . concat) 
                                       [ " __global " ++ show (case t of TPointer _ -> t; a -> TPointer a) ++ " " ++  n ++ "," 
                                         | (n,t) <- paramTriples]
 
