@@ -109,9 +109,11 @@ genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                           unindent 2
                           line "}"
 genProg (Par start end f) = do let tid = "tid"
-                                   f' = iff (BinOp $ Expr.LT (var tid) end) (parForUnwind (f $ var tid) tid) Skip
+                                   localSize = "localSize"
+                                   globalSize= "globalSize"
+                                   --f' = iff (BinOp $ Expr.LT (var tid) end) (parForUnwind (f $ var tid) tid) Skip
 
-                                   paramTriples = grabKernelParams f'
+                                   paramTriples = grabKernelParams (f $ var tid) 
                                    parameters = (init . concat) 
                                       [ " __global " ++ show (case t of TPointer _ -> t; a -> TPointer a) ++ " " ++  n ++ "," 
                                         | (n,t) <- paramTriples]
@@ -121,14 +123,22 @@ genProg (Par start end f) = do let tid = "tid"
                                kindent 2
 
                                lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
-
-                               genK f'
-
+                               lineK $ show TInt ++ " " ++ localSize ++ " = " ++ "get_local_size(0);" 
+                               lineK $ show TInt ++ " " ++ globalSize ++ " = " ++ "get_global_size(0);" 
+                               lineK $ "if(" ++ tid ++ " < " ++ localSize ++ ") {"
+                               kindent 2
+                               lineK $ "for(int i = 0; i < " ++ globalSize ++ "/" ++ localSize ++ "; i++) {"
+                               kindent 2
+                               genK $ f (var tid .+ ((var localSize) .* (var "i")))
+                               kunindent 2
+                               lineK "}"
+                               kunindent 2
+                               lineK "}"
                                runOCL kerName
                                setupOCLMemory paramTriples 0 end
-                               launchKernel 2048 1024
+                               launchKernel end (Num 1024)
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
-                               readOCL (grabKernelReadBacks f') end
+                               readOCL (grabKernelReadBacks $ f $ var tid) end
 
                                kunindent 2
                                lineK "}"
@@ -266,7 +276,8 @@ runOCL kname = do --create kernel & build program
             line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
             line $ (if kcount <= 0 then "cl_kernel " else "") ++ "kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
 
-launchKernel :: Int -> Int -> Gen ()
+--launchKernel :: Int -> Int -> Gen ()
+launchKernel :: Expr -> Expr -> Gen ()
 launchKernel global local = do
   kcount <- gets kernelCounter
   line $ (if kcount <= 0 then "size_t " else "") ++ "global_item_size = " ++ show global ++ ";"
