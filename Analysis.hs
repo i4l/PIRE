@@ -43,12 +43,13 @@ grabKernelParams' OutParam{}        = error "OutParam in grabKernelParams'"
 grabKernelParams' InParam{}         = error "InParam in grabKernelParams'"
 grabKernelParams' (Par start end f) = error "par"
 grabKernelParams' (Alloc t p)   = error "alloc"
+grabKernelParams' (Decl t f)        = grabKernelParams $ f "tid"
 grabKernelParams' (Print t e)       = error "print"
 grabKernelParams' _                 = []
 
 -- | Extracts names and types array Indexing operations.
 exprAsParam :: Expr -> Parameters
-exprAsParam (Index a is) | a == "tid" = []
+exprAsParam (Index a is) | a `elem` ["tid", "ix", "localSize", "globalSize"] = []
                          | otherwise  = [(a, typeNest TInt is)]
 exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam js ++ concatMap exprAsParam is
 exprAsParam (Call a is)  = exprAsParam a ++ concatMap exprAsParam is

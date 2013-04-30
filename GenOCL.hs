@@ -108,13 +108,14 @@ genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                           gen p2
                           unindent 2
                           line "}"
-genProg (Par start end f) = do let tid = "tid"
-                                   localSize = "localSize"
-                                   globalSize= "globalSize"
+genProg (Par start end f) = do let tid        = "tid"
+                                   localSize  = "localSize"
+                                   globalSize = "globalSize"
                                    --f' = iff (BinOp $ Expr.LT (var tid) end) (parForUnwind (f $ var tid) tid) Skip
+                                   f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
 
-                                   paramTriples = grabKernelParams (f $ var tid) 
-                                   parameters = (init . concat) 
+                                   paramTriples = grabKernelParams f' 
+                                   parameters = ( concat) 
                                       [ " __global " ++ show (case t of TPointer _ -> t; a -> TPointer a) ++ " " ++  n ++ "," 
                                         | (n,t) <- paramTriples]
 
@@ -127,9 +128,9 @@ genProg (Par start end f) = do let tid = "tid"
                                lineK $ show TInt ++ " " ++ globalSize ++ " = " ++ "get_global_size(0);" 
                                lineK $ "if(" ++ tid ++ " < " ++ localSize ++ ") {"
                                kindent 2
-                               lineK $ "for(int i = 0; i < " ++ globalSize ++ "/" ++ localSize ++ "; i++) {"
+                               lineK $ "for(int ix = 0; i < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
                                kindent 2
-                               genK $ f (var tid .+ ((var localSize) .* (var "i")))
+                               genK $ f' 
                                kunindent 2
                                lineK "}"
                                kunindent 2
@@ -138,7 +139,7 @@ genProg (Par start end f) = do let tid = "tid"
                                setupOCLMemory paramTriples 0 end
                                launchKernel end (Num 1024)
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
-                               readOCL (grabKernelReadBacks $ f $ var tid) end
+                               readOCL (grabKernelReadBacks f') end
 
                                kunindent 2
                                lineK "}"
