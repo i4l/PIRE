@@ -99,6 +99,7 @@ isParallel (If _ t f)     = isParallel t || isParallel f
 isParallel (For _ _ f)    = isParallel $ f (var "x")
 isParallel (Par _ _ _)    = True
 isParallel (Alloc _ f)    = isParallel $ f "x" "xc" (const Skip)
+isParallel (Decl _ f)     = isParallel $ f "x"
 isParallel (BasicProc p)  = isParallel p
 isParallel (OutParam t f) = isParallel $ f "out"
 isParallel (InParam t f)  = isParallel $ f "arg"
