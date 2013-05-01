@@ -250,11 +250,11 @@ setupOCLMemory ((n,t):xs) i sz = let s = sz
                                             createBuffers = 
                                                      (if not nameUsed then "cl_mem " else "") ++ n ++ 
                                                      objPostfix ++ " = clCreateBuffer(context, " ++ 
-                                                     "CL_MEM_READ_WRITE" ++ ", " ++ show s ++ "*sizeof(" ++ 
+                                                     "CL_MEM_READ_WRITE" ++ ", " ++ (if isScalar then "" else show s ++ "*") ++ "sizeof(" ++ 
                                                      removePointers t ++ "), NULL, NULL);"
                                         line createBuffers
                                         let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
-                                                          objPostfix ++ ", CL_TRUE, 0, " ++ show s ++ "*sizeof(" ++ 
+                                                          objPostfix ++ ", CL_TRUE, 0, " ++ (if isScalar then "" else show s ++ "*") ++ "sizeof(" ++ 
                                                           removePointers t ++"), " ++ 
                                                           (if isScalar then "&" else "") ++ n 
                                                           ++ ", 0, NULL, NULL);"
