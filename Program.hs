@@ -29,12 +29,8 @@ data Program a where
   If        :: Expr -> Program a -> Program a -> Program a
   For       :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par       :: Expr -> Expr -> (Expr -> Program a) -> Program a
-  --Alloc     :: Type -> Dim -> (Name -> Name -> Program a) -> Program a
-  --Alloc     :: Type -> (Dim -> Program [Name]) -> Program a
   Alloc     :: Type -> (Name -> Name -> (Dim -> Program a) -> Program a) -> Program a
-  --Alloc     :: Type -> (Name -> Name -> (Name -> Dim) -> Program a ) -> Program a
   Decl      :: Type -> (Name -> Program a) -> Program a
-
   BasicProc :: Program a -> Program a
   OutParam  :: Type -> (Name -> Program a) -> Program a 
   InParam   :: Type -> (Name -> Program a) -> Program a
