@@ -26,8 +26,9 @@ type Parameters = [(Name, Type)]
 -- | grabKernelParams p gets the arrays used in p as a list of parameters that can be used in a kernel.
 --   Removes duplicates by name only.
 grabKernelParams :: Program a -> Parameters
-grabKernelParams = rmDup . grabKernelParams' 
+grabKernelParams p = rmTid $ rmDup $ grabKernelParams' p
   where rmDup      = nubBy $ \(n1,_) (n2,_) -> n1 == n2
+        rmTid      = deleteBy (\(n1,_) (n2,_) -> n1 == n2) ("tid", TInt)
 
 grabKernelParams' :: Program a -> Parameters
 grabKernelParams' (Assign (Index name _) es e) = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
@@ -130,5 +131,6 @@ grabKernelReadBacks (a :>> b)          = grabKernelReadBacks a ++ grabKernelRead
 grabKernelReadBacks (If c t f)         = grabKernelReadBacks t ++ grabKernelReadBacks f
 grabKernelReadBacks (For _ _ f)        = grabKernelReadBacks $ f (var "tid")
 grabKernelReadBacks (Alloc _ f)      = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
+grabKernelReadBacks (Decl _ f)       = grabKernelReadBacks $ f "tid"
 grabKernelReadBacks (BasicProc p)      = grabKernelReadBacks p
 grabKernelReadBacks _                  = []

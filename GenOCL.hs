@@ -111,7 +111,6 @@ genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
 genProg (Par start end f) = do let tid        = "tid"
                                    localSize  = "localSize"
                                    globalSize = "globalSize"
-                                   --f' = iff (BinOp $ Expr.LT (var tid) end) (parForUnwind (f $ var tid) tid) Skip
                                    f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
 
                                    paramTriples = grabKernelParams f' 
