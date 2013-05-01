@@ -126,11 +126,12 @@ removeDupBasicProg p              = p
 -- Find out which parameters to read back after a parallel loop
 
 grabKernelReadBacks :: Program a -> Parameters
-grabKernelReadBacks (Assign (Index name _) es e) = [(name, typeNest TInt es)]
+grabKernelReadBacks (Assign (Index name _) es e) | name `elem` ["tid", "ix", "localSize", "globalSize"] = []
+                                                 | otherwise = [(name, typeNest TInt es)]
 grabKernelReadBacks (a :>> b)          = grabKernelReadBacks a ++ grabKernelReadBacks b
 grabKernelReadBacks (If c t f)         = grabKernelReadBacks t ++ grabKernelReadBacks f
 grabKernelReadBacks (For _ _ f)        = grabKernelReadBacks $ f (var "tid")
-grabKernelReadBacks (Alloc _ f)      = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
-grabKernelReadBacks (Decl _ f)       = grabKernelReadBacks $ f "tid"
+grabKernelReadBacks (Alloc _ f)        = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
+grabKernelReadBacks (Decl _ f)         = grabKernelReadBacks $ f "tid"
 grabKernelReadBacks (BasicProc p)      = grabKernelReadBacks p
 grabKernelReadBacks _                  = []
