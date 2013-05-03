@@ -127,7 +127,7 @@ genProg (Par start end f) = do let tid        = "tid"
                                lineK $ show TInt ++ " " ++ globalSize ++ " = " ++ "get_global_size(0);" 
                                lineK $ "if(" ++ tid ++ " < " ++ localSize ++ ") {"
                                kindent 2
-                               lineK $ "for(int ix = 0; i < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
+                               lineK $ "for(int ix = 0; ix < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
                                kindent 2
                                genK $ f' 
                                kunindent 2
