@@ -144,25 +144,16 @@ genProg (Par start end f) = do let tid        = "tid"
                                lineK "}"
 
 genProg (For e1 e2 p) = do i <- newLoopVar
-                           line $ show TInt ++ " " ++ i ++ ";"
-                           line $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
+                           --line $ show TInt ++ " " ++ i ++ ";"
+                           line $ "for(" ++ show TInt ++ " " ++ i ++ " = " ++ show e1 ++ "; " 
                                ++ i ++ " < " ++ show e2 ++ "; "
-                               ++ i ++ "++ ) {"
+                               ++ i ++ "++) {"
                            indent 2
                            gen $ p (var i)
                            unindent 2
                            line "}"
 
 genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t ++ ". Try Decl?"
-                   -- do d <- incVar
-                   --    let m = "mem" ++ show d
-                   --        c = m ++ "c"
-                   --        tc = TInt
-                   --        k = \dim -> Assign (var c) [] (head dim) .>>
-                   --                     Statement $ var $ show (TPointer t) ++ " " ++ m ++ " = ("
-                   --                     ++ show (TPointer t) ++ ") " ++ "malloc(sizeof(" ++ show (TPointer t) ++ "))"
-                   --    line $ show tc ++ " " ++ c ++ ";"
-                   --    gen $ f m c k
                     | otherwise = 
                     do d <- incVar
                        let m = "mem" ++ show d
@@ -170,7 +161,7 @@ genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t
                            tc = case t of TPointer a -> a; a -> a
                            k = \dim -> Assign (var c) [] (head dim) .>>
                                         Statement $ var $ show t ++ " " ++ m ++ " = ("
-                                        ++ show t ++ ") " ++ "malloc(sizeof(" ++ show t ++ ") * " ++ c ++ ")"
+                                        ++ show t ++ ") " ++ "malloc(sizeof(" ++ show tc ++ ") * " ++ c ++ ")"
                        line $ show tc ++ " " ++ c ++ ";"
                        gen $ f m c k
                         
@@ -202,12 +193,12 @@ genK (Assign name es e) = lineK $ (show name)
                        ++ concat [ "[" ++ show i ++ "]" | i <- es ]
                        ++ " = " ++ show (derefScalar e) ++ ";"
 genK (p1 :>> p2)    = genK p1 >> genK p2
-genK (If c p1 Skip) = do lineK $ "if( " ++ show (derefScalar c) ++ " ) {"
+genK (If c p1 Skip) = do lineK $ "if(" ++ show (derefScalar c) ++ ") {"
                          kindent 2
                          genK p1
                          kunindent 2
                          lineK "}"
-genK (If c p1 p2) = do lineK $ "if( " ++ show (derefScalar c) ++ " ) { "
+genK (If c p1 p2) = do lineK $ "if(" ++ show (derefScalar c) ++ ") { "
                        kindent 2
                        genK p1
                        kunindent 2
@@ -217,8 +208,8 @@ genK (If c p1 p2) = do lineK $ "if( " ++ show (derefScalar c) ++ " ) { "
                        kunindent 2
                        lineK "}"
 genK (For e1 e2 p) = do i <- newLoopVar
-                        lineK $ show TInt ++ " " ++ i ++ ";"
-                        lineK $ "for( " ++ i ++ " = " ++ show (derefScalar e1) ++ "; " 
+                        --lineK $ show TInt ++ " " ++ i ++ ";"
+                        lineK $ "for(" ++ show TInt ++ i ++ " = " ++ show (derefScalar e1) ++ "; " 
                             ++ i ++ " < " ++ show (derefScalar e2) ++ "; "
                             ++ i ++ "++ ) {"
                         kindent 2
