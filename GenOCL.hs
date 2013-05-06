@@ -79,13 +79,6 @@ genProg (InParam t p) = do i <- incVar
 
 genProg Skip = line ""
 
-genProg (Print t e) = do let printTerm = case t of
-                                TInt       -> "i"
-                                TPointer x -> error "ERROR: Attempt to use pointer in in printf."
-                                x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
-                                                           show x ++ "in printf."
-                         line $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
-
 genProg (Assign name es e) = line $ show name --(Index name es) 
                           ++ concat [ "[" ++ show i ++ "]" | i <- es ]
                           ++ " = " ++ show e ++ ";"
@@ -182,12 +175,6 @@ genProg (Decl t f)     = do d <- incVar
 
 -- Code gen in kernel code   
 genK :: Program a -> Gen ()
-genK (Print t e) = do let printTerm = case t of
-                                      TInt       -> "i"
-                                      TPointer x -> error "ERROR: Attempt to use pointer in in printf."
-                                      x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
-                                                           show x ++ "in printf."
-                      lineK $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
 genK Skip            = return ()
 genK (Assign name es e) = lineK $ (show name)
                        ++ concat [ "[" ++ show i ++ "]" | i <- es ]

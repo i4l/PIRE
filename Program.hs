@@ -18,7 +18,6 @@ import Data.Monoid
 type PartialLoc e a = [Index] -> Loc e a
 
 data Program a where
-  Print     :: Type -> Expr -> Program a -- printf of an expression (TODO this is debug)
   Skip      :: Program a
   Assign    :: Expr -> [Expr] -> Expr -> Program a
   Statement :: Expr -> Program a
