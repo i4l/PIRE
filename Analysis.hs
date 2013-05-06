@@ -30,9 +30,10 @@ grabKernelParams = rmDup . grabKernelParams'
   where rmDup      = nubBy $ \(n1,_) (n2,_) -> n1 == n2
 
 grabKernelParams' :: Program a -> Parameters
-grabKernelParams' (Assign (Index name _) es e) = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
-                                                     rhs = exprAsParam e
-                                                 in (lhs:rhs)
+grabKernelParams' (Assign (Index name _) es e) | name `elem` reservedNames = exprAsParam e
+                                               | otherwise = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
+                                                                 rhs = exprAsParam e
+                                                             in (lhs:rhs)
 grabKernelParams' (a :>> b) = grabKernelParams a ++ grabKernelParams b
 grabKernelParams' (If c t f) = let cond   = exprAsParam c 
                                    bodies = grabKernelParams $ t :>> f
@@ -41,8 +42,8 @@ grabKernelParams' (For start end f) = grabKernelParams $ f (var "tid")
 grabKernelParams' (BasicProc p)     = grabKernelParams p
 grabKernelParams' OutParam{}        = error "OutParam in grabKernelParams'"
 grabKernelParams' InParam{}         = error "InParam in grabKernelParams'"
-grabKernelParams' (Par start end f) = error "par"
-grabKernelParams' (Alloc t p)       = error "alloc"
+grabKernelParams' (Par start end f) = error "par in grabKernelParams'"
+grabKernelParams' (Alloc t p)       = error "alloc in grabKernelParams'"
 grabKernelParams' (Decl t p)        = grabKernelParams $ p "tid"
 grabKernelParams' _                 = []
 
@@ -50,8 +51,8 @@ grabKernelParams' _                 = []
 exprAsParam :: Expr -> Parameters
 exprAsParam (Index a is) | a `elem` reservedNames = []
                          | otherwise  = [(a, typeNest TInt is)]
-exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam js ++ concatMap exprAsParam is
-exprAsParam (Call a is)  = exprAsParam a ++ concatMap exprAsParam is
+exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam (is ++ js)
+exprAsParam (Call a is)  = concatMap exprAsParam (a:is)
 exprAsParam (BinOp op)   = binOpParam op
 exprAsParam (UnOp  op)   = unOpParam op
 exprAsParam (Cond c t f) = exprAsParam c ++ exprAsParam t ++ exprAsParam f
@@ -126,6 +127,7 @@ grabKernelReadBacks (Assign (Index name _) es e) = [(name, typeNest TInt es)]
 grabKernelReadBacks (a :>> b)          = grabKernelReadBacks a ++ grabKernelReadBacks b
 grabKernelReadBacks (If c t f)         = grabKernelReadBacks t ++ grabKernelReadBacks f
 grabKernelReadBacks (For _ _ f)        = grabKernelReadBacks $ f (var "tid")
-grabKernelReadBacks (Alloc _ f)      = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
+grabKernelReadBacks (Alloc _ f)        = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
 grabKernelReadBacks (BasicProc p)      = grabKernelReadBacks p
+grabKernelReadBacks (Decl t p)         = grabKernelReadBacks $ p "tid"
 grabKernelReadBacks _                  = []

@@ -17,9 +17,9 @@ data Expr where
   Num    :: Int -> Expr
   Index  :: Name -> [Expr] -> Expr
   Call   :: Expr -> [Expr] -> Expr
+  Cond   :: Expr -> Expr -> Expr -> Expr
   BinOp  :: BOp -> Expr
   UnOp   :: UOp -> Expr
-  Cond   :: Expr -> Expr -> Expr -> Expr
   deriving Eq
 
 

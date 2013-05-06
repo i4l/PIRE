@@ -8,6 +8,7 @@ import Prelude hiding (GT,LT,EQ)
 
 import Control.Monad.State
 import qualified Data.Map as Map
+import Data.List
 
 import Program
 import Expr
@@ -94,8 +95,8 @@ removePointers (TPointer t) = removePointers t
 -- Adds a dereferncing operator (*) to a name iff it is not indexed.
 -- List of Names describe names to exclude (not dereference).
 derefScalar :: Expr -> [Name] -> Expr
-derefScalar a@(Index v es) ns | v `elem` (reservedNames ++ ns) = a
-                              | not $ null es = a
+derefScalar a@(Index v es) ns | v `elem` (reservedNames ++ nub ns) = Index v (map (flip derefScalar ns) es)
+                              | not $ null es = Index v (map (flip derefScalar ns) es)
                               | otherwise     = deref a
 derefScalar (Call i@(Index _ _) is) ns  = Call i $ map (flip derefScalar ns) is
 derefScalar (Call i is)  ns = Call (derefScalar i ns) $ map (flip derefScalar ns) is
