@@ -91,10 +91,8 @@ removePointers (TArray t)   = show (TArray t)
 removePointers (TPointer t) = removePointers t
 
 
--- Adds a dereferncing operator (*) to a name iff it is not indexed (i.e. is a scalar).
+-- Adds a dereferncing operator (*) to a name iff it is not indexed.
 derefScalar :: Expr -> Expr
---derefScalar a@(Index "tid" _) = a
---derefScalar (Index v []) = deref (Index v [])
 derefScalar a@(Index v es) | v `elem` reservedNames = a
                            | not $ null es = a
                            | otherwise     = deref a
