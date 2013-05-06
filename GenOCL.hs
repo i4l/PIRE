@@ -13,42 +13,13 @@ import Analysis
 --import Control.Monad.State
 import Control.Monad.RWS
 import Data.List
-
+import qualified Data.Map as M
 -----------------------------------------------------------------------------
 -- Show Instances
 
 instance Show (Program a) where
   show p = unlines $ hostCode w
     where (_,w) = evalRWS (gen p) () emptyEnv
-
---deriving instance Show (Proc a)
-
------------------------------------------------------------------------------
---instance GenCode (Proc a) where
---  gen = genProc
---
---genProc :: Proc a -> Gen ()
---genProc NilProc          = return ()
---genProc (BasicProc proc) = do i <- incVar
---                              gen proc
---                              ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
---                              tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
---                              tell $ mempty {post = ["}"]}
---genProc (ProcBody p)   = gen p
---genProc (OutParam t p) = do i <- incVar
---                            addParam $ show t ++ " out" ++ show i
---                            --addParam $ sizeParam t $ "outC" ++ show i
---                            gen $ p ("out" ++ show i)
---genProc (NewParam t p) = do i <- incVar
---                            addParam $ show t ++ " arg" ++ show i
---                            --addParam $ sizeParam t $ "argC" ++ show i
---                            gen $ p ("arg" ++ show i)
-
--- | adds a size parameter for a an input or output parameter.
---sizeParam :: Type -> Name -> String
---sizeParam TInt         _ = ""
---sizeParam (TPointer t) n = show t ++ " " ++ n
---sizeParam (TArray   t) n = sizeParam (TPointer t) n
 
 -----------------------------------------------------------------------------
 
