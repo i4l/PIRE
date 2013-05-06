@@ -14,7 +14,7 @@ import Expr
 import Types
 import Gen
 
-
+-- | A list of reserved names used in kernels.
 reservedNames :: [Name]
 reservedNames = ["tid","ix", "localSize", "globalSize"]
 
