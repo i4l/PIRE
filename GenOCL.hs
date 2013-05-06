@@ -241,14 +241,6 @@ readOCL ((n,t):xs) sz = let s = sz
                                 show s ++ "*sizeof(" ++ removePointers t ++ "), " ++ n ++ ", 0, NULL, NULL);\n\n"
                               readOCL xs sz
                                 
---let s = case sz of
---                          Index a _ -> Index a [Num 0]
---                          a         -> a
---                 in line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
---           show s ++ "*sizeof(" ++ removePointers t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
-
-
-
 ------------------------------------------------------------
 -- Extras
 
@@ -259,8 +251,6 @@ setupHeadings = do tell $ mempty {pre = ["#include <stdio.h>"]}
                    tell $ mempty {pre = ["#include \"feldspar_c99.h\""]}
 
                    tell $ mempty {pre = ["#define MAX_SOURCE_SIZE (0x100000)\n\n"]}
-                   --line "int main (void) {"
-                   --indent 2
 
 setupEnd :: Gen ()
 setupEnd = line "return 0;" >> unindent 2 >> line "}"
@@ -298,14 +288,3 @@ setupOCL = do let fp     = "fp"
                      ", " ++ deviceID ++ ", 0, NULL);"
               line "\n\n"
 
-
--- TODO FIXME I'm broken and outdated. 
-setupPrint :: String -> Int -> Gen ()
-setupPrint alloc len = do loopVar <- newLoopVar
-                          line $ "int " ++ loopVar ++ ";"
-                          line $ "for (" ++ loopVar ++ " = 0; " 
-                              ++ loopVar ++ " < " ++ show len ++ "; "
-                              ++ loopVar ++ "++ ) {"
-                          line $ "printf(\"%d\\n\"," ++ alloc 
-                              ++ "[" ++ loopVar ++ "] );"
-                          line "}"
