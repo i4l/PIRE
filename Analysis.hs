@@ -91,7 +91,7 @@ parForUnwind (For start end f) new = For start end $ \e -> parForUnwind (f e) ne
 parForUnwind p                 new = p
 
 -----------------------------------------------------------------------------
--- Are we compiling for OpenCL or regular C (so we know if we should add the OpenCL boilerplate block)
+-- Are we compiling for OpenCL or regular C (so we know if we should add the OpenCL boilerplate block)?
 
 isParallel :: Program a -> Bool
 isParallel (a :>> b)      = isParallel a || isParallel b
@@ -114,6 +114,7 @@ removeDupBasicProg (BasicProc p)  = p
 removeDupBasicProg (For a b f)    = for a b $ \e -> removeDupBasicProg $ f e
 removeDupBasicProg (Par a b f)    = par a b $ \e -> removeDupBasicProg $ f e
 removeDupBasicProg (Alloc t f)    = Alloc t $ \name c af-> removeDupBasicProg $  f name c af
+removeDupBasicProg (Decl t f)     = Decl t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg (OutParam t f) = OutParam t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg (InParam t f)  = InParam t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg p              = p

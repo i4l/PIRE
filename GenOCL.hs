@@ -236,7 +236,9 @@ launchKernel global local = do
 --readOCL :: Name -> Type -> Size -> Gen () 
 readOCL :: Parameters -> Size -> Gen () 
 readOCL []            _  = return ()
-readOCL ((n,t):xs) sz = let s = sz
+readOCL ((n,t):xs) sz | n `elem` reservedNames = readOCL xs sz
+                      | otherwise = 
+                        let s = sz
                         in do line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
                                 show s ++ "*sizeof(" ++ removePointers t ++ "), " ++ n ++ ", 0, NULL, NULL);\n\n"
                               readOCL xs sz
