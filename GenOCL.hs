@@ -180,7 +180,7 @@ genK (Decl t f)        = do d <- incVar
                             lineK $ show t ++ " " ++ m ++ ";"
                             genK $ f m
 
-genK (Alloc t f) = error "Alloc in Kernel code - does this make sense?"
+genK (Alloc t f) = error "Alloc in Kernel code not allowed"
                        -- do argName <- fmap ((++) "mem" . show) incVar
                        --   lineK $ "// Alloc in Kernel"
                        --   genK $ f argName (argName ++ "c")
