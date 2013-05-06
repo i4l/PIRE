@@ -14,9 +14,6 @@ import Data.Monoid
 -----------------------------------------------------------------------------
 -- | Program - AST type
 
--- | An array is simply an Expr (e.g. a name). Expects a list of Indices.
---type IndexedArray = [Index] -> Expr
-
 -- | A partiallly applied location for arrays expecting indexing.
 type PartialLoc e a = [Index] -> Loc e a
 
@@ -29,10 +26,7 @@ data Program a where
   If        :: Expr -> Program a -> Program a -> Program a
   For       :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par       :: Expr -> Expr -> (Expr -> Program a) -> Program a
-  --Alloc     :: Type -> Dim -> (Name -> Name -> Program a) -> Program a
-  --Alloc     :: Type -> (Dim -> Program [Name]) -> Program a
   Alloc     :: Type -> (Name -> Name -> (Dim -> Program a) -> Program a) -> Program a
-  --Alloc     :: Type -> (Name -> Name -> (Name -> Dim) -> Program a ) -> Program a
   Decl      :: Type -> (Name -> Program a) -> Program a
 
   BasicProc :: Program a -> Program a
