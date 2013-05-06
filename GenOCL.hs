@@ -128,6 +128,7 @@ genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t
                                         ++ show t ++ ") " ++ "malloc(sizeof(" ++ show tc ++ ") * " ++ c ++ ")"
                        line $ show tc ++ " " ++ c ++ ";"
                        gen $ f m c k
+                       --line $ "free(" ++ m ++ ");"
                         
 
 --genProg (Alloc t dim f) = do d <- incVar
