@@ -96,7 +96,8 @@ derefScalar :: Expr -> Expr
 --derefScalar a@(Index "tid" _) = a
 --derefScalar (Index v []) = deref (Index v [])
 derefScalar a@(Index v es) | v `elem` reservedNames = a
-                           | otherwise = deref a
+                           | not $ null es = a
+                           | otherwise     = deref a
 derefScalar (Call i@(Index _ _) is)  = Call i (map derefScalar is)
 derefScalar (Call i is)  = Call (derefScalar i) (map derefScalar is)
 derefScalar (Cond c t f) = Cond (derefScalar c) (derefScalar t) (derefScalar f)
