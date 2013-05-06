@@ -102,7 +102,7 @@ derefScalar (Call i@(Index _ _) is)  = Call i (map derefScalar is)
 derefScalar (Call i is)  = Call (derefScalar i) (map derefScalar is)
 derefScalar (Cond c t f) = Cond (derefScalar c) (derefScalar t) (derefScalar f)
 derefScalar (BinOp op)   = BinOp (derefBinOp op)
-derefScalar (UnOp op)    = error "derefScalar: UnOp)"
+derefScalar (UnOp op)    = error "derefScalar: UnOp"
 derefScalar a            = a
 
 derefBinOp ::  BOp -> BOp
