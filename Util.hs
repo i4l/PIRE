@@ -111,11 +111,11 @@ derefBinOp (EQ  a b) = EQ  (derefScalar a) (derefScalar b)
 derefBinOp (NEQ a b) = NEQ (derefScalar a) (derefScalar b)  
 derefBinOp (And a b) = And (derefScalar a) (derefScalar b)  
 derefBinOp (Or  a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (BWAnd  a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (BWOr  a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (BWXOr a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (ShiftL a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (ShiftR a b) = Or  (derefScalar a) (derefScalar b)
+derefBinOp (BWAnd  a b) = BWAnd  (derefScalar a) (derefScalar b)
+derefBinOp (BWOr  a b) = BWOr  (derefScalar a) (derefScalar b)
+derefBinOp (BWXOr a b) = BWXOr  (derefScalar a) (derefScalar b)
+derefBinOp (ShiftL a b) = ShiftL  (derefScalar a) (derefScalar b)
+derefBinOp (ShiftR a b) = ShiftR  (derefScalar a) (derefScalar b)
 
 
 
