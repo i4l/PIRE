@@ -51,12 +51,6 @@ instance Monoid (Program a) where
 -- an easy-to-access test program
 testFor = for (Num 0) (Num 10) (\e -> locNest "arr" [e] e)
 
---emptyProc :: Program ()
---emptyProc = BasicProc (OutParam (TPointer TInt) $ \out -> InParam (TPointer TInt) $ \p1 ->
---              for (Num 0) (Num 10) $ \e -> Assign out [e] (Index p1 [e]) ) 
---
---
-
 -----------------------------------------------------------------------------
 -- "Smart" Constructors for Programs
 
