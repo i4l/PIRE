@@ -14,6 +14,10 @@ import Expr
 import Types
 import Gen
 
+
+reservedNames :: [Name]
+reservedNames = ["tid","ix", "localSize", "globalSize"]
+
 -- | Turns a type into a pointer of the same type. Nests length dim times.
 typeNest :: Type -> Dim -> Type
 typeNest t = (!!) (iterate TPointer t) . length
@@ -89,8 +93,10 @@ removePointers (TPointer t) = removePointers t
 
 -- Adds a dereferncing operator (*) to a name iff it is not indexed (i.e. is a scalar).
 derefScalar :: Expr -> Expr
-derefScalar a@(Index "tid" _) = a
-derefScalar (Index v []) = deref (Index v [])
+--derefScalar a@(Index "tid" _) = a
+--derefScalar (Index v []) = deref (Index v [])
+derefScalar a@(Index v es) | v `elem` reservedNames = a
+                           | otherwise = deref a
 derefScalar (Call i@(Index _ _) is)  = Call i (map derefScalar is)
 derefScalar (Call i is)  = Call (derefScalar i) (map derefScalar is)
 derefScalar (Cond c t f) = Cond (derefScalar c) (derefScalar t) (derefScalar f)

@@ -26,9 +26,8 @@ type Parameters = [(Name, Type)]
 -- | grabKernelParams p gets the arrays used in p as a list of parameters that can be used in a kernel.
 --   Removes duplicates by name only.
 grabKernelParams :: Program a -> Parameters
-grabKernelParams p = rmTid $ rmDup $ grabKernelParams' p
+grabKernelParams = rmDup . grabKernelParams' 
   where rmDup      = nubBy $ \(n1,_) (n2,_) -> n1 == n2
-        rmTid      = deleteBy (\(n1,_) (n2,_) -> n1 == n2) ("tid", TInt)
 
 grabKernelParams' :: Program a -> Parameters
 grabKernelParams' (Assign (Index name _) es e) = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
@@ -44,13 +43,12 @@ grabKernelParams' OutParam{}        = error "OutParam in grabKernelParams'"
 grabKernelParams' InParam{}         = error "InParam in grabKernelParams'"
 grabKernelParams' (Par start end f) = error "par"
 grabKernelParams' (Alloc t p)   = error "alloc"
-grabKernelParams' (Decl t f)        = grabKernelParams $ f "tid"
 grabKernelParams' (Print t e)       = error "print"
 grabKernelParams' _                 = []
 
 -- | Extracts names and types array Indexing operations.
 exprAsParam :: Expr -> Parameters
-exprAsParam (Index a is) | a `elem` ["tid", "ix", "localSize", "globalSize"] = []
+exprAsParam (Index a is) | a `elem` reservedNames = []
                          | otherwise  = [(a, typeNest TInt is)]
 exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam js ++ concatMap exprAsParam is
 exprAsParam (Call a is)  = exprAsParam a ++ concatMap exprAsParam is
@@ -61,7 +59,6 @@ exprAsParam _            = []
 
 unOpParam :: UOp -> Parameters
 unOpParam (BWNeg a) = exprAsParam a
-unOpParam (Deref a) = exprAsParam a
 
 binOpParam :: BOp -> Parameters
 binOpParam (Add a b) = exprAsParam a ++ exprAsParam b
@@ -77,8 +74,8 @@ binOpParam (EQ  a b) = exprAsParam a ++ exprAsParam b
 binOpParam (NEQ a b) = exprAsParam a ++ exprAsParam b
 binOpParam (And a b) = exprAsParam a ++ exprAsParam b
 binOpParam (Or  a b) = exprAsParam a ++ exprAsParam b
-binOpParam (BWAnd a b)  = exprAsParam a ++ exprAsParam b
-binOpParam (BWOr a b)   = exprAsParam a ++ exprAsParam b
+binOpParam (BWAnd a b) = exprAsParam a ++ exprAsParam b
+binOpParam (BWOr a b) = exprAsParam a ++ exprAsParam b
 binOpParam (ShiftL a b) = exprAsParam a ++ exprAsParam b
 binOpParam (ShiftR a b) = exprAsParam a ++ exprAsParam b
 
@@ -101,7 +98,6 @@ isParallel (If _ t f)     = isParallel t || isParallel f
 isParallel (For _ _ f)    = isParallel $ f (var "x")
 isParallel (Par _ _ _)    = True
 isParallel (Alloc _ f)    = isParallel $ f "x" "xc" (const Skip)
-isParallel (Decl _ f)     = isParallel $ f "x"
 isParallel (BasicProc p)  = isParallel p
 isParallel (OutParam t f) = isParallel $ f "out"
 isParallel (InParam t f)  = isParallel $ f "arg"
@@ -126,12 +122,10 @@ removeDupBasicProg p              = p
 -- Find out which parameters to read back after a parallel loop
 
 grabKernelReadBacks :: Program a -> Parameters
-grabKernelReadBacks (Assign (Index name _) es e) | name `elem` ["tid", "ix", "localSize", "globalSize"] = []
-                                                 | otherwise = [(name, typeNest TInt es)]
+grabKernelReadBacks (Assign (Index name _) es e) = [(name, typeNest TInt es)]
 grabKernelReadBacks (a :>> b)          = grabKernelReadBacks a ++ grabKernelReadBacks b
 grabKernelReadBacks (If c t f)         = grabKernelReadBacks t ++ grabKernelReadBacks f
 grabKernelReadBacks (For _ _ f)        = grabKernelReadBacks $ f (var "tid")
-grabKernelReadBacks (Alloc _ f)        = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
-grabKernelReadBacks (Decl _ f)         = grabKernelReadBacks $ f "tid"
+grabKernelReadBacks (Alloc _ f)      = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
 grabKernelReadBacks (BasicProc p)      = grabKernelReadBacks p
 grabKernelReadBacks _                  = []
