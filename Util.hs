@@ -16,7 +16,7 @@ import Gen
 
 -- | A list of reserved names used in kernels.
 reservedNames :: [Name]
-reservedNames = ["tid","ix", "localSize", "globalSize"]
+reservedNames = ["tid", "ix", "localSize", "globalSize"]
 
 -- | Turns a type into a pointer of the same type. Nests length dim times.
 typeNest :: Type -> Dim -> Type
@@ -118,8 +118,8 @@ derefBinOp (NEQ a b) = NEQ (derefScalar a) (derefScalar b)
 derefBinOp (And a b) = And (derefScalar a) (derefScalar b)  
 derefBinOp (Or  a b) = Or  (derefScalar a) (derefScalar b)
 derefBinOp (BWAnd  a b) = BWAnd  (derefScalar a) (derefScalar b)
-derefBinOp (BWOr  a b) = BWOr  (derefScalar a) (derefScalar b)
-derefBinOp (BWXOr a b) = BWXOr  (derefScalar a) (derefScalar b)
+derefBinOp (BWOr  a b)  = BWOr  (derefScalar a) (derefScalar b)
+derefBinOp (BWXOr a b)  = BWXOr  (derefScalar a) (derefScalar b)
 derefBinOp (ShiftL a b) = ShiftL  (derefScalar a) (derefScalar b)
 derefBinOp (ShiftR a b) = ShiftR  (derefScalar a) (derefScalar b)
 

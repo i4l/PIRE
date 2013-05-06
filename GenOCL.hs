@@ -113,10 +113,10 @@ genProg (Par start end f) = do let tid        = "tid"
                                    globalSize = "globalSize"
                                    f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
 
-                                   paramTriples = grabKernelParams f' 
+                                   params = grabKernelParams f' 
                                    parameters = (init . concat) 
                                       [ " __global " ++ show (case t of TPointer _ -> t; a -> TPointer a) ++ " " ++  n ++ "," 
-                                        | (n,t) <- paramTriples]
+                                        | (n,t) <- params]
 
                                kerName <- fmap ((++) "k" . show) incVar
                                lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
@@ -135,7 +135,7 @@ genProg (Par start end f) = do let tid        = "tid"
                                kunindent 2
                                lineK "}"
                                runOCL kerName
-                               setupOCLMemory paramTriples 0 end
+                               setupOCLMemory params 0 end
                                launchKernel end (Num 1024)
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
                                readOCL (grabKernelReadBacks f') end

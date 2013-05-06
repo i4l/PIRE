@@ -42,7 +42,8 @@ grabKernelParams' (BasicProc p)     = grabKernelParams p
 grabKernelParams' OutParam{}        = error "OutParam in grabKernelParams'"
 grabKernelParams' InParam{}         = error "InParam in grabKernelParams'"
 grabKernelParams' (Par start end f) = error "par"
-grabKernelParams' (Alloc t p)   = error "alloc"
+grabKernelParams' (Alloc t p)       = error "alloc"
+grabKernelParams' (Decl t p)        = grabKernelParams $ p "tid"
 grabKernelParams' (Print t e)       = error "print"
 grabKernelParams' _                 = []
 
