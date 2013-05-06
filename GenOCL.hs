@@ -93,7 +93,7 @@ genProg (Par start end f) = do let tid        = "tid"
                                kindent 2
                                lineK $ "for(int ix = 0; ix < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
                                kindent 2
-                               genK $ f' 
+                               genK f' []
                                kunindent 2
                                lineK "}"
                                kunindent 2
@@ -145,42 +145,42 @@ genProg (Decl t f)     = do d <- incVar
                             gen $ f m
 
 -- Code gen in kernel code   
-genK :: Program a -> Gen ()
-genK Skip            = return ()
-genK (Assign name es e) = lineK $ (show name)
+genK :: Program a -> [Name] -> Gen ()
+genK Skip           ns = return ()
+genK (Assign name es e) ns = lineK $ (show name)
                        ++ concat [ "[" ++ show i ++ "]" | i <- es ]
-                       ++ " = " ++ show (derefScalar e) ++ ";"
-genK (p1 :>> p2)    = genK p1 >> genK p2
-genK (If c p1 Skip) = do lineK $ "if(" ++ show (derefScalar c) ++ ") {"
-                         kindent 2
-                         genK p1
-                         kunindent 2
-                         lineK "}"
-genK (If c p1 p2) = do lineK $ "if(" ++ show (derefScalar c) ++ ") { "
-                       kindent 2
-                       genK p1
-                       kunindent 2
-                       lineK "else { "
-                       kindent 2
-                       genK p2
-                       kunindent 2
-                       lineK "}"
-genK (For e1 e2 p) = do i <- newLoopVar
-                        --lineK $ show TInt ++ " " ++ i ++ ";"
-                        lineK $ "for(" ++ show TInt ++ i ++ " = " ++ show (derefScalar e1) ++ "; " 
-                            ++ i ++ " < " ++ show (derefScalar e2) ++ "; "
-                            ++ i ++ "++ ) {"
-                        kindent 2
-                        genK $ p (var i)
-                        kunindent 2
-                        lineK "}"
-genK (Par start end f) = genK (For start end f)
-genK (Decl t f)        = do d <- incVar
-                            let m = "mem" ++ show d
-                            lineK $ show t ++ " " ++ m ++ ";"
-                            genK $ f m
+                       ++ " = " ++ show (derefScalar e ns) ++ ";"
+genK (p1 :>> p2)   ns = genK p1 ns >> genK p2 ns
+genK (If c p1 Skip) ns = do lineK $ "if(" ++ show (derefScalar c ns) ++ ") {"
+                            kindent 2
+                            genK p1 ns
+                            kunindent 2
+                            lineK "}"
+genK (If c p1 p2) ns = do lineK $ "if(" ++ show (derefScalar c ns) ++ ") { "
+                          kindent 2
+                          genK p1 ns
+                          kunindent 2
+                          lineK "else { "
+                          kindent 2
+                          genK p2 ns
+                          kunindent 2
+                          lineK "}"
+genK (For e1 e2 p) ns   = do i <- newLoopVar
+                             --lineK $ show TInt ++ " " ++ i ++ ";"
+                             lineK $ "for(" ++ show TInt ++ i ++ " = " ++ show (derefScalar e1 ns) ++ "; " 
+                                 ++ i ++ " < " ++ show (derefScalar e2 ns) ++ "; "
+                                 ++ i ++ "++ ) {"
+                             kindent 2
+                             genK (p (var i)) ns
+                             kunindent 2
+                             lineK "}"
+genK (Par start end f) ns = genK (For start end f) ns
+genK (Decl t f)        ns = do d <- incVar
+                               let m = "mem" ++ show d
+                               lineK $ show t ++ " " ++ m ++ ";"
+                               genK (f m) (m:ns)
 
-genK (Alloc t f) = error "Alloc in Kernel code not allowed"
+genK (Alloc t f) ns = error "Alloc in Kernel code not allowed"
                        -- do argName <- fmap ((++) "mem" . show) incVar
                        --   lineK $ "// Alloc in Kernel"
                        --   genK $ f argName (argName ++ "c")
