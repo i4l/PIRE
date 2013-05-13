@@ -49,8 +49,8 @@ grabKernelParams' _                 = []
 
 -- | Extracts names and types array Indexing operations.
 exprAsParam :: Expr -> Parameters
-exprAsParam (Index a is) | a `elem` reservedNames = []
-                         | otherwise  = [(a, typeNest TInt is)]
+exprAsParam (Index a is) | a `elem` reservedNames = concatMap exprAsParam is
+                         | otherwise  = [(a, typeNest TInt is)] ++ concatMap exprAsParam is
 exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam (is ++ js)
 exprAsParam (Call a is)  = concatMap exprAsParam (a:is)
 exprAsParam (BinOp op)   = binOpParam op
