@@ -251,6 +251,7 @@ setupHeadings :: Gen ()
 setupHeadings = do tell $ mempty {pre = ["#include <stdio.h>"]}
                    tell $ mempty {pre = ["#include <stdlib.h>"]}
                    tell $ mempty {pre = ["#include <CL/cl.h>"]}
+                   tell $ mempty {pre = ["#include <math.h>"]} -- note: remember to link math. -lm
                    tell $ mempty {pre = ["#include \"feldspar_c99.h\""]}
 
                    tell $ mempty {pre = ["#define MAX_SOURCE_SIZE (0x100000)\n\n"]}
