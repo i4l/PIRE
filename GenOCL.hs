@@ -13,42 +13,13 @@ import Analysis
 --import Control.Monad.State
 import Control.Monad.RWS
 import Data.List
-
+import qualified Data.Map as M
 -----------------------------------------------------------------------------
 -- Show Instances
 
 instance Show (Program a) where
   show p = unlines $ hostCode w
     where (_,w) = evalRWS (gen p) () emptyEnv
-
---deriving instance Show (Proc a)
-
------------------------------------------------------------------------------
---instance GenCode (Proc a) where
---  gen = genProc
---
---genProc :: Proc a -> Gen ()
---genProc NilProc          = return ()
---genProc (BasicProc proc) = do i <- incVar
---                              gen proc
---                              ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
---                              tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
---                              tell $ mempty {post = ["}"]}
---genProc (ProcBody p)   = gen p
---genProc (OutParam t p) = do i <- incVar
---                            addParam $ show t ++ " out" ++ show i
---                            --addParam $ sizeParam t $ "outC" ++ show i
---                            gen $ p ("out" ++ show i)
---genProc (NewParam t p) = do i <- incVar
---                            addParam $ show t ++ " arg" ++ show i
---                            --addParam $ sizeParam t $ "argC" ++ show i
---                            gen $ p ("arg" ++ show i)
-
--- | adds a size parameter for a an input or output parameter.
---sizeParam :: Type -> Name -> String
---sizeParam TInt         _ = ""
---sizeParam (TPointer t) n = show t ++ " " ++ n
---sizeParam (TArray   t) n = sizeParam (TPointer t) n
 
 -----------------------------------------------------------------------------
 
@@ -79,13 +50,6 @@ genProg (InParam t p) = do i <- incVar
 
 genProg Skip = line ""
 
-genProg (Print t e) = do let printTerm = case t of
-                                TInt       -> "i"
-                                TPointer x -> error "ERROR: Attempt to use pointer in in printf."
-                                x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
-                                                           show x ++ "in printf."
-                         line $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
-
 genProg (Assign name es e) = line $ show name --(Index name es) 
                           ++ concat [ "[" ++ show i ++ "]" | i <- es ]
                           ++ " = " ++ show e ++ ";"
@@ -113,10 +77,10 @@ genProg (Par start end f) = do let tid        = "tid"
                                    globalSize = "globalSize"
                                    f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
 
-                                   paramTriples = grabKernelParams f' 
+                                   params = grabKernelParams f' 
                                    parameters = (init . concat) 
                                       [ " __global " ++ show (case t of TPointer _ -> t; a -> TPointer a) ++ " " ++  n ++ "," 
-                                        | (n,t) <- paramTriples]
+                                        | (n,t) <- params]
 
                                kerName <- fmap ((++) "k" . show) incVar
                                lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
@@ -127,15 +91,15 @@ genProg (Par start end f) = do let tid        = "tid"
                                lineK $ show TInt ++ " " ++ globalSize ++ " = " ++ "get_global_size(0);" 
                                lineK $ "if(" ++ tid ++ " < " ++ localSize ++ ") {"
                                kindent 2
-                               lineK $ "for(int ix = 0; i < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
+                               lineK $ "for(int ix = 0; ix < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
                                kindent 2
-                               genK $ f' 
+                               genK f' []
                                kunindent 2
                                lineK "}"
                                kunindent 2
                                lineK "}"
                                runOCL kerName
-                               setupOCLMemory paramTriples 0 end
+                               setupOCLMemory params 0 end
                                launchKernel end (Num 1024)
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
                                readOCL (grabKernelReadBacks f') end
@@ -144,25 +108,16 @@ genProg (Par start end f) = do let tid        = "tid"
                                lineK "}"
 
 genProg (For e1 e2 p) = do i <- newLoopVar
-                           line $ show TInt ++ " " ++ i ++ ";"
-                           line $ "for( " ++ i ++ " = " ++ show e1 ++ "; " 
+                           --line $ show TInt ++ " " ++ i ++ ";"
+                           line $ "for(" ++ show TInt ++ " " ++ i ++ " = " ++ show e1 ++ "; " 
                                ++ i ++ " < " ++ show e2 ++ "; "
-                               ++ i ++ "++ ) {"
+                               ++ i ++ "++) {"
                            indent 2
                            gen $ p (var i)
                            unindent 2
                            line "}"
 
 genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t ++ ". Try Decl?"
-                   -- do d <- incVar
-                   --    let m = "mem" ++ show d
-                   --        c = m ++ "c"
-                   --        tc = TInt
-                   --        k = \dim -> Assign (var c) [] (head dim) .>>
-                   --                     Statement $ var $ show (TPointer t) ++ " " ++ m ++ " = ("
-                   --                     ++ show (TPointer t) ++ ") " ++ "malloc(sizeof(" ++ show (TPointer t) ++ "))"
-                   --    line $ show tc ++ " " ++ c ++ ";"
-                   --    gen $ f m c k
                     | otherwise = 
                     do d <- incVar
                        let m = "mem" ++ show d
@@ -170,9 +125,10 @@ genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t
                            tc = case t of TPointer a -> a; a -> a
                            k = \dim -> Assign (var c) [] (head dim) .>>
                                         Statement $ var $ show t ++ " " ++ m ++ " = ("
-                                        ++ show t ++ ") " ++ "malloc(sizeof(" ++ show t ++ ") * " ++ c ++ ")"
+                                        ++ show t ++ ") " ++ "malloc(sizeof(" ++ show tc ++ ") * " ++ c ++ ")"
                        line $ show tc ++ " " ++ c ++ ";"
                        gen $ f m c k
+                       --line $ "free(" ++ m ++ ");"
                         
 
 --genProg (Alloc t dim f) = do d <- incVar
@@ -190,48 +146,42 @@ genProg (Decl t f)     = do d <- incVar
                             gen $ f m
 
 -- Code gen in kernel code   
-genK :: Program a -> Gen ()
-genK (Print t e) = do let printTerm = case t of
-                                      TInt       -> "i"
-                                      TPointer x -> error "ERROR: Attempt to use pointer in in printf."
-                                      x@_        -> error "ERROR: Attempt to use unsupported type " ++ 
-                                                           show x ++ "in printf."
-                      lineK $ "printf(\"%" ++ printTerm ++ " \"" ++ ", " ++ show e ++ ");"
-genK Skip            = return ()
-genK (Assign name es e) = lineK $ (show name)
+genK :: Program a -> [Name] -> Gen ()
+genK Skip           ns = return ()
+genK (Assign name es e) ns = lineK $ (show name)
                        ++ concat [ "[" ++ show i ++ "]" | i <- es ]
-                       ++ " = " ++ show (derefScalar e) ++ ";"
-genK (p1 :>> p2)    = genK p1 >> genK p2
-genK (If c p1 Skip) = do lineK $ "if( " ++ show (derefScalar c) ++ " ) {"
-                         kindent 2
-                         genK p1
-                         kunindent 2
-                         lineK "}"
-genK (If c p1 p2) = do lineK $ "if( " ++ show (derefScalar c) ++ " ) { "
-                       kindent 2
-                       genK p1
-                       kunindent 2
-                       lineK "else { "
-                       kindent 2
-                       genK p2
-                       kunindent 2
-                       lineK "}"
-genK (For e1 e2 p) = do i <- newLoopVar
-                        lineK $ show TInt ++ " " ++ i ++ ";"
-                        lineK $ "for( " ++ i ++ " = " ++ show (derefScalar e1) ++ "; " 
-                            ++ i ++ " < " ++ show (derefScalar e2) ++ "; "
-                            ++ i ++ "++ ) {"
-                        kindent 2
-                        genK $ p (var i)
-                        kunindent 2
-                        lineK "}"
-genK (Par start end f) = genK (For start end f)
-genK (Decl t f)        = do d <- incVar
-                            let m = "mem" ++ show d
-                            lineK $ show t ++ " " ++ m ++ ";"
-                            genK $ f m
+                       ++ " = " ++ show (derefScalar e ns) ++ ";"
+genK (p1 :>> p2)   ns = genK p1 ns >> genK p2 ns
+genK (If c p1 Skip) ns = do lineK $ "if(" ++ show (derefScalar c ns) ++ ") {"
+                            kindent 2
+                            genK p1 ns
+                            kunindent 2
+                            lineK "}"
+genK (If c p1 p2) ns = do lineK $ "if(" ++ show (derefScalar c ns) ++ ") { "
+                          kindent 2
+                          genK p1 ns
+                          kunindent 2
+                          lineK "else { "
+                          kindent 2
+                          genK p2 ns
+                          kunindent 2
+                          lineK "}"
+genK (For e1 e2 p) ns   = do i <- newLoopVar
+                             --lineK $ show TInt ++ " " ++ i ++ ";"
+                             lineK $ "for(" ++ show TInt ++ i ++ " = " ++ show (derefScalar e1 ns) ++ "; " 
+                                 ++ i ++ " < " ++ show (derefScalar e2 ns) ++ "; "
+                                 ++ i ++ "++ ) {"
+                             kindent 2
+                             genK (p (var i)) ns
+                             kunindent 2
+                             lineK "}"
+genK (Par start end f) ns = genK (For start end f) ns
+genK (Decl t f)        ns = do d <- incVar
+                               let m = "mem" ++ show d
+                               lineK $ show t ++ " " ++ m ++ ";"
+                               genK (f m) (m:ns)
 
-genK (Alloc t f) = error "Alloc in Kernel code - does this make sense?"
+genK (Alloc t f) ns = error "Alloc in Kernel code not allowed"
                        -- do argName <- fmap ((++) "mem" . show) incVar
                        --   lineK $ "// Alloc in Kernel"
                        --   genK $ f argName (argName ++ "c")
@@ -287,19 +237,13 @@ launchKernel global local = do
 --readOCL :: Name -> Type -> Size -> Gen () 
 readOCL :: Parameters -> Size -> Gen () 
 readOCL []            _  = return ()
-readOCL ((n,t):xs) sz = let s = sz
+readOCL ((n,t):xs) sz | n `elem` reservedNames = readOCL xs sz
+                      | otherwise = 
+                        let s = sz
                         in do line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
                                 show s ++ "*sizeof(" ++ removePointers t ++ "), " ++ n ++ ", 0, NULL, NULL);\n\n"
                               readOCL xs sz
                                 
---let s = case sz of
---                          Index a _ -> Index a [Num 0]
---                          a         -> a
---                 in line $ "clEnqueueReadBuffer(command_queue, " ++ n ++ "_obj" ++ ", CL_TRUE, 0, " ++
---           show s ++ "*sizeof(" ++ removePointers t ++ "), *" ++ n ++ ", 0, NULL, NULL);\n\n"
-
-
-
 ------------------------------------------------------------
 -- Extras
 
@@ -307,11 +251,11 @@ setupHeadings :: Gen ()
 setupHeadings = do tell $ mempty {pre = ["#include <stdio.h>"]}
                    tell $ mempty {pre = ["#include <stdlib.h>"]}
                    tell $ mempty {pre = ["#include <CL/cl.h>"]}
+                   tell $ mempty {pre = ["#include <math.h>"]} -- note: remember to link math. -lm
+                   tell $ mempty {pre = ["#include <time.h>"]} -- note: remember to link math. -lm
                    tell $ mempty {pre = ["#include \"feldspar_c99.h\""]}
 
                    tell $ mempty {pre = ["#define MAX_SOURCE_SIZE (0x100000)\n\n"]}
-                   --line "int main (void) {"
-                   --indent 2
 
 setupEnd :: Gen ()
 setupEnd = line "return 0;" >> unindent 2 >> line "}"
@@ -349,14 +293,3 @@ setupOCL = do let fp     = "fp"
                      ", " ++ deviceID ++ ", 0, NULL);"
               line "\n\n"
 
-
--- TODO FIXME I'm broken and outdated. 
-setupPrint :: String -> Int -> Gen ()
-setupPrint alloc len = do loopVar <- newLoopVar
-                          line $ "int " ++ loopVar ++ ";"
-                          line $ "for (" ++ loopVar ++ " = 0; " 
-                              ++ loopVar ++ " < " ++ show len ++ "; "
-                              ++ loopVar ++ "++ ) {"
-                          line $ "printf(\"%d\\n\"," ++ alloc 
-                              ++ "[" ++ loopVar ++ "] );"
-                          line "}"

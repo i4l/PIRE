@@ -8,11 +8,16 @@ import Prelude hiding (GT,LT,EQ)
 
 import Control.Monad.State
 import qualified Data.Map as Map
+import Data.List
 
 import Program
 import Expr
 import Types
 import Gen
+
+-- | A list of reserved names used in kernels.
+reservedNames :: [Name]
+reservedNames = ["tid", "ix", "localSize", "globalSize"]
 
 -- | Turns a type into a pointer of the same type. Nests length dim times.
 typeNest :: Type -> Dim -> Type
@@ -87,35 +92,37 @@ removePointers (TArray t)   = show (TArray t)
 removePointers (TPointer t) = removePointers t
 
 
--- Adds a dereferncing operator (*) to a name iff it is not indexed (i.e. is a scalar).
-derefScalar :: Expr -> Expr
-derefScalar a@(Index "tid" _) = a
-derefScalar (Index v []) = deref (Index v [])
-derefScalar (Call i@(Index _ _) is)  = Call i (map derefScalar is)
-derefScalar (Call i is)  = Call (derefScalar i) (map derefScalar is)
-derefScalar (Cond c t f) = Cond (derefScalar c) (derefScalar t) (derefScalar f)
-derefScalar (BinOp op)   = BinOp (derefBinOp op)
-derefScalar (UnOp op)    = error "derefScalar: UnOp)"
-derefScalar a            = a
+-- Adds a dereferncing operator (*) to a name iff it is not indexed.
+-- List of Names describe names to exclude (not dereference).
+derefScalar :: Expr -> [Name] -> Expr
+derefScalar a@(Index v es) ns | v `elem` (reservedNames ++ nub ns) = Index v (map (flip derefScalar ns) es)
+                              | not $ null es = Index v (map (flip derefScalar ns) es)
+                              | otherwise     = deref a
+derefScalar (Call i@(Index _ _) is) ns  = Call i $ map (flip derefScalar ns) is
+derefScalar (Call i is)  ns = Call (derefScalar i ns) $ map (flip derefScalar ns) is
+derefScalar (Cond c t f) ns = Cond (derefScalar c ns) (derefScalar t ns) (derefScalar f ns)
+derefScalar (BinOp op)   ns = BinOp (derefBinOp op ns)
+derefScalar (UnOp op)    ns = error "derefScalar: UnOp"
+derefScalar a            ns = a
 
-derefBinOp ::  BOp -> BOp
-derefBinOp (Add a b) = Add (derefScalar a) (derefScalar b)
-derefBinOp (Sub a b) = Sub (derefScalar a) (derefScalar b)  
-derefBinOp (Mul a b) = Mul (derefScalar a) (derefScalar b)  
-derefBinOp (Mod a b) = Mod (derefScalar a) (derefScalar b)  
-derefBinOp (LT  a b) = LT  (derefScalar a) (derefScalar b)  
-derefBinOp (LTE a b) = LTE (derefScalar a) (derefScalar b)  
-derefBinOp (GT  a b) = GT  (derefScalar a) (derefScalar b)  
-derefBinOp (GTE a b) = GTE (derefScalar a) (derefScalar b)  
-derefBinOp (EQ  a b) = EQ  (derefScalar a) (derefScalar b)  
-derefBinOp (NEQ a b) = NEQ (derefScalar a) (derefScalar b)  
-derefBinOp (And a b) = And (derefScalar a) (derefScalar b)  
-derefBinOp (Or  a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (BWAnd  a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (BWOr  a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (BWXOr a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (ShiftL a b) = Or  (derefScalar a) (derefScalar b)
-derefBinOp (ShiftR a b) = Or  (derefScalar a) (derefScalar b)
+derefBinOp ::  BOp -> [Name] -> BOp
+derefBinOp (Add a b) ns = Add (derefScalar a ns) (derefScalar b ns)
+derefBinOp (Sub a b) ns = Sub (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (Mul a b) ns = Mul (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (Mod a b) ns = Mod (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (LT  a b) ns = LT  (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (LTE a b) ns = LTE (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (GT  a b) ns = GT  (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (GTE a b) ns = GTE (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (EQ  a b) ns = EQ  (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (NEQ a b) ns = NEQ (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (And a b) ns = And (derefScalar a ns) (derefScalar b ns)  
+derefBinOp (Or  a b) ns = Or  (derefScalar a ns) (derefScalar b ns)
+derefBinOp (BWAnd  a b) ns = BWAnd  (derefScalar a ns) (derefScalar  b ns)
+derefBinOp (BWOr  a b)  ns = BWOr  (derefScalar a ns) (derefScalar   b ns)
+derefBinOp (BWXOr a b)  ns = BWXOr  (derefScalar a ns) (derefScalar  b ns)
+derefBinOp (ShiftL a b) ns = ShiftL  (derefScalar a ns) (derefScalar b ns)
+derefBinOp (ShiftR a b) ns = ShiftR  (derefScalar a ns) (derefScalar b ns)
 
 
 

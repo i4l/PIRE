@@ -26,14 +26,14 @@ type Parameters = [(Name, Type)]
 -- | grabKernelParams p gets the arrays used in p as a list of parameters that can be used in a kernel.
 --   Removes duplicates by name only.
 grabKernelParams :: Program a -> Parameters
-grabKernelParams p = rmTid $ rmDup $ grabKernelParams' p
+grabKernelParams = rmDup . grabKernelParams' 
   where rmDup      = nubBy $ \(n1,_) (n2,_) -> n1 == n2
-        rmTid      = deleteBy (\(n1,_) (n2,_) -> n1 == n2) ("tid", TInt)
 
 grabKernelParams' :: Program a -> Parameters
-grabKernelParams' (Assign (Index name _) es e) = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
-                                                     rhs = exprAsParam e
-                                                 in (lhs:rhs)
+grabKernelParams' (Assign (Index name _) es e) | name `elem` reservedNames = exprAsParam e
+                                               | otherwise = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
+                                                                 rhs = exprAsParam e
+                                                             in (lhs:rhs)
 grabKernelParams' (a :>> b) = grabKernelParams a ++ grabKernelParams b
 grabKernelParams' (If c t f) = let cond   = exprAsParam c 
                                    bodies = grabKernelParams $ t :>> f
@@ -42,18 +42,17 @@ grabKernelParams' (For start end f) = grabKernelParams $ f (var "tid")
 grabKernelParams' (BasicProc p)     = grabKernelParams p
 grabKernelParams' OutParam{}        = error "OutParam in grabKernelParams'"
 grabKernelParams' InParam{}         = error "InParam in grabKernelParams'"
-grabKernelParams' (Par start end f) = error "par"
-grabKernelParams' (Alloc t p)   = error "alloc"
-grabKernelParams' (Decl t f)        = grabKernelParams $ f "tid"
-grabKernelParams' (Print t e)       = error "print"
+grabKernelParams' (Par start end f) = error "par in grabKernelParams'"
+grabKernelParams' (Alloc t p)       = error "alloc in grabKernelParams'"
+grabKernelParams' (Decl t p)        = grabKernelParams $ p "tid"
 grabKernelParams' _                 = []
 
 -- | Extracts names and types array Indexing operations.
 exprAsParam :: Expr -> Parameters
-exprAsParam (Index a is) | a `elem` ["tid", "ix", "localSize", "globalSize"] = []
-                         | otherwise  = [(a, typeNest TInt is)]
-exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam js ++ concatMap exprAsParam is
-exprAsParam (Call a is)  = exprAsParam a ++ concatMap exprAsParam is
+exprAsParam (Index a is) | a `elem` reservedNames = concatMap exprAsParam is
+                         | otherwise  = [(a, typeNest TInt is)] ++ concatMap exprAsParam is
+exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam (is ++ js)
+exprAsParam (Call a is)  = concatMap exprAsParam (a:is)
 exprAsParam (BinOp op)   = binOpParam op
 exprAsParam (UnOp  op)   = unOpParam op
 exprAsParam (Cond c t f) = exprAsParam c ++ exprAsParam t ++ exprAsParam f
@@ -61,7 +60,6 @@ exprAsParam _            = []
 
 unOpParam :: UOp -> Parameters
 unOpParam (BWNeg a) = exprAsParam a
-unOpParam (Deref a) = exprAsParam a
 
 binOpParam :: BOp -> Parameters
 binOpParam (Add a b) = exprAsParam a ++ exprAsParam b
@@ -77,8 +75,8 @@ binOpParam (EQ  a b) = exprAsParam a ++ exprAsParam b
 binOpParam (NEQ a b) = exprAsParam a ++ exprAsParam b
 binOpParam (And a b) = exprAsParam a ++ exprAsParam b
 binOpParam (Or  a b) = exprAsParam a ++ exprAsParam b
-binOpParam (BWAnd a b)  = exprAsParam a ++ exprAsParam b
-binOpParam (BWOr a b)   = exprAsParam a ++ exprAsParam b
+binOpParam (BWAnd a b) = exprAsParam a ++ exprAsParam b
+binOpParam (BWOr a b) = exprAsParam a ++ exprAsParam b
 binOpParam (ShiftL a b) = exprAsParam a ++ exprAsParam b
 binOpParam (ShiftR a b) = exprAsParam a ++ exprAsParam b
 
@@ -93,7 +91,7 @@ parForUnwind (For start end f) new = For start end $ \e -> parForUnwind (f e) ne
 parForUnwind p                 new = p
 
 -----------------------------------------------------------------------------
--- Are we compiling for OpenCL or regular C (so we know if we should add the OpenCL boilerplate block)
+-- Are we compiling for OpenCL or regular C (so we know if we should add the OpenCL boilerplate block)?
 
 isParallel :: Program a -> Bool
 isParallel (a :>> b)      = isParallel a || isParallel b
@@ -117,6 +115,7 @@ removeDupBasicProg (BasicProc p)  = p
 removeDupBasicProg (For a b f)    = for a b $ \e -> removeDupBasicProg $ f e
 removeDupBasicProg (Par a b f)    = par a b $ \e -> removeDupBasicProg $ f e
 removeDupBasicProg (Alloc t f)    = Alloc t $ \name c af-> removeDupBasicProg $  f name c af
+removeDupBasicProg (Decl t f)     = Decl t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg (OutParam t f) = OutParam t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg (InParam t f)  = InParam t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg p              = p
@@ -126,12 +125,11 @@ removeDupBasicProg p              = p
 -- Find out which parameters to read back after a parallel loop
 
 grabKernelReadBacks :: Program a -> Parameters
-grabKernelReadBacks (Assign (Index name _) es e) | name `elem` ["tid", "ix", "localSize", "globalSize"] = []
-                                                 | otherwise = [(name, typeNest TInt es)]
+grabKernelReadBacks (Assign (Index name _) es e) = [(name, typeNest TInt es)]
 grabKernelReadBacks (a :>> b)          = grabKernelReadBacks a ++ grabKernelReadBacks b
 grabKernelReadBacks (If c t f)         = grabKernelReadBacks t ++ grabKernelReadBacks f
 grabKernelReadBacks (For _ _ f)        = grabKernelReadBacks $ f (var "tid")
 grabKernelReadBacks (Alloc _ f)        = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
-grabKernelReadBacks (Decl _ f)         = grabKernelReadBacks $ f "tid"
 grabKernelReadBacks (BasicProc p)      = grabKernelReadBacks p
+grabKernelReadBacks (Decl t p)         = grabKernelReadBacks $ p "tid"
 grabKernelReadBacks _                  = []
