@@ -77,6 +77,7 @@ binOpParam (And a b) = exprAsParam a ++ exprAsParam b
 binOpParam (Or  a b) = exprAsParam a ++ exprAsParam b
 binOpParam (BWAnd a b) = exprAsParam a ++ exprAsParam b
 binOpParam (BWOr a b) = exprAsParam a ++ exprAsParam b
+binOpParam (BWXOr a b) = exprAsParam a ++ exprAsParam b
 binOpParam (ShiftL a b) = exprAsParam a ++ exprAsParam b
 binOpParam (ShiftR a b) = exprAsParam a ++ exprAsParam b
 
