@@ -256,7 +256,8 @@ setupHeadings = do tell $ mempty {pre = ["#include <stdio.h>"]}
                                         ,"#include <CL/cl.h>"
                                         ,"#endif"]}
                    tell $ mempty {pre = ["#include <math.h>"]} -- note: remember to link math. -lm
-                   tell $ mempty {pre = ["#include <time.h>"]} -- note: remember to link math. -lm
+                   tell $ mempty {pre = ["#include <time.h>"]}
+                   tell $ mempty {pre = ["#include <string.h>"]} 
                    tell $ mempty {pre = ["#include \"feldspar_c99.h\""]}
 
                    tell $ mempty {pre = ["#define MAX_SOURCE_SIZE (0x100000)\n\n"]}
