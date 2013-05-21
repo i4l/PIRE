@@ -250,7 +250,11 @@ readOCL ((n,t):xs) sz | n `elem` reservedNames = readOCL xs sz
 setupHeadings :: Gen ()
 setupHeadings = do tell $ mempty {pre = ["#include <stdio.h>"]}
                    tell $ mempty {pre = ["#include <stdlib.h>"]}
-                   tell $ mempty {pre = ["#include <CL/cl.h>"]}
+                   tell $ mempty {pre = ["#ifdef __APPLE__"
+                                        ,"#include <OpenCL/opencl.h>"
+                                        ,"#else"
+                                        ,"#include <CL/cl.h>"
+                                        ,"#endif"]}
                    tell $ mempty {pre = ["#include <math.h>"]} -- note: remember to link math. -lm
                    tell $ mempty {pre = ["#include <time.h>"]} -- note: remember to link math. -lm
                    tell $ mempty {pre = ["#include \"feldspar_c99.h\""]}
