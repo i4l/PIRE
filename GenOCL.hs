@@ -36,7 +36,7 @@ genProg (BasicProc p) = do
                            gen $ removeDupBasicProg p
                            unindent 2
                            ps <- fmap (intercalate ", " . filter (not . null)) (gets params)
-                           tell $ mempty {pre = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
+                           tell $ mempty {procHead = ["void " ++ "f" ++ show i ++ "(" ++ ps ++ ") {"]}
                            tell $ mempty {post = ["}"]}
 genProg (OutParam t p) = do i <- incVar
                             addParam $ show t ++ " out" ++ show i
@@ -99,8 +99,8 @@ genProg (Par start end f) = do let tid        = "tid"
                                kunindent 2
                                lineK "}"
                                runOCL kerName
-                               setupOCLMemory params 0 end
-                               launchKernel end (Num 1024)
+                               setupOCLMemory params 0 end kerName
+                               launchKernel end (Num 1024) kerName
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
                                readOCL (grabKernelReadBacks f') end
 
@@ -193,9 +193,10 @@ genK (Alloc t f) ns = error "Alloc in Kernel code not allowed"
 -----------------------------------------------------------------------------
 -- Other things that may need revising.
 
-setupOCLMemory :: Parameters -> Int -> Size -> Gen ()
-setupOCLMemory []           i s = return ()
-setupOCLMemory ((n,t):xs) i sz = let s = sz
+setupOCLMemory :: Parameters -> Int -> Size -> Name -> Gen ()
+setupOCLMemory []           _ _ _ = return ()
+setupOCLMemory ((n,t):xs) i sz kerName = 
+                                 let s = sz
                                      isScalar = case t of TPointer _ -> False; _ -> True
                                   in do nameUsed <- nameExists n -- If a name is already declared we can reuse it
                                         let objPostfix = "_obj"
@@ -212,29 +213,32 @@ setupOCLMemory ((n,t):xs) i sz = let s = sz
                                                           ++ ", 0, NULL, NULL);"
 
                                         -- set kernel arguments
-                                        let setArgs = "clSetKernelArg(kernel, " ++ show i ++ 
+                                        let setArgs = "clSetKernelArg(" ++ kerName ++ ", " ++ show i ++ 
                                                       ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
                                         line setArgs
                                         addUsedVar n
                                         --when (i /= 0) (line copyBuffers) -- We don't copy the result array
                                         line copyBuffers
-                                        setupOCLMemory xs (i+1) s
+                                        setupOCLMemory xs (i+1) s kerName
 
 runOCL :: Name -> Gen ()
-runOCL kname = do --create kernel & build program
-            kcount <- gets kernelCounter -- we can reuse declared openCL objects
-            line $ (if kcount <= 0 then "cl_program " else "") ++ "program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
-                   "(const size_t *)&source_size, NULL);"
-            line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
-            line $ (if kcount <= 0 then "cl_kernel " else "") ++ "kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
+runOCL kname = do
+            modify $ \env -> env{kernelNames = [kname] ++ kernelNames env}
+            tell $ mempty {pre = ["static cl_kernel " ++ kname ++ ";"]}
+            tell $ mempty {initBlock = ["  " ++ kname ++ " = " ++ "clCreateKernel(program, \"" ++ kname ++ "\", NULL);"]}
+            --kcount <- gets kernelCounter -- we can reuse declared openCL objects
+            --line $ (if kcount <= 0 then "cl_program " else "") ++ "program = clCreateProgramWithSource(context, 1, (const char **)&source_str, " ++
+            --       "(const size_t *)&source_size, NULL);"
+           -- line "clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"
+            --line $ (if kcount <= 0 then "cl_kernel " else "") ++ "kernel = clCreateKernel(program, \"" ++ kname ++ "\", NULL);" 
 
 --launchKernel :: Int -> Int -> Gen ()
-launchKernel :: Expr -> Expr -> Gen ()
-launchKernel global local = do
+launchKernel :: Expr -> Expr -> Name -> Gen ()
+launchKernel global local kerName = do
   kcount <- gets kernelCounter
   line $ (if kcount <= 0 then "size_t " else "") ++ "global_item_size = " ++ show global ++ ";"
   line $ (if kcount <= 0 then "size_t " else "") ++ "local_item_size = "  ++ show local ++ ";"
-  line "clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
+  line $ "clEnqueueNDRangeKernel(command_queue, " ++ kerName ++ ", 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);"
 
 --readOCL :: Name -> Type -> Size -> Gen () 
 readOCL :: Parameters -> Size -> Gen () 
@@ -261,42 +265,85 @@ setupHeadings = do tell $ mempty {pre = ["#include <stdio.h>"]}
                    tell $ mempty {pre = ["#include <time.h>"]}
                    tell $ mempty {pre = ["#include <string.h>"]} 
                    tell $ mempty {pre = ["#include \"feldspar_c99.h\""]}
+                   tell $ mempty {pre = ["#define MAX_SOURCE_SIZE (0x100000)\n"]}
+                   tell $ mempty {pre = ["#ifdef __APPLE__"]}
+                   tell $ mempty {pre = ["#include <sys/time.h>"]}
+                   tell $ mempty {pre = ["double getRealTime() {"]}
+                   tell $ mempty {pre = ["  struct timeval tv;"]}
+                   tell $ mempty {pre = ["  gettimeofday(&tv,0);"]}
+                   tell $ mempty {pre = ["  return (double)tv.tv_sec+1.0e-6*(double)tv.tv_usec;"]}
+                   tell $ mempty {pre = ["}                                                    "]}
+                   tell $ mempty {pre = ["#else                                                "]}
+                   tell $ mempty {pre = ["double getRealTime() {                               "]}
+                   tell $ mempty {pre = ["  struct timespec timer;                             "]}
+                   tell $ mempty {pre = ["  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timer);   "]}
+                   tell $ mempty {pre = ["  return (double)timer.tv_sec+1.0e-9*(double)timer.tv_nsec;"]}
+                   tell $ mempty {pre = ["}"]}
+                   tell $ mempty {pre = ["#endif\n"]}
 
-                   tell $ mempty {pre = ["#define MAX_SOURCE_SIZE (0x100000)\n\n"]}
-
+setupOCLStatics :: Gen ()
+setupOCLStatics = do tell $ mempty {pre = ["static cl_program program;"]}
+                     tell $ mempty {pre = ["static cl_device_id device_id = NULL;"]}
+                     tell $ mempty {pre = ["static cl_command_queue command_queue;"]}
+                     tell $ mempty {pre = ["static cl_context context;"]}
+                     tell $ mempty {pre = ["static char* source_str;"]}
+                     tell $ mempty {pre = ["static size_t source_size;"]}
 setupEnd :: Gen ()
 setupEnd = line "return 0;" >> unindent 2 >> line "}"
 
-setupOCL :: Gen ()
-setupOCL = do let fp     = "fp"
-                  srcStr = "source_str"
-                  srcSize = "source_size"
-              kernels <- getKernelFile
 
-              line $ "FILE *" ++ fp ++ " = NULL;"
-              line $ "char* " ++ srcStr ++ ";"
-              line $ fp ++ " = fopen( \"" ++ kernels ++ "\" , \"r\");"
-              line $ srcStr ++ " = (char*) malloc(MAX_SOURCE_SIZE);"
-              line $ "size_t " ++ srcSize ++ " = fread( " ++ srcStr ++ ", " ++ "1, " ++
-                                "MAX_SOURCE_SIZE, " ++ fp ++ ");"
-              line $ "fclose( " ++ fp ++ " );"
-              
-              let platformID   = "platform_id"
-                  deviceID     = "device_id"
-                  numDevices   = "ret_num_devices"
-                  numPlatforms = "ret_num_platforms"
-                  context      = "context"
-                  queue        = "command_queue"
-                  
-              line $ "cl_platform_id " ++ platformID ++ " = NULL;"
-              line $ "cl_device_id " ++ deviceID ++ " = NULL;"
-              line $ "cl_uint " ++ numDevices ++ ";"
-              line $ "cl_uint " ++ numPlatforms ++ ";"
-              line $ "clGetPlatformIDs(1, &" ++ platformID ++ ", &" ++ numPlatforms ++ ");"
-              line $ "clGetDeviceIDs(" ++ platformID ++ ", CL_DEVICE_TYPE_DEFAULT, 1, " ++
-                     "&" ++ deviceID ++ ", &" ++ numDevices ++ ");"
-              line $ "cl_context " ++ context ++ " = clCreateContext(NULL, 1, &" ++ deviceID ++ ", NULL, NULL, NULL);"
-              line $ "cl_command_queue " ++ queue ++ " = clCreateCommandQueue(" ++ context ++ 
-                     ", " ++ deviceID ++ ", 0, NULL);"
-              line "\n\n"
+setupInit :: Gen ()
+setupInit = do
+  tell $ mempty {initBlock = ["  FILE *fp = NULL;"]}
+  tell $ mempty {initBlock = ["  fp = fopen( \"kernels.cl\" , \"r\");"]}
+  tell $ mempty {initBlock = ["  source_str = (char*) malloc(MAX_SOURCE_SIZE);"]}
+  tell $ mempty {initBlock = ["  source_size = fread( source_str, 1, MAX_SOURCE_SIZE, fp);"]}
+  tell $ mempty {initBlock = ["  fclose( fp );"]}
+  tell $ mempty {initBlock = ["  cl_platform_id platform_id = NULL;"]}
+  tell $ mempty {initBlock = ["  cl_uint ret_num_devices;"]}
+  tell $ mempty {initBlock = ["  cl_uint ret_num_platforms;"]}
+  tell $ mempty {initBlock = ["  clGetPlatformIDs(1, &platform_id, &ret_num_platforms);"]}
+  tell $ mempty {initBlock = ["  clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_DEFAULT, 1, &device_id, &ret_num_devices);"]}
+  tell $ mempty {initBlock = ["  context = clCreateContext(NULL, 1, &device_id, NULL, NULL, NULL);"]}
+  tell $ mempty {initBlock = ["  command_queue = clCreateCommandQueue(context, device_id, 0, NULL);"]}
+  tell $ mempty {initBlock = ["  program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, NULL);"]}
+  tell $ mempty {initBlock = ["  clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);"]}
+  --tell $ mempty {initBlock = ["  kernel = clCreateKernel(program, \"k6\", NULL);"]}
+
+
+
+setupOCL :: Gen ()
+setupOCL = do setupOCLStatics
+              setupInit
+             -- let fp     = "fp"
+             --     srcStr = "source_str"
+             --     srcSize = "source_size"
+             -- kernels <- getKernelFile
+
+             -- line $ "FILE *" ++ fp ++ " = NULL;"
+             -- line $ "char* " ++ srcStr ++ ";"
+             -- line $ fp ++ " = fopen( \"" ++ kernels ++ "\" , \"r\");"
+             -- line $ srcStr ++ " = (char*) malloc(MAX_SOURCE_SIZE);"
+             -- line $ "size_t " ++ srcSize ++ " = fread( " ++ srcStr ++ ", " ++ "1, " ++
+             --                   "MAX_SOURCE_SIZE, " ++ fp ++ ");"
+             -- line $ "fclose( " ++ fp ++ " );"
+             -- 
+             -- let platformID   = "platform_id"
+             --     deviceID     = "device_id"
+             --     numDevices   = "ret_num_devices"
+             --     numPlatforms = "ret_num_platforms"
+             --     context      = "context"
+             --     queue        = "command_queue"
+             --     
+             -- line $ "cl_platform_id " ++ platformID ++ " = NULL;"
+             -- line $ "cl_device_id " ++ deviceID ++ " = NULL;"
+             -- line $ "cl_uint " ++ numDevices ++ ";"
+             -- line $ "cl_uint " ++ numPlatforms ++ ";"
+             -- line $ "clGetPlatformIDs(1, &" ++ platformID ++ ", &" ++ numPlatforms ++ ");"
+             -- line $ "clGetDeviceIDs(" ++ platformID ++ ", CL_DEVICE_TYPE_DEFAULT, 1, " ++
+             --        "&" ++ deviceID ++ ", &" ++ numDevices ++ ");"
+             -- line $ "cl_context " ++ context ++ " = clCreateContext(NULL, 1, &" ++ deviceID ++ ", NULL, NULL, NULL);"
+             -- line $ "cl_command_queue " ++ queue ++ " = clCreateCommandQueue(" ++ context ++ 
+             --        ", " ++ deviceID ++ ", 0, NULL);"
+             -- line "\n\n"
 

@@ -9,26 +9,29 @@ import Data.List
 import Expr
 
 showProg :: Gen () -> IO ()
-showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern'
+showProg prog = putStr $ unlines $ pre' ++ initfunc ++ proch ++ host ++ post' ++ kern'
   where (_,w) = evalRWS prog () emptyEnv
         pre'  = pre w
+        proch = procHead w
         post' = post w
         host  = hostCode w
         kern  = kernelFunctions ++ kernCode w
         kern' = if null kern then [] else ["\n//Kernel code"] ++ kern
+        initfunc = ["void init() {\n"] ++ initBlock w ++ ["\n}"]
 
 
 
 toFile :: FilePath -> Gen () -> IO ()
-toFile path prog = do writeFile path $ pre' ++ host ++ post'
+toFile path prog = do writeFile path $ pre' ++ initfunc ++ proch ++ host ++ post'
                       unless (null kern) $ writeFile kernPath kern
   where (_,s,w) = runRWS prog () emptyEnv
         pre'  = unlines $ pre w
+        proch = unlines $ procHead w
         post' = unlines $ post w
         host  = unlines $ hostCode w
         kernPath = kernelFile s
         kern  = unlines $ kernelFunctions ++ kernCode w
-
+        initfunc = unlines $ ["void init() {\n"] ++ initBlock w ++ ["\n}"]
 --writeFile path (unlines $ extractCode prog emptyEnv) >>
 --                   writeFile (kernelFile emptyEnv) (unlines $ extractCodeK prog emptyEnv)
 
@@ -45,17 +48,21 @@ class GenCode a where
 type Gen = RWS () Writers Env -- Reader is currently unused, hence Unit.
 
 data Writers = Writers
-             { hostCode :: [String]
-             , kernCode :: [String]
-             , pre      :: [String] -- Procedure head
-             , post     :: [String] -- trailing "}" etc.
+             { hostCode  :: [String]
+             , kernCode  :: [String]
+             , initBlock :: [String]
+             , pre       :: [String]
+             , procHead  :: [String]
+             , post      :: [String] -- trailing "}" etc.
              }
 
 instance Monoid Writers where
-  mempty      = Writers mempty mempty mempty mempty
+  mempty      = Writers mempty mempty mempty mempty mempty mempty
   mappend a b =  Writers { hostCode = mappend (hostCode a) (hostCode b)
                          , kernCode = mappend (kernCode a) (kernCode b)
+                         , initBlock = mappend (initBlock a) (initBlock b)
                          , pre      = mappend (pre a) (pre b)
+                         , procHead = mappend (procHead a) (procHead b)
                          , post     = mappend (post a) (post b)
                          }
 
@@ -65,6 +72,7 @@ data Env = Env { varCount      :: Int             -- Variable counter
                , kernelFile    :: FilePath        -- Name of the file containing kernels
                , kiDepth       :: Int             -- Kernel indent depth
                , kernelCounter :: Int             -- Number of kernels generated "so far"
+               , kernelNames   :: [String]        -- Names of kernels used
                , usedVars      :: [String]        -- Which "memory" objects have already been declared (to avoid redecl)
                , params        :: [String]        -- Parameters for the Procedure head
                }
@@ -124,4 +132,4 @@ lineK s = do d <- gets kiDepth
 
 
 emptyEnv :: Env
-emptyEnv = Env 0 0 "kernels.cl" 0 0 [] []
+emptyEnv = Env 0 0 "kernels.cl" 0 0 [] [] []
