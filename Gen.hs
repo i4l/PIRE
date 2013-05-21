@@ -14,7 +14,7 @@ showProg prog = putStr $ unlines $ pre' ++ host ++ post' ++ kern'
         pre'  = pre w
         post' = post w
         host  = hostCode w
-        kern  = kernCode w
+        kern  = kernelFunctions ++ kernCode w
         kern' = if null kern then [] else ["\n//Kernel code"] ++ kern
 
 
@@ -27,10 +27,15 @@ toFile path prog = do writeFile path $ pre' ++ host ++ post'
         post' = unlines $ post w
         host  = unlines $ hostCode w
         kernPath = kernelFile s
-        kern  = unlines $ kernCode w
+        kern  = unlines $ kernelFunctions ++ kernCode w
 
 --writeFile path (unlines $ extractCode prog emptyEnv) >>
 --                   writeFile (kernelFile emptyEnv) (unlines $ extractCodeK prog emptyEnv)
+
+kernelFunctions :: [String]
+kernelFunctions = ["int testBit_fun_int32_t( int x, int i ) {\n" ++
+                  "  return (x & 1 << i) != 0;\n" ++
+                  "}"]
 
 
 
