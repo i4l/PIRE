@@ -126,6 +126,8 @@ genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t
                            k = \dim -> Assign (var c) [] (head dim) .>>
                                         Statement $ var $ show t ++ " " ++ m ++ " = ("
                                         ++ show t ++ ") " ++ "malloc(sizeof(" ++ show tc ++ ") * " ++ c ++ ")"
+                                       -- ++ "free(" ++ m ++ ");"
+
                        line $ show tc ++ " " ++ c ++ ";"
                        gen $ f m c k
                        --line $ "free(" ++ m ++ ");"

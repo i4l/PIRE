@@ -95,14 +95,12 @@ zeroLoc v = \x -> Assign (var v) [Num 0] x
 locDeref :: Name -> Loc Expr a
 locDeref v = \x -> Assign (deref (var v)) [] x
 
---
---(&) :: Loc a -> Loc b -> Loc (a,b)
---loc1 & loc2 = \(x,y) -> loc1 x .>> loc2 y
---
---locMap :: (b -> a) -> Loc a -> Loc b
---locMap f loc = \x -> loc (f x)
 
+-- Memory handling
 
+memcpy :: Expr -> Size -> Type -> Loc Expr a
+memcpy v1 s t = \x -> Statement $ Call (var "memcpy") [v1, x, s']
+  where s' = BinOp $ Mul s $ Call (var "sizeof") [var $ show t]
 
-
-
+free :: Expr -> Program a
+free v = Statement $ Call (var "free") [v]
