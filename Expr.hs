@@ -12,10 +12,16 @@ type Dim = [Size]
 type Size  = Expr
 type Index = Expr 
 
+-- | Memory locations
+data Memory = Host
+            | DevGlobal
+            | DevLocal
+  deriving Eq
+
 -- | Expressions are the RHS in an assignment.
 data Expr where
   Num    :: Int -> Expr
-  Index  :: Name -> [Expr] -> Expr
+  Index  :: Memory -> Name -> [Expr] -> Expr
   Call   :: Expr -> [Expr] -> Expr
   Cond   :: Expr -> Expr -> Expr -> Expr
   BinOp  :: BOp -> Expr
@@ -80,7 +86,10 @@ instance Show BOp where
 
 -- | create a 'scalar' variable
 var :: Name -> Expr
-var v = Index v []
+var v = Index Host v []
+
+glob :: Name -> Expr
+glob v = Index DevGlobal v []
 
 deref :: Expr -> Expr
 deref a = UnOp (Deref a)
@@ -94,7 +103,7 @@ toInt (Num n)    = n
 --toInt _          = undefined
 
 nameFromVar :: Expr -> Name
-nameFromVar (Index v _) = v
+nameFromVar (Index _ v _) = v
 nameFromVar x           = error "expected Index but got " ++ show x
 
 instance Ord (Expr) where
@@ -102,7 +111,7 @@ instance Ord (Expr) where
 
 instance Show Expr where
   show (Num n)       = show n
-  show (Index a is)  = a ++ concat [ "[" ++ show i ++ "]" | i <- is ]
+  show (Index _ a is)  = a ++ concat [ "[" ++ show i ++ "]" | i <- is ]
   show (Call e args) = show e ++ "(" ++ if null as then ")" else (init . concat) as ++ ")"
     where as = [show a ++ "," | a <- args]
   show (BinOp op) = show op

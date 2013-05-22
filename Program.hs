@@ -25,7 +25,7 @@ data Program a where
   If        :: Expr -> Program a -> Program a -> Program a
   For       :: Expr -> Expr -> (Expr -> Program a) -> Program a
   Par       :: Expr -> Expr -> (Expr -> Program a) -> Program a
-  Alloc     :: Type -> (Name -> Name -> (Dim -> Program a) -> Program a) -> Program a
+  Alloc     :: Type -> (Name -> Name -> (Memory -> Dim -> Program a) -> Program a) -> Program a
   Decl      :: Type -> (Name -> Program a) -> Program a
   BasicProc :: Program a -> Program a
   OutParam  :: Type -> (Name -> Program a) -> Program a 
@@ -99,8 +99,52 @@ locDeref v = \x -> Assign (deref (var v)) [] x
 -- Memory handling
 
 memcpy :: Expr -> Size -> Type -> Loc Expr a
-memcpy v1 s t = \x -> Statement $ Call (var "memcpy") [v1, x, s']
-  where s' = BinOp $ Mul s $ Call (var "sizeof") [var $ show t]
+memcpy dst s t = copy
+  where
+    sz = BinOp $ Mul s $ Call (var "sizeof") [var $ show t]
+
+    kind (Index m _ _)    = m
+    kind (UnOp (Deref e)) = kind e
+    kind e                = error (show e)
+
+    copy src = case (kind dst, kind src) of
+               (Host, Host) -> Statement $ Call (var "memcpy") [dst, src, sz]
+               (DevGlobal, Host) -> Statement $ Call (var "clEnqueueWriteBuffer")
+                                      [ var "command_queue"
+                                      , dst           -- target
+                                      , var "CL_TRUE" -- blocking
+                                      , Num 0         -- offset
+                                      , sz            -- number of bytes
+                                      , src           -- source
+                                      , Num 0         -- num events
+                                      , var "NULL"    -- event list
+                                      , var "NULL"    -- completion event
+                                      ]
+               (DevGlobal, DevGlobal) -> Statement $ Call (var "clEnqueueCopyBuffer")
+                                      [ var "command_queue"
+                                      , src           -- source
+                                      , dst           -- target
+                                      , Num 0         -- src offset
+                                      , Num 0         -- dst offset
+                                      , sz            -- number of bytes
+                                      , Num 0         -- num events
+                                      , var "NULL"    -- event list
+                                      , var "NULL"    -- completion event
+                                      ]
+               (Host, DevGlobal) -> Statement $ Call (var "clEnqueueReadBuffer")
+                                      [ var "command_queue"
+                                      , src           -- source
+                                      , var "CL_TRUE" -- blocking
+                                      , Num 0         -- offset
+                                      , sz            -- number of bytes
+                                      , dst           -- target
+                                      , Num 0         -- num events
+                                      , var "NULL"    -- event list
+                                      , var "NULL"    -- completion event
+                                      ]
+
 
 free :: Expr -> Program a
-free v = Statement $ Call (var "free") [v]
+free v@(Index Host n is) = Statement $ Call (var "free") [v]
+free v@(Index DevGlobal n is) = Statement $ Call (var "clReleaseMemObject") [v]
+

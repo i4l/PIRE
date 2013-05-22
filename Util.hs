@@ -95,10 +95,10 @@ removePointers (TPointer t) = removePointers t
 -- Adds a dereferncing operator (*) to a name iff it is not indexed.
 -- List of Names describe names to exclude (not dereference).
 derefScalar :: Expr -> [Name] -> Expr
-derefScalar a@(Index v es) ns | v `elem` (reservedNames ++ nub ns) = Index v (map (flip derefScalar ns) es)
-                              | not $ null es = Index v (map (flip derefScalar ns) es)
-                              | otherwise     = deref a
-derefScalar (Call i@(Index _ _) is) ns  = Call i $ map (flip derefScalar ns) is
+derefScalar a@(Index m v es) ns | v `elem` (reservedNames ++ nub ns) = Index m v (map (flip derefScalar ns) es)
+                                | not $ null es = Index m v (map (flip derefScalar ns) es)
+                                | otherwise     = deref a
+derefScalar (Call i@(Index _ _ _) is) ns  = Call i $ map (flip derefScalar ns) is
 derefScalar (Call i is)  ns = Call (derefScalar i ns) $ map (flip derefScalar ns) is
 derefScalar (Cond c t f) ns = Cond (derefScalar c ns) (derefScalar t ns) (derefScalar f ns)
 derefScalar (BinOp op)   ns = BinOp (derefBinOp op ns)
