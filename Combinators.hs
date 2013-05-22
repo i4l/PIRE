@@ -99,7 +99,7 @@ mapTest = BasicProc $
             InParam (TPointer TInt)  $ \arr1 -> 
             OutParam (TPointer (TPointer TInt)) $ \out ->
               --Alloc TInt [sz] $ \allocName -> 
-                (par (Num 0) sz $ \e -> locArray out e (f $ Index arr1 [e]))
+                (par (Num 0) sz $ \e -> locArray out e (f $ Index Host arr1 [e]))
                 .>> testFor
               --  .>> loc out (var allocName)
           where

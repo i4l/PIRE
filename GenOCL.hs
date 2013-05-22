@@ -78,12 +78,13 @@ genProg (Par start end f) = do let tid        = "tid"
                                    f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
 
                                    params = grabKernelParams f' 
-                                   parameters = (init . concat) 
-                                      [ " __global " ++ show (case t of TPointer _ -> t; a -> TPointer a) ++ " " ++  n ++ "," 
-                                        | (n,t) <- params]
+                                   parameters = concat $ intersperse ", "
+                                      [ (case t of TPointer _ -> "__global " ++ show t; a -> show a) ++ " " ++ n
+                                      | (n,t) <- params
+                                      ]
 
                                kerName <- fmap ((++) "k" . show) incVar
-                               lineK $ "__kernel void " ++ kerName ++ "(" ++ parameters ++ " ) {"
+                               lineK $ "__kernel void " ++ kerName ++ "( " ++ parameters ++ " ) {"
                                kindent 2
 
                                lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
@@ -93,16 +94,16 @@ genProg (Par start end f) = do let tid        = "tid"
                                kindent 2
                                lineK $ "for(int ix = 0; ix < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
                                kindent 2
-                               genK f' []
+                               genK f' $ map fst params
                                kunindent 2
                                lineK "}"
                                kunindent 2
                                lineK "}"
                                runOCL kerName
-                               setupOCLMemory params 0 end kerName
+                               setupOCLMemory params end kerName
                                launchKernel end (Num 1024) kerName
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
-                               readOCL (grabKernelReadBacks f') end
+--                               readOCL (grabKernelReadBacks f') end
 
                                kunindent 2
                                lineK "}"
@@ -123,15 +124,22 @@ genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t
                        let m = "mem" ++ show d
                            c = m ++ "c"
                            tc = case t of TPointer a -> a; a -> a
-                           k = \dim -> Assign (var c) [] (head dim) .>>
+                           k Host dim = Assign (var c) [] (head dim) .>>
                                         Statement $ var $ show t ++ " " ++ m ++ " = ("
                                         ++ show t ++ ") " ++ "malloc(sizeof(" ++ show tc ++ ") * " ++ c ++ ")"
-                                       -- ++ "free(" ++ m ++ ");"
+                           k DevGlobal dim = Assign (var c) [] (head dim) .>>
+                                             Assign (var $ "cl_mem " ++ m) [] $ Call (var "clCreateBuffer")
+                                               [ var "context"
+                                               , var "CL_MEM_READ_WRITE"
+                                               , BinOp $ Mul (var c) $ Call (var "sizeof") [var $ show tc]
+                                               , var "NULL"
+                                               , var "NULL"
+                                               ]
+  
 
                        line $ show tc ++ " " ++ c ++ ";"
                        gen $ f m c k
                        --line $ "free(" ++ m ++ ");"
-                        
 
 --genProg (Alloc t dim f) = do d <- incVar
 --                             let m = "mem" ++ show d
@@ -193,33 +201,45 @@ genK (Alloc t f) ns = error "Alloc in Kernel code not allowed"
 -----------------------------------------------------------------------------
 -- Other things that may need revising.
 
-setupOCLMemory :: Parameters -> Int -> Size -> Name -> Gen ()
-setupOCLMemory []           _ _ _ = return ()
-setupOCLMemory ((n,t):xs) i sz kerName = 
-                                 let s = sz
-                                     isScalar = case t of TPointer _ -> False; _ -> True
-                                  in do nameUsed <- nameExists n -- If a name is already declared we can reuse it
-                                        let objPostfix = "_obj"
-                                            createBuffers = 
-                                                     (if not nameUsed then "cl_mem " else "") ++ n ++ 
-                                                     objPostfix ++ " = clCreateBuffer(context, " ++ 
-                                                     "CL_MEM_READ_WRITE" ++ ", " ++ (if isScalar then "" else show s ++ "*") ++ "sizeof(" ++ 
-                                                     removePointers t ++ "), NULL, NULL);"
-                                        line createBuffers
-                                        let copyBuffers = "clEnqueueWriteBuffer(command_queue, " ++ n ++ 
-                                                          objPostfix ++ ", CL_TRUE, 0, " ++ (if isScalar then "" else show s ++ "*") ++ "sizeof(" ++ 
-                                                          removePointers t ++"), " ++ 
-                                                          (if isScalar then "&" else "") ++ n 
-                                                          ++ ", 0, NULL, NULL);"
+setupOCLMemory :: Parameters -> Size -> Name -> Gen ()
+setupOCLMemory ps sz kn = do
+--    createBuffers sz kn ps
+--    copyBuffers sz ps
+    setKernelArgs kn ps
 
-                                        -- set kernel arguments
-                                        let setArgs = "clSetKernelArg(" ++ kerName ++ ", " ++ show i ++ 
-                                                      ", sizeof(cl_mem), (void *)&" ++ n ++ objPostfix ++ ");"
-                                        line setArgs
-                                        addUsedVar n
-                                        --when (i /= 0) (line copyBuffers) -- We don't copy the result array
-                                        line copyBuffers
-                                        setupOCLMemory xs (i+1) s kerName
+createBuffers :: Size -> Name -> Parameters -> Gen ()
+createBuffers sz kn = mapM_ go
+  where
+    go (n,TPointer t) = do
+      nameUsed <- nameExists n
+      let prefix = if nameUsed then "" else "cl_mem "
+          obj    = n ++ "_obj"
+      line $ intercalate ", " [ prefix ++ obj ++ " = clCreateBuffer(context, CL_MEM_READ_WRITE"
+                              , show sz ++ "*sizeof(" ++ show t ++ "), NULL, NULL);"
+                              ]
+      addUsedVar n
+    go _ = return ()
+
+copyBuffers :: Size -> Parameters -> Gen ()
+copyBuffers sz = mapM_ go
+  where
+    go (n,TPointer t) =
+      line $ intercalate ", "
+        [ "clEnqueueWriteBuffer(command_queue"
+        , n ++ "_obj"
+        , "CL_TRUE, 0"
+        , show sz ++ "*sizeof(" ++ show t ++ ")"
+        , n
+        , "0, NULL, NULL);"
+        ]
+    go _ = return ()
+
+setKernelArgs :: Name -> Parameters -> Gen ()
+setKernelArgs kn = zipWithM_ go [0..]
+  where
+    setarg i (n,t) = line $ "clSetKernelArg(" ++ kn ++ ", " ++ i ++ ", sizeof(" ++ t ++ "), &" ++ n ++ ");"
+    go i (n,t) = setarg (show i) $ case t of TPointer _ -> (n,"cl_mem")
+                                             _          -> (n,show t)
 
 runOCL :: Name -> Gen ()
 runOCL kname = do

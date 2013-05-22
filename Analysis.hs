@@ -30,7 +30,7 @@ grabKernelParams = rmDup . grabKernelParams'
   where rmDup      = nubBy $ \(n1,_) (n2,_) -> n1 == n2
 
 grabKernelParams' :: Program a -> Parameters
-grabKernelParams' (Assign (Index name _) es e) | name `elem` reservedNames = exprAsParam e
+grabKernelParams' (Assign (Index _ name _) es e) | name `elem` reservedNames = exprAsParam e
                                                | otherwise = let lhs = (name,typeNest TInt es) -- TODO: hard-coded to Int.
                                                                  rhs = exprAsParam e
                                                              in (lhs:rhs)
@@ -49,9 +49,9 @@ grabKernelParams' _                 = []
 
 -- | Extracts names and types array Indexing operations.
 exprAsParam :: Expr -> Parameters
-exprAsParam (Index a is) | a `elem` reservedNames = concatMap exprAsParam is
+exprAsParam (Index _ a is) | a `elem` reservedNames = concatMap exprAsParam is
                          | otherwise  = [(a, typeNest TInt is)] ++ concatMap exprAsParam is
-exprAsParam (Call (Index _ js) is)  = concatMap exprAsParam (is ++ js)
+exprAsParam (Call (Index _ _ js) is)  = concatMap exprAsParam (is ++ js)
 exprAsParam (Call a is)  = concatMap exprAsParam (a:is)
 exprAsParam (BinOp op)   = binOpParam op
 exprAsParam (UnOp  op)   = unOpParam op
@@ -99,7 +99,7 @@ isParallel (a :>> b)      = isParallel a || isParallel b
 isParallel (If _ t f)     = isParallel t || isParallel f
 isParallel (For _ _ f)    = isParallel $ f (var "x")
 isParallel (Par _ _ _)    = True
-isParallel (Alloc _ f)    = isParallel $ f "x" "xc" (const Skip)
+isParallel (Alloc _ f)    = isParallel $ f "x" "xc" (\_ _ -> Skip)
 isParallel (Decl _ f)     = isParallel $ f "x"
 isParallel (BasicProc p)  = isParallel p
 isParallel (OutParam t f) = isParallel $ f "out"
@@ -126,11 +126,11 @@ removeDupBasicProg p              = p
 -- Find out which parameters to read back after a parallel loop
 
 grabKernelReadBacks :: Program a -> Parameters
-grabKernelReadBacks (Assign (Index name _) es e) = [(name, typeNest TInt es)]
+grabKernelReadBacks (Assign (Index _ name _) es e) = [(name, typeNest TInt es)]
 grabKernelReadBacks (a :>> b)          = grabKernelReadBacks a ++ grabKernelReadBacks b
 grabKernelReadBacks (If c t f)         = grabKernelReadBacks t ++ grabKernelReadBacks f
 grabKernelReadBacks (For _ _ f)        = grabKernelReadBacks $ f (var "tid")
-grabKernelReadBacks (Alloc _ f)        = grabKernelReadBacks $ f "tid" "tidc" (const Skip)
+grabKernelReadBacks (Alloc _ f)        = grabKernelReadBacks $ f "tid" "tidc" (\_ _ -> Skip)
 grabKernelReadBacks (BasicProc p)      = grabKernelReadBacks p
 grabKernelReadBacks (Decl t p)         = grabKernelReadBacks $ p "tid"
 grabKernelReadBacks _                  = []

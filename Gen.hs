@@ -49,6 +49,7 @@ type Gen = RWS () Writers Env -- Reader is currently unused, hence Unit.
 
 data Writers = Writers
              { hostCode  :: [String]
+             , decls     :: [String]
              , kernCode  :: [String]
              , initBlock :: [String]
              , pre       :: [String]
@@ -57,8 +58,9 @@ data Writers = Writers
              }
 
 instance Monoid Writers where
-  mempty      = Writers mempty mempty mempty mempty mempty mempty
+  mempty      = Writers mempty mempty mempty mempty mempty mempty mempty
   mappend a b =  Writers { hostCode = mappend (hostCode a) (hostCode b)
+                         , decls    = mappend (decls a) (decls b)
                          , kernCode = mappend (kernCode a) (kernCode b)
                          , initBlock = mappend (initBlock a) (initBlock b)
                          , pre      = mappend (pre a) (pre b)
@@ -82,6 +84,9 @@ line :: String -> Gen ()
 line s = do d <- gets iDepth
             let ind = concat $ replicate d " "
             tell $ mempty {hostCode = [ind ++ s]}
+
+decl :: String -> Gen ()
+decl s = tell $ mempty {procHead = ["  " ++ s]}
 
 addParam :: String -> Gen ()
 addParam s = modify $ \env -> env{params = params env ++ [s]}
