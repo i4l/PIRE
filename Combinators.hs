@@ -94,18 +94,18 @@ import Control.Monad.RWS
 ---- Example programs
 --
 ---- | With initialize and mapP helper functions.
-mapTest :: Program a
-mapTest = BasicProc $ 
-            InParam (TPointer TInt)  $ \arr1 -> 
-            OutParam (TPointer (TPointer TInt)) $ \out ->
-              --Alloc TInt [sz] $ \allocName -> 
-                (par (Num 0) sz $ \e -> locArray out e (f $ Index Host arr1 [e]))
-                .>> testFor
-              --  .>> loc out (var allocName)
-          where
-            f = (.*) (Num 2)
-            sz = Num 16
-              -- mapP (.* (Num 2)) (Num 10) $ loc
+--mapTest :: Program a
+--mapTest = BasicProc $ 
+--            InParam (TPointer TInt)  $ \arr1 -> 
+--            OutParam (TPointer (TPointer TInt)) $ \out ->
+--              --Alloc TInt [sz] $ \allocName -> 
+--                (par (Num 0) sz $ \e -> locArray out e (f $ Index Host arr1 [e]))
+--                .>> testFor
+--              --  .>> loc out (var allocName)
+--          where
+--            f = (.*) (Num 2)
+--            sz = Num 16
+--              -- mapP (.* (Num 2)) (Num 10) $ loc
                       
 --mapTest = initArray t dim initf $
 --            \_ arrName -> mapP t dim apply arrName $

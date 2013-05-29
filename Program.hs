@@ -29,7 +29,7 @@ data Program a where
   Decl      :: Type -> (Name -> Program a) -> Program a
   BasicProc :: Program a -> Program a
   OutParam  :: Type -> (Name -> Program a) -> Program a 
-  InParam   :: Type -> (Name -> Program a) -> Program a
+  InParam   :: Type -> (Memory -> Name -> Program a) -> Program a
   deriving Typeable
 
 

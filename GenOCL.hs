@@ -45,7 +45,7 @@ genProg (OutParam t p) = do i <- incVar
 genProg (InParam t p) = do i <- incVar
                            addParam $ show t ++ " arg" ++ show i
                            unless (t == TInt ) $ addParam $ show TInt ++ " arg" ++ show i ++ "c"
-                           gen $ p ("arg" ++ show i)
+                           gen $ p DevGlobal ("arg" ++ show i)
 
 
 genProg Skip = line ""
@@ -124,17 +124,20 @@ genProg (Alloc t f) | t == TInt = error $ "Alloc on a scalar of type " ++ show t
                        let m = "mem" ++ show d
                            c = m ++ "c"
                            tc = case t of TPointer a -> a; a -> a
-                           k Host dim = Assign (var c) [] (head dim) .>>
-                                        Statement $ var $ show t ++ " " ++ m ++ " = ("
-                                        ++ show t ++ ") " ++ "malloc(sizeof(" ++ show tc ++ ") * " ++ c ++ ")"
-                           k DevGlobal dim = Assign (var c) [] (head dim) .>>
-                                             Assign (var $ "cl_mem " ++ m) [] $ Call (var "clCreateBuffer")
-                                               [ var "context"
-                                               , var "CL_MEM_READ_WRITE"
-                                               , BinOp $ Mul (var c) $ Call (var "sizeof") [var $ show tc]
-                                               , var "NULL"
-                                               , var "NULL"
-                                               ]
+                       used <- nameExists m -- store without suffix
+                       let k Host dim = Assign (var c) [] (head dim) .>>
+                                       Statement $ var $ show t ++ " " ++ m ++ " = ("
+                                       ++ show t ++ ") " ++ "malloc(sizeof(" ++ show tc ++ ") * " ++ c ++ ")"
+                           k DevGlobal dim = if used then Skip 
+                                              else
+                                               Assign (var c) [] (head dim) .>>
+                                               Assign (var $ "cl_mem " ++ m) [] $ Call (var "clCreateBuffer")
+                                                 [ var "context"
+                                                 , var "CL_MEM_READ_WRITE"
+                                                 , BinOp $ Mul (var c) $ Call (var "sizeof") [var $ show tc]
+                                                 , var "NULL"
+                                                 , var "NULL"
+                                                 ]
   
 
                        line $ show tc ++ " " ++ c ++ ";"
@@ -203,8 +206,8 @@ genK (Alloc t f) ns = error "Alloc in Kernel code not allowed"
 
 setupOCLMemory :: Parameters -> Size -> Name -> Gen ()
 setupOCLMemory ps sz kn = do
---    createBuffers sz kn ps
---    copyBuffers sz ps
+  --  createBuffers sz kn ps
+  --  copyBuffers sz ps
     setKernelArgs kn ps
 
 createBuffers :: Size -> Name -> Parameters -> Gen ()

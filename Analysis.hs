@@ -103,7 +103,7 @@ isParallel (Alloc _ f)    = isParallel $ f "x" "xc" (\_ _ -> Skip)
 isParallel (Decl _ f)     = isParallel $ f "x"
 isParallel (BasicProc p)  = isParallel p
 isParallel (OutParam t f) = isParallel $ f "out"
-isParallel (InParam t f)  = isParallel $ f "arg"
+isParallel (InParam t f)  = isParallel $ f Host "arg"
 isParallel _              = False
 
 -----------------------------------------------------------------------------
@@ -118,7 +118,7 @@ removeDupBasicProg (Par a b f)    = par a b $ \e -> removeDupBasicProg $ f e
 removeDupBasicProg (Alloc t f)    = Alloc t $ \name c af-> removeDupBasicProg $  f name c af
 removeDupBasicProg (Decl t f)     = Decl t $ \name -> removeDupBasicProg $ f name
 removeDupBasicProg (OutParam t f) = OutParam t $ \name -> removeDupBasicProg $ f name
-removeDupBasicProg (InParam t f)  = InParam t $ \name -> removeDupBasicProg $ f name
+removeDupBasicProg (InParam t f)  = InParam t $ \mem name -> removeDupBasicProg $ f mem name
 removeDupBasicProg p              = p
 
 
