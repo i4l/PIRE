@@ -73,44 +73,27 @@ genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                           unindent 2
                           line "}"
 genProg (Par start end f) = do let tid = "tid"
-                                   --localSize  = "localSize"
-                                   --globalSize = "globalSize"
-                                   --f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
                                    f' = parForUnwind (f $ var tid)  tid
-
                                    params = grabKernelParams f' 
                                    parameters = concat $ intersperse ", "
                                       [ (case t of TPointer _ -> "__global " ++ show t; a -> show a) ++ " " ++ n
-                                      | (n,t) <- params
+                                        | (n,t) <- params
                                       ]
-
                                kerName <- fmap ((++) "k" . show) incVar
                                lineK $ "__kernel void " ++ kerName ++ "( " ++ parameters ++ " ) {"
                                kindent 2
 
                                lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0);"
-                               --lineK $ show TInt ++ " " ++ localSize ++ " = " ++ "get_local_size(0);" 
-                               --lineK $ show TInt ++ " " ++ globalSize ++ " = " ++ "get_global_size(0);" 
-                               --lineK $ "if(" ++ tid ++ " < " ++ localSize ++ ") {"
-                               --kindent 2
-                               --lineK $ "for(int ix = 0; ix < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
-                               --kindent 2
                                genK f' $ map fst params
-                               --kunindent 2
-                               --lineK "}"
-                               --kunindent 2
-                               --lineK "}"
                                runOCL kerName
                                setupOCLMemory params end kerName
                                launchKernel end (Num 1024) kerName
                                modify $ \env -> env {kernelCounter = kernelCounter env + 1}
---                               readOCL (grabKernelReadBacks f') end
 
                                kunindent 2
                                lineK "}"
 
 genProg (For e1 e2 p) = do i <- newLoopVar
-                           --line $ show TInt ++ " " ++ i ++ ";"
                            line $ "for(" ++ show TInt ++ " " ++ i ++ " = " ++ show e1 ++ "; " 
                                ++ i ++ " < " ++ show e2 ++ "; "
                                ++ i ++ "++) {"
