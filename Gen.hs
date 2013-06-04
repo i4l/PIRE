@@ -21,15 +21,15 @@ showProg prog = putStr $ unlines $ pre' ++ initfunc ++ proch ++ host ++ post' ++
 
 
 
-toFile :: FilePath -> Gen () -> IO ()
-toFile path prog = do writeFile path $ pre' ++ initfunc ++ proch ++ host ++ post'
-                      unless (null kern) $ writeFile kernPath kern
+toFile :: FilePath -> String -> Gen () -> IO ()
+toFile path fileName prog = do writeFile (path ++ "/" ++ fileName ++ ".c") $ pre' ++ initfunc ++ proch ++ host ++ post'
+                               unless (null $ kernCode w) $ writeFile kernPath kern
   where (_,s,w) = runRWS prog () emptyEnv
         pre'  = unlines $ pre w
         proch = unlines $ procHead w
         post' = unlines $ post w
         host  = unlines $ hostCode w
-        kernPath = kernelFile s
+        kernPath = path ++ "/" ++  kernelFile s
         kern  = unlines $ kernelFunctions ++ kernCode w
         initfunc = unlines $ ["void init() {\n"] ++ initBlock w ++ ["\n}"]
 --writeFile path (unlines $ extractCode prog emptyEnv) >>
