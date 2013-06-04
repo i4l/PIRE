@@ -17,7 +17,7 @@ import Gen
 
 -- | A list of reserved names used in kernels.
 reservedNames :: [Name]
-reservedNames = ["tid", "ix", "localSize", "globalSize"]
+reservedNames = ["tid"]
 
 -- | Turns a type into a pointer of the same type. Nests length dim times.
 typeNest :: Type -> Dim -> Type
