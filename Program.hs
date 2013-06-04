@@ -83,8 +83,8 @@ locArray v i = \x -> Assign (var v) [i] x
 locNest :: Name -> [Index] -> Loc Expr a
 locNest v is = \x -> Assign (var v) is x
 
---nil :: Loc a
---nil = \_ -> Skip
+nil :: Loc Expr a
+nil = \_ -> Skip
 
 loc :: Name -> Loc Expr a
 loc v = \x -> Assign (var v) [] x
@@ -107,7 +107,9 @@ memcpy dst s t = copy
     kind (UnOp (Deref e)) = kind e
     kind e                = error (show e)
 
-    copy src = case (kind dst, kind src) of
+    copy src | src == dst = Skip
+             | otherwise = 
+              case (kind dst, kind src) of
                (Host, Host) -> Statement $ Call (var "memcpy") [dst, src, sz]
                (DevGlobal, Host) -> Statement $ Call (var "clEnqueueWriteBuffer")
                                       [ var "command_queue"

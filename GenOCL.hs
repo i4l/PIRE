@@ -72,10 +72,11 @@ genProg (If c p1 p2) = do line $ "if( " ++ show c ++ " ) { "
                           gen p2
                           unindent 2
                           line "}"
-genProg (Par start end f) = do let tid        = "tid"
-                                   localSize  = "localSize"
-                                   globalSize = "globalSize"
-                                   f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
+genProg (Par start end f) = do let tid = "tid"
+                                   --localSize  = "localSize"
+                                   --globalSize = "globalSize"
+                                   --f' = parForUnwind (f (var tid .+ ((var localSize) .* (var "ix")))) tid
+                                   f' = parForUnwind (f $ var tid)  tid
 
                                    params = grabKernelParams f' 
                                    parameters = concat $ intersperse ", "
@@ -87,18 +88,18 @@ genProg (Par start end f) = do let tid        = "tid"
                                lineK $ "__kernel void " ++ kerName ++ "( " ++ parameters ++ " ) {"
                                kindent 2
 
-                               lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0)" ++ ";"
-                               lineK $ show TInt ++ " " ++ localSize ++ " = " ++ "get_local_size(0);" 
-                               lineK $ show TInt ++ " " ++ globalSize ++ " = " ++ "get_global_size(0);" 
-                               lineK $ "if(" ++ tid ++ " < " ++ localSize ++ ") {"
-                               kindent 2
-                               lineK $ "for(int ix = 0; ix < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
-                               kindent 2
+                               lineK $ show TInt ++ " " ++  tid ++ " = " ++ "get_global_id(0);"
+                               --lineK $ show TInt ++ " " ++ localSize ++ " = " ++ "get_local_size(0);" 
+                               --lineK $ show TInt ++ " " ++ globalSize ++ " = " ++ "get_global_size(0);" 
+                               --lineK $ "if(" ++ tid ++ " < " ++ localSize ++ ") {"
+                               --kindent 2
+                               --lineK $ "for(int ix = 0; ix < " ++ globalSize ++ "/" ++ localSize ++ "; ix++) {"
+                               --kindent 2
                                genK f' $ map fst params
-                               kunindent 2
-                               lineK "}"
-                               kunindent 2
-                               lineK "}"
+                               --kunindent 2
+                               --lineK "}"
+                               --kunindent 2
+                               --lineK "}"
                                runOCL kerName
                                setupOCLMemory params end kerName
                                launchKernel end (Num 1024) kerName
